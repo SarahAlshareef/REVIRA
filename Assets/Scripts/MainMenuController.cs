@@ -24,12 +24,12 @@ public class MainMenuController : MonoBehaviour
 
     public void OpenSignup()
     {
-        SceneManager.LoadScene("SignupScene"); // Ensure a scene named "SignupScene" exists
+        SceneManager.LoadScene("SignupScene"); // A scene named "SignupScene" should be existed
     }
 
     public void OpenLogin()
     {
-        SceneManager.LoadScene("LoginScene"); // Ensure a scene named "LoginScene" exists
+        SceneManager.LoadScene("LoginScene"); // A scene named "LoginScene" should be existed
     }
 }
 
