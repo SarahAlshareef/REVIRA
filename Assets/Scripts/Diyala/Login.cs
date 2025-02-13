@@ -18,15 +18,28 @@ public class Login : MonoBehaviour {
     public Button loginButton;
     public Button signUpButton;
     public TextMeshProUGUI errorText;
-    
 
-    void Start() {
-        // Initialize Firebase Auth
-        auth = FirebaseAuth.DefaultInstance; 
 
-        // Assign button listeners
+    void Start()
+    {
+        FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task => {
+            if (task.Result == DependencyStatus.Available)
+            {
+                auth = FirebaseAuth.DefaultInstance;
+            }
+            else
+            {
+                Debug.LogError("Could not resolve Firebase dependencies: " + task.Result);
+                ShowError("Firebase setup error.");
+            }
+        });
+
         loginButton.onClick.AddListener(LoginUser);
-        signUpButton.onClick.AddListener(() => SceneManager.LoadScene("SignUpScene"));
+    }
+
+    public void SignUp()
+    {
+        SceneManager.LoadScene("SignUpScene");
     }
 
     public void LoginUser()
