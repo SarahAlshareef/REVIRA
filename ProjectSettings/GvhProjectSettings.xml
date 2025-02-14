@@ -4,4 +4,6 @@
   <projectSetting name="com.google.external-dependency-managerAnalyticsEnabled" value="True" />
   <projectSetting name="com.google.firebaseAnalyticsCookie" value="a32337a268734dacb4ca0399a4b5a64e" />
   <projectSetting name="com.google.firebaseAnalyticsEnabled" value="True" />
+  <projectSetting name="GooglePlayServices.PromptBeforeAutoResolution" value="False" />
+  <projectSetting name="GooglePlayServices.UseJetifier" value="True" />
 </projectSettings>
