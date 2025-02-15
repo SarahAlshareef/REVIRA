@@ -17,6 +17,7 @@ public class SignUp : MonoBehaviour
     public TMP_InputField passwordInput;
     public Button signUpButton;
     public Button loginButton;
+    public TextMeshProUGUI errorText; // Added for error messages
 
     private FirebaseAuth auth;
 
@@ -41,6 +42,7 @@ public class SignUp : MonoBehaviour
         if (task.Exception != null)
         {
             Debug.LogError("Firebase initialization failed: " + task.Exception);
+            ShowError("Firebase setup failed.");
         }
         else
         {
@@ -50,9 +52,9 @@ public class SignUp : MonoBehaviour
 
     public void OnSignUpButtonClick()
     {
-        string firstName = firstNameInput?.text;
-        string lastName = lastNameInput?.text;
-        string email = emailInput?.text;
+        string firstName = firstNameInput?.text.Trim();
+        string lastName = lastNameInput?.text.Trim();
+        string email = emailInput?.text.Trim();
         string password = passwordInput?.text;
 
         if (ValidateInputs(firstName, lastName, email, password))
@@ -65,12 +67,12 @@ public class SignUp : MonoBehaviour
     {
         if (string.IsNullOrEmpty(firstName) || string.IsNullOrEmpty(lastName))
         {
-            Debug.LogError("First Name and Last Name are required.");
+            ShowError("First Name and Last Name are required.");
             return false;
         }
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
         {
-            Debug.LogError("Email and Password are required.");
+            ShowError("Email and Password are required.");
             return false;
         }
         return true;
@@ -84,6 +86,31 @@ public class SignUp : MonoBehaviour
         if (signUpTask.IsCanceled || signUpTask.IsFaulted)
         {
             Debug.LogError("Sign Up Failed: " + signUpTask.Exception);
+
+            FirebaseException firebaseEx = signUpTask.Exception.GetBaseException() as FirebaseException;
+            AuthError errorCode = (AuthError)firebaseEx.ErrorCode;
+
+            string errorMessage = "Sign up failed. Please try again.";
+            switch (errorCode)
+            {
+                case AuthError.EmailAlreadyInUse:
+                    errorMessage = "This email is already in use.";
+                    break;
+                case AuthError.InvalidEmail:
+                    errorMessage = "Invalid email format.";
+                    break;
+                case AuthError.WeakPassword:
+                    errorMessage = "Password is too weak.";
+                    break;
+                case AuthError.NetworkRequestFailed:
+                    errorMessage = "Network error. Check your connection.";
+                    break;
+                default:
+                    errorMessage = firebaseEx.Message;
+                    break;
+            }
+
+            ShowError(errorMessage);
         }
         else
         {
@@ -95,5 +122,12 @@ public class SignUp : MonoBehaviour
     public void GoToLoginScene()
     {
         SceneManager.LoadScene("LoginScene"); // Navigate to LoginScene
+    }
+
+    void ShowError(string message)
+    {
+        errorText.text = message;
+        errorText.color = Color.red;
+        Debug.LogError("Displayed Error: " + message);
     }
 }
