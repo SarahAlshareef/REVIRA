@@ -115,7 +115,7 @@ public class SignUp : MonoBehaviour
         else
         {
             Debug.Log("Sign Up Successful!");
-            SceneManager.LoadScene("HomeScene"); // Navigate to HomeScene
+            SceneManager.LoadScene("LoginScene"); // Navigate to LooginScene
         }
     }
 

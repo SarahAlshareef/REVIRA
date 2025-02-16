@@ -24,6 +24,7 @@ public class Login : MonoBehaviour
         FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task => {
             if (task.Result == DependencyStatus.Available)
             {
+                FirebaseApp app = FirebaseApp.DefaultInstance;
                 auth = FirebaseAuth.DefaultInstance;
                 Debug.Log("Firebase initialized successfully.");
             }

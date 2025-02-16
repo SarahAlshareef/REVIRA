@@ -46,9 +46,6 @@
     "com.unity.modules.video": "1.0.0",
     "com.unity.modules.vr": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
-    "com.unity.modules.xr": "1.0.0",
-    "com.google.firebase.auth": "10.6.0",
-    "com.google.firebase.firestore": "10.6.0",
-    "com.google.firebase.database":  "10.6.0"
+    "com.unity.modules.xr": "1.0.0"
   }
 }
