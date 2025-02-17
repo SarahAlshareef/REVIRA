@@ -2,8 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using Firebase;
 using UnityEngine;
-using UnityEngine;
-using Firebase;
 using Firebase.Extensions;
 public class testfirebase : MonoBehaviour
 {
