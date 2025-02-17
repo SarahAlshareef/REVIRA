@@ -8,7 +8,8 @@ using UnityEngine.UI;
 public class HomeController : MonoBehaviour
 {
     public Button StoreSelect;
-    
+    public Button Logout;
+
 
 
     void Start()
@@ -16,11 +17,17 @@ public class HomeController : MonoBehaviour
 
         // Assign button click events
         StoreSelect.onClick.AddListener(OpenStoreSelection);
+        Logout.onClick.AddListener(LogoutToMainMenu);
     }
 
 
     public void OpenStoreSelection()
     {
         SceneManager.LoadScene("StoreSelection"); 
+    }
+
+    public void LogoutToMainMenu()
+    {
+        SceneManager.LoadScene("MainMenu");
     }
 }
