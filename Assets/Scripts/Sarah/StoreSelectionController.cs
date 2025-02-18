@@ -28,7 +28,7 @@ public class StoreSelectionController : MonoBehaviour
         Home.onClick.AddListener(BackToHome);
         Logout.onClick.AddListener(LogoutToMainMenu);
 
-        storePopup.SetActive(false); // Hide pop-up
+        storePopup.SetActive(false); // Hide pop-up intially 
     }
 
     public void ShowStorePopUp()
