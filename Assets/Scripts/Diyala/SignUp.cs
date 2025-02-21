@@ -77,16 +77,16 @@ public class SignUp : MonoBehaviour
         List<string> missingFields = new List<string>();
 
         // Check for empty fields and add them to the list
-        if (string.IsNullOrEmpty(firstName))
+        if (string.IsNullOrWhiteSpace(firstName))
             missingFields.Add("First Name");
 
-        if (string.IsNullOrEmpty(lastName))
+        if (string.IsNullOrWhiteSpace(lastName))
             missingFields.Add("Last Name");
 
-        if (string.IsNullOrEmpty(email))
+        if (string.IsNullOrWhiteSpace(email))
             missingFields.Add("Email");
 
-        if (string.IsNullOrEmpty(password))
+        if (string.IsNullOrWhiteSpace(password))
             missingFields.Add("Password");
 
         // If there are missing fields, display them all at once
