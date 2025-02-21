@@ -89,6 +89,14 @@ public class Login : MonoBehaviour
 
     IEnumerator LoginUser(string email, string password)
     {
+        // Ensure Firebase is initialized before attempting login
+        if (auth == null)
+        {
+            ShowError("Authentication service not available. Try again later.");
+            Debug.LogError("Firebase Authentication is not initialized.");
+            yield break;
+        }
+
         var loginTask = auth.SignInWithEmailAndPasswordAsync(email, password);
         yield return new WaitUntil(() => loginTask.IsCompleted);
 
@@ -96,14 +104,13 @@ public class Login : MonoBehaviour
         {
             Debug.LogError("Error logging in: " + loginTask.Exception);
 
-            // Extract Firebase-specific error code
+            // Extract Firebase-specific error
             FirebaseException firebaseEx = loginTask.Exception.GetBaseException() as FirebaseException;
             AuthError errorCode = (AuthError)firebaseEx.ErrorCode;
 
-            // Default error message
             string errorMessage = "Login failed. Check your email and password.";
 
-            // Handle Firebase-specific authentication errors
+            // Handle Firebase authentication errors
             switch (errorCode)
             {
                 case AuthError.InvalidEmail:
@@ -113,7 +120,7 @@ public class Login : MonoBehaviour
                     errorMessage = "Incorrect password.";
                     break;
                 case AuthError.UserNotFound:
-                    errorMessage = "No user found with this email.";
+                    errorMessage = "This email is not registered. Please sign up.";
                     break;
                 case AuthError.UserDisabled:
                     errorMessage = "This account has been disabled.";
@@ -122,19 +129,27 @@ public class Login : MonoBehaviour
                     errorMessage = "Network error. Check your connection.";
                     break;
                 default:
-                    errorMessage = firebaseEx.Message;
+                    // If Firebase didn't classify the error, check for "EMAIL_NOT_FOUND"
+                    if (firebaseEx.Message.Contains("EMAIL_NOT_FOUND"))
+                    {
+                        errorMessage = "This email is not registered. Please sign up.";
+                    }
+                    else
+                    {
+                        errorMessage = firebaseEx.Message; // Show Firebase's original message
+                    }
                     break;
             }
+
             // Display the error message to the user
             ShowError(errorMessage);
+            yield break;
         }
-        else
-        {
-            // If sign-up is successful, navigate to the home scene
-            user = loginTask.Result.User;
-            Debug.Log("User logged in successfully: " + user.Email);
-            SceneManager.LoadScene("HomeScene");
-        }
+
+        // Successful login
+        user = loginTask.Result.User;
+        Debug.Log("User logged in successfully: " + user.Email);
+        SceneManager.LoadScene("HomeScene");
     }
 
     public void SignUp()
