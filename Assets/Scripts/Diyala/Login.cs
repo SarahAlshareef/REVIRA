@@ -35,16 +35,19 @@ public class Login : MonoBehaviour
 
     IEnumerator InitializeFirebase()
     {
+        // Check and fix Firebase dependencies
         var task = FirebaseApp.CheckAndFixDependenciesAsync();
         yield return new WaitUntil(() => task.IsCompleted);
 
         if (task.Exception != null)
         {
+            // Log and show error if Firebase fails to initialize
             Debug.LogError("Firebase initialization failed: " + task.Exception);
             ShowError("Firebase setup failed.");
         }
         else
         {
+            // Initialize Firebase Authentication
             auth = FirebaseAuth.DefaultInstance;
         }
     }
@@ -91,108 +94,21 @@ public class Login : MonoBehaviour
     {
         if (auth == null)
         {
-            ShowError("Authentication service is unavailable. Try again later.");
-            Debug.LogError("Firebase Authentication is not initialized.");
+            ShowError("Invalid email or password. Please try again.");
             yield break;
         }
 
         var loginTask = auth.SignInWithEmailAndPasswordAsync(email, password);
         yield return new WaitUntil(() => loginTask.IsCompleted);
 
-        if (loginTask.IsCanceled || loginTask.IsFaulted)
+        if (loginTask.IsFaulted || loginTask.IsCanceled)
         {
-            Debug.LogError("Error logging in: " + loginTask.Exception);
-
-            // Extract Firebase-specific error
-            FirebaseException firebaseEx = loginTask.Exception?.GetBaseException() as FirebaseException;
-            string rawErrorMessage = firebaseEx != null ? firebaseEx.Message : "No Firebase error message.";
-            Debug.LogError("Raw Firebase Error: " + rawErrorMessage);
-
-            AuthError errorCode = AuthError.None;
-            if (firebaseEx != null && firebaseEx.ErrorCode != 0)
-            {
-                errorCode = (AuthError)firebaseEx.ErrorCode;
-                Debug.LogError("Firebase Error Code: " + errorCode.ToString());
-            }
-
-            // Default error message
-            string errorMessage = "An unexpected error occurred. Please try again.";
-
-            // Handle Firebase authentication errors
-            switch (errorCode)
-            {
-                case AuthError.InvalidEmail:
-                    errorMessage = "Invalid email format. Please enter a correct email.";
-                    break;
-                case AuthError.WrongPassword:
-                    errorMessage = "Incorrect password. Try again.";
-                    break;
-                case AuthError.UserNotFound:
-                    errorMessage = "This email is not registered. Sign up first.";
-                    break;
-                case AuthError.UserDisabled:
-                    errorMessage = "This account has been disabled by an administrator.";
-                    break;
-                case AuthError.NetworkRequestFailed:
-                    errorMessage = "Network error. Check your internet connection.";
-                    break;
-                default:
-                    // Check Firebase raw error message for specific error details
-                    if (!string.IsNullOrEmpty(rawErrorMessage))
-                    {
-                        if (rawErrorMessage.Contains("EMAIL_NOT_FOUND"))
-                        {
-                            errorMessage = "This email is not registered. Sign up first.";
-                        }
-                        else if (rawErrorMessage.Contains("INVALID_EMAIL"))
-                        {
-                            errorMessage = "Invalid email format. Please enter a correct email.";
-                        }
-                        else if (rawErrorMessage.Contains("MISSING_EMAIL"))
-                        {
-                            errorMessage = "Email field cannot be empty.";
-                        }
-                        else if (rawErrorMessage.Contains("WEAK_PASSWORD"))
-                        {
-                            errorMessage = "Password is too weak. Choose a stronger password.";
-                        }
-                        else if (rawErrorMessage.Contains("TOO_MANY_ATTEMPTS_TRY_LATER"))
-                        {
-                            errorMessage = "Too many failed login attempts. Try again later.";
-                        }
-                        else if (rawErrorMessage.Contains("INVALID_PASSWORD"))
-                        {
-                            errorMessage = "Incorrect password. Try again.";
-                        }
-                        else if (rawErrorMessage.Contains("INTERNAL_ERROR"))
-                        {
-                            errorMessage = "Firebase internal error. Try again later.";
-                        }
-                        else
-                        {
-                            errorMessage = "Unexpected error: " + rawErrorMessage;
-                        }
-                    }
-                    break;
-            }
-
-            // Display the error message to the user
-            ShowError(errorMessage);
+            ShowError("Invalid email or password. Please try again.");
             yield break;
         }
 
         // Successful login
-        user = loginTask.Result?.User;
-        if (user != null)
-        {
-            Debug.Log("User logged in successfully: " + user.Email);
-            SceneManager.LoadScene("HomeScene");
-        }
-        else
-        {
-            ShowError("Login successful, but user data is missing. Try again.");
-            Debug.LogError("Firebase login succeeded but user data is null.");
-        }
+        SceneManager.LoadScene("HomeScene");
     }
     public void SignUp()
     {
