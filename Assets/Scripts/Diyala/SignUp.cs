@@ -11,15 +11,15 @@ using TMPro;
 public class SignUp : MonoBehaviour
 {
     [Header("UI Elements")]
-    public TMP_InputField firstNameInput;
-    public TMP_InputField lastNameInput;
-    public TMP_InputField emailInput;
-    public TMP_InputField passwordInput;
-    public Button signUpButton;
-    public Button loginButton;
-    public TextMeshProUGUI errorText; // Added for error messages
+    public TMP_InputField firstNameInput;   // Input field for first name
+    public TMP_InputField lastNameInput;    // Input field for last name
+    public TMP_InputField emailInput;       // Input field for email
+    public TMP_InputField passwordInput;    // Input field for password
+    public Button signUpButton;             // Sign-up button
+    public Button loginButton;              // Login button
+    public TextMeshProUGUI errorText;       // UI element to display error messages
 
-    private FirebaseAuth auth;
+    private FirebaseAuth auth;  // Firebase Authentication instance
 
     void Start()
     {
@@ -36,27 +36,35 @@ public class SignUp : MonoBehaviour
 
     IEnumerator InitializeFirebase()
     {
+        // Check and fix Firebase dependencies
         var task = FirebaseApp.CheckAndFixDependenciesAsync();
         yield return new WaitUntil(() => task.IsCompleted);
 
         if (task.Exception != null)
         {
+            // Log and show error if Firebase fails to initialize
             Debug.LogError("Firebase initialization failed: " + task.Exception);
             ShowError("Firebase setup failed.");
         }
         else
         {
+            // Initialize Firebase Authentication
             auth = FirebaseAuth.DefaultInstance;
         }
     }
 
     public void OnSignUpButtonClick()
     {
+        // Get trimmed input values
         string firstName = firstNameInput?.text.Trim();
         string lastName = lastNameInput?.text.Trim();
         string email = emailInput?.text.Trim();
         string password = passwordInput?.text;
 
+        // Debugging: Log input values
+        Debug.Log($"First Name: [{firstName}], Last Name: [{lastName}], Email: [{email}], Password: [{password}]");
+
+        // Validate inputs before attempting sign-up
         if (ValidateInputs(firstName, lastName, email, password))
         {
             StartCoroutine(SignUpUser(firstName, lastName, email, password));
@@ -65,32 +73,57 @@ public class SignUp : MonoBehaviour
 
     private bool ValidateInputs(string firstName, string lastName, string email, string password)
     {
-        if (string.IsNullOrEmpty(firstName) || string.IsNullOrEmpty(lastName))
+        // List to store missing fields
+        List<string> missingFields = new List<string>();
+
+        // Check for empty fields and add them to the list
+        if (string.IsNullOrWhiteSpace(firstName))
+            missingFields.Add("First Name");
+
+        if (string.IsNullOrWhiteSpace(lastName))
+            missingFields.Add("Last Name");
+
+        if (string.IsNullOrWhiteSpace(email))
+            missingFields.Add("Email");
+
+        if (string.IsNullOrWhiteSpace(password))
+            missingFields.Add("Password");
+
+        // If there are missing fields, display them all at once
+        if (missingFields.Count > 0)
         {
-            ShowError("First Name and Last Name are required.");
-            return false;
+            string errorMessage = "The following fields are required: " + string.Join(", ", missingFields) + ".";
+
+            // Ensure the UI text updates correctly
+            ShowError(errorMessage);
+
+            // Debugging: Log the error message
+            Debug.LogError("Validation Error: " + errorMessage);
+
+            return false; // Validation failed
         }
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
-        {
-            ShowError("Email and Password are required.");
-            return false;
-        }
-        return true;
+        return true; // Validation successful
     }
 
     IEnumerator SignUpUser(string firstName, string lastName, string email, string password)
     {
+        // Attempt to create a new user with email and password
         var signUpTask = auth.CreateUserWithEmailAndPasswordAsync(email, password);
         yield return new WaitUntil(() => signUpTask.IsCompleted);
 
+        // Check if the sign-up operation failed
         if (signUpTask.IsCanceled || signUpTask.IsFaulted)
         {
             Debug.LogError("Sign Up Failed: " + signUpTask.Exception);
 
+            // Extract Firebase-specific error code
             FirebaseException firebaseEx = signUpTask.Exception.GetBaseException() as FirebaseException;
             AuthError errorCode = (AuthError)firebaseEx.ErrorCode;
 
+            // Default error message
             string errorMessage = "Sign up failed. Please try again.";
+
+            // Provide user-friendly error messages based on error code
             switch (errorCode)
             {
                 case AuthError.EmailAlreadyInUse:
@@ -110,24 +143,32 @@ public class SignUp : MonoBehaviour
                     break;
             }
 
+            // Display the error message to the user
             ShowError(errorMessage);
         }
         else
         {
+            // If sign-up is successful, navigate to the login scene
             Debug.Log("Sign Up Successful!");
-            SceneManager.LoadScene("LoginScene"); // Navigate to LooginScene
+            SceneManager.LoadScene("LoginScene");
         }
     }
 
     public void GoToLoginScene()
     {
-        SceneManager.LoadScene("LoginScene"); // Navigate to LoginScene
+        // Load the login scene when the user clicks the login button
+        SceneManager.LoadScene("LoginScene");
     }
 
     void ShowError(string message)
     {
-        errorText.text = message;
-        errorText.color = Color.red;
+        if (errorText != null)
+        {
+            errorText.text = message; // Update error text
+            errorText.color = Color.red;
+        }
+
+        // Debugging: Log error message
         Debug.LogError("Displayed Error: " + message);
     }
 }
