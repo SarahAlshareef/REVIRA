@@ -89,7 +89,6 @@ public class Login : MonoBehaviour
 
     IEnumerator LoginUser(string email, string password)
     {
-        // Ensure Firebase is initialized before attempting login
         if (auth == null)
         {
             ShowError("Authentication service not available. Try again later.");
@@ -104,10 +103,14 @@ public class Login : MonoBehaviour
         {
             Debug.LogError("Error logging in: " + loginTask.Exception);
 
-            // Extract Firebase-specific error code safely
+            // Extract Firebase-specific error
             FirebaseException firebaseEx = loginTask.Exception?.GetBaseException() as FirebaseException;
-            AuthError errorCode = AuthError.None; // Default to None
 
+            // Log the full Firebase error for debugging
+            string rawErrorMessage = firebaseEx != null ? firebaseEx.Message : "No Firebase error message.";
+            Debug.LogError("Raw Firebase Error: " + rawErrorMessage);
+
+            AuthError errorCode = AuthError.None;
             if (firebaseEx != null && firebaseEx.ErrorCode != 0)
             {
                 errorCode = (AuthError)firebaseEx.ErrorCode;
@@ -135,19 +138,30 @@ public class Login : MonoBehaviour
                     errorMessage = "Network error. Check your internet connection.";
                     break;
                 default:
-                    // If Firebase didn't classify the error, check the raw error message
-                    string rawErrorMessage = firebaseEx != null ? firebaseEx.Message : "";
-
-                    if (!string.IsNullOrEmpty(rawErrorMessage))
+                    // Check Firebase raw error message for specific error details
+                    if (rawErrorMessage.Contains("EMAIL_NOT_FOUND"))
                     {
-                        if (rawErrorMessage.Contains("EMAIL_NOT_FOUND"))
-                        {
-                            errorMessage = "This email is not registered. Please sign up.";
-                        }
-                        else if (rawErrorMessage.Contains("INVALID_EMAIL"))
-                        {
-                            errorMessage = "Invalid email format. Please enter a valid email.";
-                        }
+                        errorMessage = "This email is not registered. Please sign up.";
+                    }
+                    else if (rawErrorMessage.Contains("INVALID_EMAIL"))
+                    {
+                        errorMessage = "Invalid email format. Please enter a valid email.";
+                    }
+                    else if (rawErrorMessage.Contains("MISSING_EMAIL"))
+                    {
+                        errorMessage = "Email field cannot be empty.";
+                    }
+                    else if (rawErrorMessage.Contains("WEAK_PASSWORD"))
+                    {
+                        errorMessage = "Password is too weak. Try using a stronger password.";
+                    }
+                    else if (rawErrorMessage.Contains("TOO_MANY_ATTEMPTS_TRY_LATER"))
+                    {
+                        errorMessage = "Too many login attempts. Please try again later.";
+                    }
+                    else if (rawErrorMessage.Contains("INVALID_PASSWORD"))
+                    {
+                        errorMessage = "Incorrect password. Please try again.";
                     }
                     break;
             }
