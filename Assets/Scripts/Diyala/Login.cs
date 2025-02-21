@@ -91,7 +91,7 @@ public class Login : MonoBehaviour
     {
         if (auth == null)
         {
-            ShowError("Authentication service not available. Try again later.");
+            ShowError("Authentication service is unavailable. Try again later.");
             Debug.LogError("Firebase Authentication is not initialized.");
             yield break;
         }
@@ -105,8 +105,6 @@ public class Login : MonoBehaviour
 
             // Extract Firebase-specific error
             FirebaseException firebaseEx = loginTask.Exception?.GetBaseException() as FirebaseException;
-
-            // Log the full Firebase error for debugging
             string rawErrorMessage = firebaseEx != null ? firebaseEx.Message : "No Firebase error message.";
             Debug.LogError("Raw Firebase Error: " + rawErrorMessage);
 
@@ -114,54 +112,66 @@ public class Login : MonoBehaviour
             if (firebaseEx != null && firebaseEx.ErrorCode != 0)
             {
                 errorCode = (AuthError)firebaseEx.ErrorCode;
+                Debug.LogError("Firebase Error Code: " + errorCode.ToString());
             }
 
             // Default error message
-            string errorMessage = "An unknown error occurred. Please try again.";
+            string errorMessage = "An unexpected error occurred. Please try again.";
 
             // Handle Firebase authentication errors
             switch (errorCode)
             {
                 case AuthError.InvalidEmail:
-                    errorMessage = "Invalid email format. Please enter a valid email.";
+                    errorMessage = "Invalid email format. Please enter a correct email.";
                     break;
                 case AuthError.WrongPassword:
-                    errorMessage = "Incorrect password. Please try again.";
+                    errorMessage = "Incorrect password. Try again.";
                     break;
                 case AuthError.UserNotFound:
-                    errorMessage = "This email is not registered. Please sign up.";
+                    errorMessage = "This email is not registered. Sign up first.";
                     break;
                 case AuthError.UserDisabled:
-                    errorMessage = "This account has been disabled.";
+                    errorMessage = "This account has been disabled by an administrator.";
                     break;
                 case AuthError.NetworkRequestFailed:
                     errorMessage = "Network error. Check your internet connection.";
                     break;
                 default:
                     // Check Firebase raw error message for specific error details
-                    if (rawErrorMessage.Contains("EMAIL_NOT_FOUND"))
+                    if (!string.IsNullOrEmpty(rawErrorMessage))
                     {
-                        errorMessage = "This email is not registered. Please sign up.";
-                    }
-                    else if (rawErrorMessage.Contains("INVALID_EMAIL"))
-                    {
-                        errorMessage = "Invalid email format. Please enter a valid email.";
-                    }
-                    else if (rawErrorMessage.Contains("MISSING_EMAIL"))
-                    {
-                        errorMessage = "Email field cannot be empty.";
-                    }
-                    else if (rawErrorMessage.Contains("WEAK_PASSWORD"))
-                    {
-                        errorMessage = "Password is too weak. Try using a stronger password.";
-                    }
-                    else if (rawErrorMessage.Contains("TOO_MANY_ATTEMPTS_TRY_LATER"))
-                    {
-                        errorMessage = "Too many login attempts. Please try again later.";
-                    }
-                    else if (rawErrorMessage.Contains("INVALID_PASSWORD"))
-                    {
-                        errorMessage = "Incorrect password. Please try again.";
+                        if (rawErrorMessage.Contains("EMAIL_NOT_FOUND"))
+                        {
+                            errorMessage = "This email is not registered. Sign up first.";
+                        }
+                        else if (rawErrorMessage.Contains("INVALID_EMAIL"))
+                        {
+                            errorMessage = "Invalid email format. Please enter a correct email.";
+                        }
+                        else if (rawErrorMessage.Contains("MISSING_EMAIL"))
+                        {
+                            errorMessage = "Email field cannot be empty.";
+                        }
+                        else if (rawErrorMessage.Contains("WEAK_PASSWORD"))
+                        {
+                            errorMessage = "Password is too weak. Choose a stronger password.";
+                        }
+                        else if (rawErrorMessage.Contains("TOO_MANY_ATTEMPTS_TRY_LATER"))
+                        {
+                            errorMessage = "Too many failed login attempts. Try again later.";
+                        }
+                        else if (rawErrorMessage.Contains("INVALID_PASSWORD"))
+                        {
+                            errorMessage = "Incorrect password. Try again.";
+                        }
+                        else if (rawErrorMessage.Contains("INTERNAL_ERROR"))
+                        {
+                            errorMessage = "Firebase internal error. Try again later.";
+                        }
+                        else
+                        {
+                            errorMessage = "Unexpected error: " + rawErrorMessage;
+                        }
                     }
                     break;
             }
@@ -180,11 +190,10 @@ public class Login : MonoBehaviour
         }
         else
         {
-            ShowError("An error occurred while retrieving user data. Please try again.");
+            ShowError("Login successful, but user data is missing. Try again.");
             Debug.LogError("Firebase login succeeded but user data is null.");
         }
     }
-
     public void SignUp()
     {
         // Load the sign-up scene
