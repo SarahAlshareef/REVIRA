@@ -135,7 +135,6 @@ public class SignUp : MonoBehaviour
                     errorMessage = firebaseEx.Message;
                     break;
             }
-
             // Display the error message to the user
             ShowError(errorMessage);
         }
@@ -160,7 +159,6 @@ public class SignUp : MonoBehaviour
             errorText.text = message; // Update error text
             errorText.color = Color.red;
         }
-
         // Debugging: Log error message
         Debug.LogError("Displayed Error: " + message);
     }

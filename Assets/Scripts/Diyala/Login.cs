@@ -10,110 +10,146 @@ using TMPro;
 
 public class Login : MonoBehaviour
 {
-    private FirebaseAuth auth;
-    private FirebaseUser user;
+    [Header("UI Elements")]
+    public TMP_InputField emailInput;       // Input field for email
+    public TMP_InputField passwordInput;    // Input field for password
+    public Button loginButton;              // Login button
+    public Button signUpButton;             // Button to switch to Sign-Up scene
+    public TextMeshProUGUI errorText;       // UI text for error messages
 
-    public TMP_InputField emailInput;
-    public TMP_InputField passwordInput;
-    public Button loginButton;
-    public Button signUpButton;
-    public TextMeshProUGUI errorText;
+    private FirebaseAuth auth;  // Firebase Authentication instance
+    private FirebaseUser user;  // Stores the logged in user's data
 
     void Start()
     {
-        FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task => {
-            if (task.Result == DependencyStatus.Available)
-            {
-                FirebaseApp app = FirebaseApp.DefaultInstance;
-                auth = FirebaseAuth.DefaultInstance;
-                Debug.Log("Firebase initialized successfully.");
-            }
-            else
-            {
-                Debug.LogError("Could not resolve Firebase dependencies: " + task.Result);
-                ShowError("Firebase setup error.");
-            }
-        });
+        // Initialize Firebase Authentication
+        StartCoroutine(InitializeFirebase());
 
-        loginButton.onClick.AddListener(LoginUser);
+        // Assign button click events
+        if (loginButton != null)
+            loginButton.onClick.AddListener(OnLoginButtonClick);
+
+        if (signUpButton != null)
+            signUpButton.onClick.AddListener(SignUp);
+    }
+
+    IEnumerator InitializeFirebase()
+    {
+        var task = FirebaseApp.CheckAndFixDependenciesAsync();
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        if (task.Exception != null)
+        {
+            Debug.LogError("Firebase initialization failed: " + task.Exception);
+            ShowError("Firebase setup failed.");
+        }
+        else
+        {
+            auth = FirebaseAuth.DefaultInstance;
+        }
+    }
+
+    public void OnLoginButtonClick()
+    {
+        // Ensure UI fields are updated before validation
+        UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
+
+        string email = emailInput?.text.Trim();
+        string password = passwordInput?.text;
+
+        // Debugging: Log input values
+        Debug.Log($"Attempting login with Email: [{email}]");
+
+        // Validate inputs before attempting login
+        if (ValidateInputs(email, password))
+        {
+            StartCoroutine(LoginUser(email, password));
+        }
+    }
+
+    private bool ValidateInputs(string email, string password)
+    {
+        List<string> missingFields = new List<string>();
+
+        // Check for empty fields and add them to the list
+        if (string.IsNullOrWhiteSpace(email))
+            missingFields.Add("Email");
+
+        if (string.IsNullOrWhiteSpace(password))
+            missingFields.Add("Password");
+
+        // If there are missing fields, display them all at once
+        if (missingFields.Count > 0)
+        {
+            ShowError($"{string.Join(", ", missingFields)} {(missingFields.Count == 1 ? "is" : "are")} required.");
+            return false; // Validation failed
+        }
+        return true; // Validation successful
+    }
+
+    IEnumerator LoginUser(string email, string password)
+    {
+        var loginTask = auth.SignInWithEmailAndPasswordAsync(email, password);
+        yield return new WaitUntil(() => loginTask.IsCompleted);
+
+        if (loginTask.IsCanceled || loginTask.IsFaulted)
+        {
+            Debug.LogError("Error logging in: " + loginTask.Exception);
+
+            // Extract Firebase-specific error code
+            FirebaseException firebaseEx = loginTask.Exception.GetBaseException() as FirebaseException;
+            AuthError errorCode = (AuthError)firebaseEx.ErrorCode;
+
+            // Default error message
+            string errorMessage = "Login failed. Check your email and password.";
+
+            // Handle Firebase-specific authentication errors
+            switch (errorCode)
+            {
+                case AuthError.InvalidEmail:
+                    errorMessage = "Invalid email format.";
+                    break;
+                case AuthError.WrongPassword:
+                    errorMessage = "Incorrect password.";
+                    break;
+                case AuthError.UserNotFound:
+                    errorMessage = "No user found with this email.";
+                    break;
+                case AuthError.UserDisabled:
+                    errorMessage = "This account has been disabled.";
+                    break;
+                case AuthError.NetworkRequestFailed:
+                    errorMessage = "Network error. Check your connection.";
+                    break;
+                default:
+                    errorMessage = firebaseEx.Message;
+                    break;
+            }
+            // Display the error message to the user
+            ShowError(errorMessage);
+        }
+        else
+        {
+            // If sign-up is successful, navigate to the home scene
+            user = loginTask.Result.User;
+            Debug.Log("User logged in successfully: " + user.Email);
+            SceneManager.LoadScene("HomeScene");
+        }
     }
 
     public void SignUp()
     {
+        // Load the sign-up scene
         SceneManager.LoadScene("SignUpScene");
-    }
-
-    public void LoginUser()
-    {
-        if (auth == null)
-        {
-            ShowError("Authentication service not available. Try again later.");
-            Debug.LogError("Firebase Authentication is not initialized.");
-            return;
-        }
-
-        string email = emailInput.text.Trim();
-        string password = passwordInput.text;
-
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
-        {
-            ShowError("Please enter both email and password.");
-            return;
-        }
-
-        Debug.Log($"Attempting login with Email: {email}");
-
-        auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWithOnMainThread(task => {
-
-            if (task.IsCanceled)
-            {
-                ShowError("Login was canceled.");
-                Debug.LogError("Login task was canceled.");
-                return;
-            }
-            if (task.IsFaulted)
-            {
-                Debug.LogError("Error logging in: " + task.Exception);
-                FirebaseException firebaseEx = task.Exception.GetBaseException() as FirebaseException;
-                AuthError errorCode = (AuthError)firebaseEx.ErrorCode;
-
-                string errorMessage = "Login failed. Check your email and password.";
-                switch (errorCode)
-                {
-                    case AuthError.InvalidEmail:
-                        errorMessage = "Invalid email format.";
-                        break;
-                    case AuthError.WrongPassword:
-                        errorMessage = "Incorrect password.";
-                        break;
-                    case AuthError.UserNotFound:
-                        errorMessage = "No user found with this email.";
-                        break;
-                    case AuthError.UserDisabled:
-                        errorMessage = "This account has been disabled.";
-                        break;
-                    case AuthError.NetworkRequestFailed:
-                        errorMessage = "Network error. Check your connection.";
-                        break;
-                    default:
-                        errorMessage = firebaseEx.Message;
-                        break;
-                }
-
-                ShowError(errorMessage);
-                return;
-            }
-
-            user = task.Result.User;
-            Debug.Log("User logged in successfully: " + user.Email);
-            SceneManager.LoadScene("HomeScene");
-        });
     }
 
     void ShowError(string message)
     {
-        errorText.text = message;
-        errorText.color = Color.red;
+        if (errorText != null)
+        {
+            errorText.text = message;
+            errorText.color = Color.red;
+        }
         Debug.LogError("Displayed Error: " + message);
     }
 }
