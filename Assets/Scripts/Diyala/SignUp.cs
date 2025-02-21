@@ -77,29 +77,22 @@ public class SignUp : MonoBehaviour
         List<string> missingFields = new List<string>();
 
         // Check for empty fields and add them to the list
-        if (string.IsNullOrWhiteSpace(firstName))
+        if (string.IsNullOrEmpty(firstName))
             missingFields.Add("First Name");
 
-        if (string.IsNullOrWhiteSpace(lastName))
+        if (string.IsNullOrEmpty(lastName))
             missingFields.Add("Last Name");
 
-        if (string.IsNullOrWhiteSpace(email))
+        if (string.IsNullOrEmpty(email))
             missingFields.Add("Email");
 
-        if (string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrEmpty(password))
             missingFields.Add("Password");
 
         // If there are missing fields, display them all at once
         if (missingFields.Count > 0)
         {
-            string errorMessage = "The following fields are required: " + string.Join(", ", missingFields) + ".";
-
-            // Ensure the UI text updates correctly
-            ShowError(errorMessage);
-
-            // Debugging: Log the error message
-            Debug.LogError("Validation Error: " + errorMessage);
-
+            ShowError($"{string.Join(", ", missingFields)} {(missingFields.Count == 1 ? "is" : "are")} required.");
             return false; // Validation failed
         }
         return true; // Validation successful
