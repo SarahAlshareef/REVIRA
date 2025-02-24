@@ -6,7 +6,7 @@ public class LogoutGlobalPopup : MonoBehaviour
 {
 
     public static LogoutGlobalPopup Instance; // Singleton instance to access the popup from any scene
-    public GameObject logoutPopupPrefab; // Prefab reference for the logout confirmation popup
+    public GameObject logoutPopupPanel; // Prefab reference for the logout confirmation popup
     private GameObject currentPopup; // Stores the current active popup instance
 
     private void Awake()

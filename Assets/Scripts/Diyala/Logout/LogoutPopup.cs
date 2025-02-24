@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -19,7 +17,7 @@ public class LogoutPopup : MonoBehaviour
         cancelButton.onClick.AddListener(ClosePopup);
     }
 
-    void ConfirmLogout()
+    public void ConfirmLogout()
     {
         // Sign out the user from Firebase
         FirebaseAuth.DefaultInstance.SignOut();
@@ -35,7 +33,7 @@ public class LogoutPopup : MonoBehaviour
         SceneManager.LoadScene("MainMenu");
     }
 
-    void ClosePopup()
+    public void ClosePopup()
     {
         // Close the popup without logging out
         Destroy(gameObject);
