@@ -1,60 +1,50 @@
+
+
+using UnityEngine;
+using UnityEngine.UI; // For UI interactions (Buttons, Images, etc.)
 using System.Collections;
 using System.Collections.Generic;
 using TMPro; // For text updates
-using UnityEngine;
 using UnityEngine.SceneManagement; // If scene transitions are required
-using UnityEngine.UI; // For UI interactions (Buttons, Images, etc.)
+using UnityEngine;
+using UnityEngine.UI;
 
 public class ProductPopup : MonoBehaviour
 {
-    public GameObject popupWindow; // The main pop-up window
-    public GameObject rotationView; // The product rotation view
-    public GameObject specificationView; // The specification window
-    public Button previewProductButton; // Button for product rotation
-    public Button reviewProductSpecificationButton; // Button for product specification
-    public Button closeButton;
-    public TMP_Text productName; // Text component for product name (if needed)
+    public GameObject mainPanel;  // Main interface panel
+    public GameObject productSpecPanel; // Product specification panel
+    public Button previewSpecButton; // Button to open the specification panel
+    public Button closeSpecButton; // Button to close the specification panel
 
     void Start()
     {
-        // Ensure the pop-up is hidden initially
-        popupWindow.SetActive(false);
-        rotationView.SetActive(false);
-        specificationView.SetActive(false);
+        // Ensure the main panel is active and the specification panel is hidden on start
+        mainPanel.SetActive(true);
+        productSpecPanel.SetActive(false);
 
-        // Assign button listeners
-        previewProductButton.onClick.AddListener(OpenRotationView);
-        reviewProductSpecificationButton.onClick.AddListener(OpenSpecificationView);
-        closeButton.onClick.AddListener(ClosePopup);
+        // Bind buttons to their respective functions
+        if (previewSpecButton != null)
+            previewSpecButton.onClick.AddListener(ShowProductSpecification);
+        else
+            Debug.LogError("Preview Specification Button is not assigned!");
+
+        if (closeSpecButton != null)
+            closeSpecButton.onClick.AddListener(HideProductSpecification);
+        else
+            Debug.LogError("Close Specification Button is not assigned!");
     }
 
-    // Show pop-up when product is clicked
-    public void ShowPopup(string name)
+    void ShowProductSpecification()
     {
-        popupWindow.SetActive(true);
-        if (productName != null)
-        {
-            productName.text = name; // Update product name dynamically
-        }
+        mainPanel.SetActive(false);  // Hide the main interface
+        productSpecPanel.SetActive(true); // Show the product specification panel
     }
 
-    // Open rotation view
-    void OpenRotationView()
+    void HideProductSpecification()
     {
-        rotationView.SetActive(true);
-        popupWindow.SetActive(false); // Hide main popup
-    }
-
-    // Open product specification view
-    void OpenSpecificationView()
-    {
-        specificationView.SetActive(true);
-        popupWindow.SetActive(false); // Hide main popup
-    }
-
-    // Close the pop-up
-    void ClosePopup()
-    {
-        popupWindow.SetActive(false);
+        productSpecPanel.SetActive(false); // Hide the product specification panel
+        mainPanel.SetActive(true);  // Show the main interface
     }
 }
+
+
