@@ -6,8 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro; // For text updates
 using UnityEngine.SceneManagement; // If scene transitions are required
-using UnityEngine;
-using UnityEngine.UI;
+
 
 public class ProductPopup : MonoBehaviour
 {
