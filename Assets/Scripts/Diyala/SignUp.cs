@@ -140,8 +140,31 @@ public class SignUp : MonoBehaviour
         }
         else
         {
-            // If sign-up is successful, navigate to the login scene
-            Debug.Log("Sign Up Successful!");
+            // If sign-up is successful, get the user
+            FirebaseUser newUser = auth.CurrentUser;
+
+            if (newUser != null)
+            {
+                // Create a profile update request
+                UserProfile profile = new UserProfile
+                {
+                    DisplayName = $"{firstName} {lastName}"
+                };
+
+                // Apply the profile update
+                var profileUpdateTask = newUser.UpdateUserProfileAsync(profile);
+                yield return new WaitUntil(() => profileUpdateTask.IsCompleted);
+
+                if (profileUpdateTask.Exception != null)
+                {
+                    Debug.LogError("Failed to update user profile: " + profileUpdateTask.Exception);
+                }
+                else
+                {
+                    Debug.Log("User profile updated successfully!");
+                }
+            }
+            // Navigate to the login scene after successful registration
             SceneManager.LoadScene("LoginScene");
         }
     }
