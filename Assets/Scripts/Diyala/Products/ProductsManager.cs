@@ -10,6 +10,7 @@ public class ProductsManager : MonoBehaviour
 {
 
     private DatabaseReference dbReference;
+    private ProductData product;
 
     // Product and store identifiers (set manually for each product)
     public string productID;
@@ -37,6 +38,7 @@ public class ProductsManager : MonoBehaviour
     {
         Debug.Log("LoadProductData() is called! Product ID: " + productID + " Store ID: " + storeID);
 
+        // Fetch product data from Firebase
         dbReference.Child("stores").Child(storeID).Child("products").Child(productID)
             .GetValueAsync().ContinueWithOnMainThread(task =>
             {
@@ -45,17 +47,49 @@ public class ProductsManager : MonoBehaviour
                     DataSnapshot snapshot = task.Result;
                     if (snapshot.Exists)
                     {
-                        string jsonData = snapshot.GetRawJsonValue();
-                        Debug.Log("Product Data Loaded: " + jsonData);
+                        Debug.Log("Firebase Data Loaded: " + snapshot.GetRawJsonValue());
 
-                        ProductData product = JsonUtility.FromJson<ProductData>(jsonData);
+                        product = new ProductData();
 
-                        if (product == null)
+                        // Retrieve basic product details
+                        product.name = snapshot.Child("name").Value.ToString();
+                        product.price = float.Parse(snapshot.Child("price").Value.ToString());
+                        product.color = snapshot.Child("color").Value.ToString();
+                        product.discount = new DiscountData
                         {
-                            Debug.LogError("Failed to parse product data!");
-                            return;
+                            exists = bool.Parse(snapshot.Child("discount").Child("exists").Value.ToString()),
+                            percentage = float.Parse(snapshot.Child("discount").Child("percentage").Value.ToString())
+                        };
+
+                        // Handle product sizes if available
+                        if (snapshot.HasChild("sizes"))
+                        {
+                            if (snapshot.Child("sizes").Value is string)
+                            {
+                                // Product has a single size (e.g., "One Size" or "Standard")
+                                product.singleSize = snapshot.Child("sizes").Value.ToString();
+                                product.sizes = null; // No multiple sizes available
+                                Debug.Log("Single Size Found: " + product.singleSize);
+                            }
+                            else
+                            {
+                                // Product has multiple sizes
+                                product.sizes = new Dictionary<string, int>();
+                                foreach (var size in snapshot.Child("sizes").Children)
+                                {
+                                    product.sizes.Add(size.Key, int.Parse(size.Value.ToString()));
+                                }
+                                Debug.Log("Multiple Sizes Found: " + string.Join(", ", product.sizes.Keys));
+                            }
+                        }
+                        else
+                        {
+                            product.sizes = null;
+                            product.singleSize = null;
+                            Debug.LogWarning("No sizes found in Firebase for this product!");
                         }
 
+                        // Update UI elements with retrieved data
                         if (productNameText != null)
                             productNameText.text = product.name;
 
@@ -67,6 +101,7 @@ public class ProductsManager : MonoBehaviour
                                 ? $"Discount: {product.discount.percentage}%"
                                 : "No Discount";
 
+                        // Update color dropdown
                         if (colorDropdown != null)
                         {
                             colorDropdown.ClearOptions();
@@ -74,6 +109,7 @@ public class ProductsManager : MonoBehaviour
                             Debug.Log("Updated Color: " + product.color);
                         }
 
+                        // Update size dropdown
                         sizeDropdown.ClearOptions();
                         if (product.sizes != null && product.sizes.Count > 0)
                         {
@@ -91,6 +127,7 @@ public class ProductsManager : MonoBehaviour
                             Debug.LogWarning("No sizes found for this product!");
                         }
 
+                        // Refresh the dropdown to reflect changes
                         sizeDropdown.RefreshShownValue();
                     }
                     else
@@ -125,7 +162,7 @@ public class ProductsManager : MonoBehaviour
 
     void OnColorChanged()
     {
-        if (colorDropdown != null || sizeDropdown == null) return;
+        if (colorDropdown == null || sizeDropdown == null) return;
 
         string selectedColor = colorDropdown.options[colorDropdown.value].text;
         UpdateSizeDropdown(selectedColor);
@@ -133,14 +170,27 @@ public class ProductsManager : MonoBehaviour
 
     void UpdateSizeDropdown(string color)
     {
-        if (productColorsAndSizes == null) return;
+        if (sizeDropdown == null) return;
 
         sizeDropdown.ClearOptions();
-        if (productColorsAndSizes.ContainsKey(color))
+
+        if (product != null && product.sizes != null && product.sizes.Count > 0)
         {
-            List<string> sizes = new List<string>(productColorsAndSizes[color].Keys);
+            List<string> sizes = new List<string>(product.sizes.Keys);
             sizeDropdown.AddOptions(sizes);
+            Debug.Log("Sizes Updated: " + string.Join(", ", sizes));
         }
+        else if (product != null && !string.IsNullOrEmpty(product.singleSize))
+        {
+            sizeDropdown.AddOptions(new List<string> { product.singleSize });
+            Debug.Log("Single Size Set in Dropdown: " + product.singleSize);
+        }
+        else
+        {
+            Debug.LogWarning("No sizes available for this product!");
+        }
+
+        sizeDropdown.RefreshShownValue();
     }
 }
 
