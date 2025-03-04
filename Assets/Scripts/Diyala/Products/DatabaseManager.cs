@@ -63,7 +63,7 @@ public class ProductUIManager : MonoBehaviour
                         }
                         if (productPriceText != null)
                         {
-                            productPriceText.text = "Price: " + product.price + " SAR";
+                            productPriceText.text = product.price.ToString("G");
                             Debug.Log("Updated Product Price: " + product.price);
                         }
                         if (discountText != null)
