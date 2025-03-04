@@ -55,53 +55,42 @@ public class ProductUIManager : MonoBehaviour
                             return;
                         }
 
-                        // Update UI elements
                         if (productNameText != null)
-                        {
                             productNameText.text = product.name;
-                            Debug.Log("Updated Product Name: " + product.name);
-                        }
+
                         if (productPriceText != null)
-                        {
-                            productPriceText.text = $"{product.price:F2}";
-                            Debug.Log("Updated Product Price: " + product.price);
-                        }
+                            productPriceText.text = $"{product.price:F2} SAR";
+
                         if (discountText != null)
-                        {
                             discountText.text = product.discount.exists
                                 ? $"Discount: {product.discount.percentage}%"
                                 : "No Discount";
-                            Debug.Log("Updated Discount: " + discountText.text);
-                        }
 
-                        // Populate color dropdown (assuming one color per product)
                         if (colorDropdown != null)
                         {
                             colorDropdown.ClearOptions();
-                            List<string> colors = new List<string> { product.color };
-                            colorDropdown.AddOptions(colors);
+                            colorDropdown.AddOptions(new List<string> { product.color });
                             Debug.Log("Updated Color: " + product.color);
                         }
 
-                        // Populate size dropdown based on sizeType
                         sizeDropdown.ClearOptions();
                         if (product.sizes != null && product.sizes.Count > 0)
                         {
-                            // If the product has multiple sizes
                             List<string> sizes = new List<string>(product.sizes.Keys);
                             sizeDropdown.AddOptions(sizes);
-                            Debug.Log("Updated Sizes: " + string.Join(", ", sizes));
+                            Debug.Log("Sizes Loaded: " + string.Join(", ", sizes));
                         }
-                        else if (product.sizeType == "Single")
+                        else if (!string.IsNullOrEmpty(product.singleSize))
                         {
-                            // If the product has only one size (like "One Size" or "Standard")
-                            sizeDropdown.AddOptions(new List<string> { "One Size" });
-                            Debug.Log("Updated Size: One Size");
+                            sizeDropdown.AddOptions(new List<string> { product.singleSize });
+                            Debug.Log("Single Size Set: " + product.singleSize);
                         }
                         else
                         {
                             Debug.LogWarning("No sizes found for this product!");
                         }
+
+                        sizeDropdown.RefreshShownValue();
                     }
                     else
                     {
@@ -164,6 +153,7 @@ public class ProductData
     public string sizeType;
     public DiscountData discount;
     public Dictionary<string, int> sizes;
+    public string singleSize;
     public int quantity;
 }
 
