@@ -63,7 +63,7 @@ public class ProductUIManager : MonoBehaviour
                         }
                         if (productPriceText != null)
                         {
-                            productPriceText.text = product.price.ToString("G");
+                            productPriceText.text = $"{product.price:F2}";
                             Debug.Log("Updated Product Price: " + product.price);
                         }
                         if (discountText != null)
