@@ -12,7 +12,7 @@ public class FirebaseProductLoader : MonoBehaviour
     {
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
 
-        LoadProductData("storeID_123", "Product_001");
+        LoadProductData("storeID_123", "product_001");
     }
 
     void LoadProductData(string storeID, string productID)
