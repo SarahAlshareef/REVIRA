@@ -12,32 +12,29 @@ public class ProductsManager : MonoBehaviour
     private DatabaseReference dbReference;
     private ProductData product;
 
-    // Product and store identifiers (set manually for each product)
+    // Product and store identifiers
     public string productID;
     public string storeID;
 
     // UI elements for the product
-    public TMP_Text productNameText;
+    public TMP_Text productName;
     public TMP_Dropdown colorDropdown;
     public TMP_Dropdown sizeDropdown;
-    public TMP_Text productPriceText;
-    public TMP_Text discountText;
+    public TMP_Text productPrice;
+    public TMP_Text productDescription;
+    public TMP_Text productDiscount;
     public GameObject productPopup; // Popup window for product details
 
     private Dictionary<string, Dictionary<string, int>> productColorsAndSizes; // Stores available colors and sizes
 
     public void Start()
     {
-        Debug.Log("ProductUIManager script is running!"); // Debug to check if script is executing
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
-
         LoadProductData();
     }
 
     public void LoadProductData()
     {
-        Debug.Log("LoadProductData() is called! Product ID: " + productID + " Store ID: " + storeID);
-
         // Fetch product data from Firebase
         dbReference.Child("stores").Child(storeID).Child("products").Child(productID)
             .GetValueAsync().ContinueWithOnMainThread(task =>
@@ -47,14 +44,13 @@ public class ProductsManager : MonoBehaviour
                     DataSnapshot snapshot = task.Result;
                     if (snapshot.Exists)
                     {
-                        Debug.Log("Firebase Data Loaded: " + snapshot.GetRawJsonValue());
-
                         product = new ProductData();
 
                         // Retrieve basic product details
                         product.name = snapshot.Child("name").Value.ToString();
                         product.price = float.Parse(snapshot.Child("price").Value.ToString());
                         product.color = snapshot.Child("color").Value.ToString();
+                        product.description = snapshot.Child("description").Value.ToString();
                         product.discount = new DiscountData
                         {
                             exists = bool.Parse(snapshot.Child("discount").Child("exists").Value.ToString()),
@@ -69,7 +65,6 @@ public class ProductsManager : MonoBehaviour
                                 // Product has a single size (e.g., "One Size" or "Standard")
                                 product.singleSize = snapshot.Child("sizes").Value.ToString();
                                 product.sizes = null; // No multiple sizes available
-                                Debug.Log("Single Size Found: " + product.singleSize);
                             }
                             else
                             {
@@ -79,34 +74,32 @@ public class ProductsManager : MonoBehaviour
                                 {
                                     product.sizes.Add(size.Key, int.Parse(size.Value.ToString()));
                                 }
-                                Debug.Log("Multiple Sizes Found: " + string.Join(", ", product.sizes.Keys));
                             }
                         }
                         else
                         {
                             product.sizes = null;
                             product.singleSize = null;
-                            Debug.LogWarning("No sizes found in Firebase for this product!");
                         }
 
                         // Update UI elements with retrieved data
-                        if (productNameText != null)
-                            productNameText.text = product.name;
+                        if (productName != null)
+                            productName.text = product.name;
 
-                        if (productPriceText != null)
-                            productPriceText.text = $"{product.price:F2} SAR";
+                        if (productPrice != null)
+                            productPrice.text = $"{product.price:F2} SAR";
 
-                        if (discountText != null)
-                            discountText.text = product.discount.exists
+                        if (productDiscount != null)
+                            productDiscount.text = product.discount.exists
                                 ? $"Discount: {product.discount.percentage}%"
                                 : "No Discount";
-
+                        if (productDescription != null)
+                            productDescription.text = product.description;
                         // Update color dropdown
                         if (colorDropdown != null)
                         {
                             colorDropdown.ClearOptions();
                             colorDropdown.AddOptions(new List<string> { product.color });
-                            Debug.Log("Updated Color: " + product.color);
                         }
 
                         // Update size dropdown
@@ -115,18 +108,11 @@ public class ProductsManager : MonoBehaviour
                         {
                             List<string> sizes = new List<string>(product.sizes.Keys);
                             sizeDropdown.AddOptions(sizes);
-                            Debug.Log("Sizes Loaded: " + string.Join(", ", sizes));
                         }
                         else if (!string.IsNullOrEmpty(product.singleSize))
                         {
                             sizeDropdown.AddOptions(new List<string> { product.singleSize });
-                            Debug.Log("Single Size Set: " + product.singleSize);
                         }
-                        else
-                        {
-                            Debug.LogWarning("No sizes found for this product!");
-                        }
-
                         // Refresh the dropdown to reflect changes
                         sizeDropdown.RefreshShownValue();
                     }
@@ -155,7 +141,6 @@ public class ProductsManager : MonoBehaviour
         {
             UpdateSizeDropdown(colors[0]);
         }
-
         // Add event listener to update sizes when color is changed
         colorDropdown.onValueChanged.AddListener(delegate { OnColorChanged(); });
     }
@@ -178,16 +163,10 @@ public class ProductsManager : MonoBehaviour
         {
             List<string> sizes = new List<string>(product.sizes.Keys);
             sizeDropdown.AddOptions(sizes);
-            Debug.Log("Sizes Updated: " + string.Join(", ", sizes));
         }
         else if (product != null && !string.IsNullOrEmpty(product.singleSize))
         {
             sizeDropdown.AddOptions(new List<string> { product.singleSize });
-            Debug.Log("Single Size Set in Dropdown: " + product.singleSize);
-        }
-        else
-        {
-            Debug.LogWarning("No sizes available for this product!");
         }
 
         sizeDropdown.RefreshShownValue();
@@ -206,6 +185,7 @@ public class ProductData
     public Dictionary<string, int> sizes;
     public string singleSize;
     public int quantity;
+    public string description;
 }
 
 [System.Serializable]
