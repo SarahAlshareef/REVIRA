@@ -1,3 +1,4 @@
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,99 +12,65 @@ using TMPro;
 
 public class ProductCartManager : MonoBehaviour
 {
+ 
     private DatabaseReference dbReference;
     private FirebaseAuth auth;
-    private FirebaseUser user;
 
-    public TMP_Text productNameText;
-    public TMP_Text productDescriptionText;
-    public TMP_Text productPriceText;
+    public Dropdown sizeDropdown;  // Dropdown for selecting size
+    public Dropdown colorDropdown; // Dropdown for selecting color
+    public Dropdown quantityDropdown; // Dropdown for selecting quantity
+    public Button addToCartButton; // Button to add product to cart
 
-    public TMP_Dropdown sizeDropdown;
-    public TMP_Dropdown colorDropdown;
-    public TMP_Dropdown quantityDropdown;
+    private string productID;
+    private string productName;
+    private float productPrice;
 
-    public Button addToCartButton;
-
-
-
-    // Start is called before the first frame update
     void Start()
     {
-        FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
-        {
-            if (task.Result == DependencyStatus.Available)
-            {
-                FirebaseDatabase.DefaultInstance.SetPersistenceEnabled(false);
-                dbReference = FirebaseDatabase.DefaultInstance.RootReference;
-                auth = FirebaseAuth.DefaultInstance;
-                user = auth.CurrentUser;
+        dbReference = FirebaseDatabase.DefaultInstance.RootReference;
+        auth = FirebaseAuth.DefaultInstance;
 
-                if (user == null)
-                {
-                    Debug.LogError("User not logged in.");
-                    return;
-                }
-            }
-            else
-            {
-                Debug.LogError("Firebase setup error: " + task.Result);
-            }
-        });
-
-        addToCartButton.onClick.AddListener(AddProductToCart);
+        addToCartButton.onClick.AddListener(AddToCart);
     }
 
-    void AddProductToCart()
+    public void SetProductDetails(string id, string name, float price)
     {
-        if (user == null)
+        productID = id;
+        productName = name;
+        productPrice = price;
+    }
+
+    public void AddToCart()
+    {
+        if (string.IsNullOrEmpty(productID))
         {
-            Debug.LogError("User not logged in.");
+            Debug.LogError("Product ID is missing!");
             return;
         }
 
-        string productName = productNameText.text; // proudact name
+        string userID = auth.CurrentUser.UserId;
         string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
         string selectedColor = colorDropdown.options[colorDropdown.value].text;
         int selectedQuantity = int.Parse(quantityDropdown.options[quantityDropdown.value].text);
-        float productPrice = float.Parse(productPriceText.text.Trim('$'));
 
-        DatabaseReference cartRef = dbReference.Child("cart").Child(user.UserId).Push();
-
-        CartItem newItem = new CartItem
+        Dictionary<string, object> cartItem = new Dictionary<string, object>
         {
-            productName = productName,
-            size = selectedSize,
-            color = selectedColor,
-            quantity = selectedQuantity,
-            price = productPrice,
-            userId = user.UserId
+            { "productID", productID },
+            { "productName", productName },
+            { "price", productPrice },
+            { "size", selectedSize },
+            { "color", selectedColor },
+            { "quantity", selectedQuantity },
+            { "timestamp", ServerValue.Timestamp }
         };
 
-        cartRef.SetRawJsonValueAsync(JsonUtility.ToJson(newItem)).ContinueWithOnMainThread(task =>
-        {
-            if (task.IsCompleted)
+        dbReference.Child("users").Child(userID).Child("cart").Child(productID).SetValueAsync(cartItem)
+            .ContinueWith(task =>
             {
-                Debug.Log("Product added to cart successfully!");
-            }
-            else
-            {
-                Debug.LogError("Failed to add product to cart: " + task.Exception);
-            }
-        });
+                if (task.IsCompleted)
+                {
+                    Debug.Log("Product added to cart successfully!");
+                }
+            });
     }
-
-
-    [System.Serializable]
-    public class CartItem
-    {
-        public string productName;
-        public string size;
-        public string color;
-        public int quantity;
-        public float price;
-        public string userId;
-
-    }
-}   
-
+}
