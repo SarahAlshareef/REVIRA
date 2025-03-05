@@ -29,8 +29,15 @@ public class ProductsManager : MonoBehaviour
 
     public void Start()
     {
-        dbReference = FirebaseDatabase.DefaultInstance.RootReference;
-        LoadProductData();
+        Firebase.FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.Result == Firebase.DependencyStatus.Available)
+            {
+                Debug.Log("Firebase is ready to use.");
+                dbReference = FirebaseDatabase.DefaultInstance.RootReference;
+                LoadProductData();
+            }
+        });
     }
 
     public void LoadProductData()
