@@ -24,6 +24,8 @@ public class ProductsManager : MonoBehaviour
     public TMP_Text productDescription;
     public TMP_Text productDiscount;
     public GameObject productPopup; // Popup window for product details
+    public Button closePopup;
+    public Button openPopup;
 
     private Dictionary<string, Dictionary<string, int>> productColorsAndSizes; // Stores available colors and sizes
 
@@ -38,6 +40,19 @@ public class ProductsManager : MonoBehaviour
                 LoadProductData();
             }
         });
+
+        if ( productPopup != null )
+        {
+            productPopup.SetActive(false);
+        }
+        if ( closePopup != null )
+        {
+            closePopup.onClick.AddListener(CloseProductPopup);
+        }
+        if ( openPopup != null )
+        {
+            openPopup.onClick.AddListener(OpenProductPopup);
+        }
     }
 
     public void LoadProductData()
@@ -177,6 +192,16 @@ public class ProductsManager : MonoBehaviour
         }
 
         sizeDropdown.RefreshShownValue();
+    }
+    public void OpenProductPopup()
+    {
+        if (productPopup != null)
+            productPopup.SetActive(true);
+    }
+    public void CloseProductPopup()
+    {
+        if (productPopup != null)
+            productPopup.SetActive(false);
     }
 }
 
