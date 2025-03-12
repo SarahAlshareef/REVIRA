@@ -16,14 +16,24 @@ public class ProductsManager : MonoBehaviour
     public string productID;
     public string storeID;
 
-    // UI elements for the product
+    // Popup window
+    public GameObject productPopup;
+
+    // Product Data
     public TMP_Text productName;
-    public TMP_Dropdown colorDropdown;
-    public TMP_Dropdown sizeDropdown;
     public TMP_Text productPrice;
     public TMP_Text productDescription;
+
+    // Drop-down lists
+    public TMP_Dropdown colorDropdown;
+    public TMP_Dropdown sizeDropdown;
+
+    // Discount Data
     public TMP_Text productDiscount;
-    public GameObject productPopup; // Popup window for product details
+    public TMP_Text discountedPrice;
+    public GameObject discountTag;
+
+    // Active buttons
     public Button closePopup;
     public Button openPopup;
 
@@ -68,7 +78,7 @@ public class ProductsManager : MonoBehaviour
                     {
                         product = new ProductData();
 
-                        // Retrieve basic product details
+                        // Retrieve product details from Firebase
                         product.name = snapshot.Child("name").Value.ToString();
                         product.price = float.Parse(snapshot.Child("price").Value.ToString());
                         product.color = snapshot.Child("color").Value.ToString();
@@ -104,27 +114,67 @@ public class ProductsManager : MonoBehaviour
                             product.singleSize = null;
                         }
 
-                        // Update UI elements with retrieved data
+                        // Product name
                         if (productName != null)
                             productName.text = product.name;
 
+                        // Product price
                         if (productPrice != null)
-                            productPrice.text = $"{product.price:F2} SAR";
+                            productPrice.text = $"{product.price:F2}";
 
-                        if (productDiscount != null)
-                            productDiscount.text = product.discount.exists
-                                ? $"Discount: {product.discount.percentage}%"
-                                : "No Discount";
+                        // Product description
                         if (productDescription != null)
                             productDescription.text = product.description;
-                        // Update color dropdown
+
+
+                        // Check if the product has a discount
+                        if (product.discount.exists && product.discount.percentage > 0)
+                        {
+                            // Calculate new discounted price
+                            float newPrice = product.price - (product.price * (product.discount.percentage / 100));
+
+                            // Display the original price with a strikethrough
+                            if (productPrice != null)
+                            {
+                                productPrice.text = $"{product.price:F2}";
+                                productPrice.fontStyle = FontStyles.Strikethrough;
+                            }
+
+                            // Display the discounted price
+                            if (discountedPrice != null)
+                            {
+                                discountedPrice.text = $"{newPrice:F2}";
+                                discountedPrice.gameObject.SetActive(true);
+                            }
+
+                            // Show the discount tag
+                            if (discountTag != null)
+                                discountTag.SetActive(true);
+                        }
+                        else
+                        {
+                            // No discount, show the original price without strikethrough
+                            if (productPrice != null)
+                            {
+                                productPrice.text = $"{product.price:F2}";
+                                productPrice.fontStyle = FontStyles.Normal;
+                            }
+
+                            if (discountedPrice != null)
+                                discountedPrice.gameObject.SetActive(false);
+
+                            if (discountTag != null)
+                                discountTag.SetActive(false);
+                        }
+
+                        // Color drop-down
                         if (colorDropdown != null)
                         {
                             colorDropdown.ClearOptions();
                             colorDropdown.AddOptions(new List<string> { product.color });
                         }
 
-                        // Update size dropdown
+                        // Size drop-down
                         sizeDropdown.ClearOptions();
                         if (product.sizes != null && product.sizes.Count > 0)
                         {
