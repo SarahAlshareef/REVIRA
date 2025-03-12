@@ -27,6 +27,7 @@ public class ProductsManager : MonoBehaviour
     // Drop-down lists
     public TMP_Dropdown colorDropdown;
     public TMP_Dropdown sizeDropdown;
+    public TMP_Dropdown quantityDropdown;
 
     // Discount Data
     public TMP_Text productDiscount;
@@ -51,17 +52,22 @@ public class ProductsManager : MonoBehaviour
             }
         });
 
-        if ( productPopup != null )
+        if (productPopup != null)
         {
             productPopup.SetActive(false);
         }
-        if ( closePopup != null )
+        if (closePopup != null)
         {
             closePopup.onClick.AddListener(CloseProductPopup);
         }
-        if ( openPopup != null )
+        if (openPopup != null)
         {
             openPopup.onClick.AddListener(OpenProductPopup);
+        }
+        // Update quantity drop-down when size changes
+        if (sizeDropdown != null)
+        {
+            sizeDropdown.onValueChanged.AddListener(delegate { UpdateQuantityDropdown(); });
         }
     }
 
@@ -187,6 +193,9 @@ public class ProductsManager : MonoBehaviour
                         }
                         // Refresh the dropdown to reflect changes
                         sizeDropdown.RefreshShownValue();
+
+                        // Update quantity based on available stock
+                        UpdateQuantityDropdown();
                     }
                     else
                     {
@@ -198,6 +207,35 @@ public class ProductsManager : MonoBehaviour
                     Debug.LogError("Error loading product data: " + task.Exception);
                 }
             });
+    }
+
+    public void UpdateQuantityDropdown()
+    {
+        if (quantityDropdown == null || sizeDropdown == null || product.sizes == null)
+            return;
+
+        quantityDropdown.ClearOptions();
+
+        // Get selected size
+        string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
+        if (!product.sizes.ContainsKey(selectedSize))
+            return;
+
+        // Get available stock
+        int availableStock = product.sizes[selectedSize];
+
+        // Set max selectable quantity (min of 5 or available stock)
+        int maxSelectable = Mathf.Min(5, availableStock);
+
+        // Populate dropdown with values from 1 to maxSelectable
+        List<string> quantities = new List<string>();
+        for (int i = 1; i <= maxSelectable; i++)
+        {
+            quantities.Add(i.ToString());
+        }
+
+        quantityDropdown.AddOptions(quantities);
+        quantityDropdown.RefreshShownValue();
     }
 
     void UpdateColorDropdown()
