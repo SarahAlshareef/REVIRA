@@ -64,6 +64,11 @@ public class ProductsManager : MonoBehaviour
         {
             openPopup.onClick.AddListener(OpenProductPopup);
         }
+        // Hide Quantity drop-down when start
+        if (quantityDropdown != null)
+        {
+            quantityDropdown.gameObject.SetActive(false);
+        }
         // Update quantity drop-down when size changes
         if (sizeDropdown != null)
         {
@@ -182,16 +187,20 @@ public class ProductsManager : MonoBehaviour
 
                         // Size drop-down
                         sizeDropdown.ClearOptions();
+
+                        //Defualt Option
+                        List<string> sizeOptions = new List<string> { "Select Size" };
+
                         if (product.sizes != null && product.sizes.Count > 0)
                         {
-                            List<string> sizes = new List<string>(product.sizes.Keys);
-                            sizeDropdown.AddOptions(sizes);
+                            sizeOptions.AddRange(product.sizes.Keys);
                         }
                         else if (!string.IsNullOrEmpty(product.singleSize))
                         {
-                            sizeDropdown.AddOptions(new List<string> { product.singleSize });
+                            sizeOptions.Add(product.singleSize);
                         }
-                        // Refresh the dropdown to reflect changes
+                        sizeDropdown.AddOptions(sizeOptions);
+                        sizeDropdown.value = 0;
                         sizeDropdown.RefreshShownValue();
 
                         // Update quantity based on available stock
@@ -218,8 +227,12 @@ public class ProductsManager : MonoBehaviour
 
         // Get selected size
         string selectedSize = sizeDropdown.options[ sizeDropdown.value ].text;
-        if (!product.sizes.ContainsKey(selectedSize))
+
+        if (selectedSize == "Select Size" || !product.sizes.ContainsKey(selectedSize))
+        {
+            quantityDropdown.gameObject.SetActive(false);
             return;
+        }
 
         // Get available stock
         int availableStock = product.sizes[selectedSize];
@@ -236,6 +249,7 @@ public class ProductsManager : MonoBehaviour
 
         quantityDropdown.AddOptions(quantities);
         quantityDropdown.RefreshShownValue();
+        quantityDropdown.gameObject.SetActive(true);
     }
 
     void UpdateColorDropdown()
