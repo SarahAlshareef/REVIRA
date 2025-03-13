@@ -39,7 +39,7 @@ public class ProductsManager : MonoBehaviour
     public Button closePopup;
     public Button openPopup;
 
-    private Dictionary<string, Dictionary<string, int>> productColorsAndSizes; // Stores available colors and sizes
+    private Dictionary<string, Dictionary<string, int>> productColorsAndSizes; // Store available colors and sizes
 
     public void Start()
     {
@@ -75,6 +75,11 @@ public class ProductsManager : MonoBehaviour
         {
             sizeDropdown.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
         }
+
+        if (colorDropdown != null)
+        {
+            colorDropdown.onValueChanged.AddListener((index) => UpdateSizeDropdown());
+        }
     }
 
     public void LoadProductData()
@@ -87,45 +92,62 @@ public class ProductsManager : MonoBehaviour
                 {
                     DataSnapshot snapshot = task.Result;
                     if (snapshot.Exists)
-                    {
-                        product = new ProductData();
-
-                        // Retrieve product details from Firebase
-                        product.name = snapshot.Child("name").Value.ToString();
-                        product.price = float.Parse(snapshot.Child("price").Value.ToString());
-                        product.color = snapshot.Child("color").Value.ToString();
-                        product.description = snapshot.Child("description").Value.ToString();
-                        product.image = snapshot.Child("image").Value.ToString();
-                        product.discount = new DiscountData
+                    {                      
+                        product = new ProductData()
+                        { 
+                        name = snapshot.Child("name").Value.ToString(),
+                        price = float.Parse(snapshot.Child("price").Value.ToString()),
+                        description = snapshot.Child("description").Value.ToString(),
+                        image = snapshot.Child("image").Value.ToString(),
+                        discount = new DiscountData
                         {
                             exists = bool.Parse(snapshot.Child("discount").Child("exists").Value.ToString()),
                             percentage = float.Parse(snapshot.Child("discount").Child("percentage").Value.ToString())
+                        }
                         };
 
-                        // Handle product sizes if available
-                        if (snapshot.HasChild("sizes"))
+                        productColorsAndSizes = new Dictionary<string, Dictionary<string, int>>();
+
+                        // Load colors and sizes
+                        if (snapshot.HasChild("colors"))
                         {
-                            if (snapshot.Child("sizes").Value is string)
+                            foreach (var colorNode in snapshot.Child("colors").Children)
                             {
-                                // Product has a single size (e.g., "One Size" or "Standard")
-                                product.singleSize = snapshot.Child("sizes").Value.ToString();
-                                product.sizes = null; // No multiple sizes available
-                            }
-                            else
-                            {
-                                // Product has multiple sizes
-                                product.sizes = new Dictionary<string, int>();
-                                foreach (var size in snapshot.Child("sizes").Children)
+                                string colorName = colorNode.Key;
+                                Dictionary<string, int> sizes = new Dictionary<string, int>();
+
+                                foreach (var sizeNode in colorNode.Child("sizes").Children)
                                 {
-                                    product.sizes.Add(size.Key, int.Parse(size.Value.ToString()));
+                                    sizes.Add(sizeNode.Key, int.Parse(sizeNode.Value.ToString()));
                                 }
+                                productColorsAndSizes[colorName] = sizes;
                             }
                         }
-                        else
-                        {
-                            product.sizes = null;
-                            product.singleSize = null;
-                        }
+
+                        //// Handle product sizes if available
+                        //if (snapshot.HasChild("sizes"))
+                        //{
+                        //    if (snapshot.Child("sizes").Value is string)
+                        //    {
+                        //        // Product has a single size (e.g., "One Size" or "Standard")
+                        //        product.singleSize = snapshot.Child("sizes").Value.ToString();
+                        //        product.sizes = null; // No multiple sizes available
+                        //    }
+                        //    else
+                        //    {
+                        //        // Product has multiple sizes
+                        //        product.sizes = new Dictionary<string, int>();
+                        //        foreach (var size in snapshot.Child("sizes").Children)
+                        //        {
+                        //            product.sizes.Add(size.Key, int.Parse(size.Value.ToString()));
+                        //        }
+                        //    }
+                        //}
+                        //else
+                        //{
+                        //    product.sizes = null;
+                        //    product.singleSize = null;
+                        //}
 
                         // Product name
                         if (productName != null)
@@ -208,8 +230,7 @@ public class ProductsManager : MonoBehaviour
                         sizeDropdown.value = 0;
                         sizeDropdown.RefreshShownValue();
 
-                        // Update quantity based on available stock
-                        UpdateQuantityDropdown();
+                        UpdateColorDropdown();  
                     }
                     else
                     {
@@ -246,6 +267,60 @@ public class ProductsManager : MonoBehaviour
         }
     }
 
+    void UpdateColorDropdown()
+    {
+        if (productColorsAndSizes == null) return;
+
+        colorDropdown.ClearOptions();
+        List<string> colors = new List<string> { "Select Color" };
+        colors.AddRange(productColorsAndSizes.Keys);
+        colorDropdown.AddOptions(colors);
+        colorDropdown.value = 0;
+        colorDropdown.RefreshShownValue();
+
+        //colorDropdown.ClearOptions();
+        //List<string> colors = new List<string>(productColorsAndSizes.Keys);
+        //colorDropdown.AddOptions(colors);
+
+        //// Update sizes based on the first available color
+        //if (colors.Count > 0)
+        //{
+        //    UpdateSizeDropdown(colors[0]);
+        //}
+        //// Add event listener to update sizes when color is changed
+        //colorDropdown.onValueChanged.AddListener(delegate { OnColorChanged(); });
+    }
+
+    void UpdateSizeDropdown()
+    {
+        if (sizeDropdown == null) return;
+
+        sizeDropdown.ClearOptions();
+        List<string> sizes = new List<string> { "Select Size" };
+
+        string selectedColor = colorDropdown.options[colorDropdown.value].text;
+        if (selectedColor != null && productColorsAndSizes.ContainsKey(selectedColor))
+        {
+            sizes.AddRange(productColorsAndSizes[selectedColor].Keys);
+        }
+        sizeDropdown.AddOptions(sizes);
+        sizeDropdown.value = 0;
+        sizeDropdown.RefreshShownValue();
+        sizeDropdown.gameObject.SetActive(sizes.Count > 1);
+    }
+
+    //    if (product != null && product.sizes != null && product.sizes.Count > 0)
+    //    {
+    //        List<string> sizes = new List<string>(product.sizes.Keys);
+    //        sizeDropdown.AddOptions(sizes);
+    //    }
+    //    else if (product != null && !string.IsNullOrEmpty(product.singleSize))
+    //    {
+    //        sizeDropdown.AddOptions(new List<string> { product.singleSize });
+    //    }
+
+    //    sizeDropdown.RefreshShownValue();
+    //}
 
     public void UpdateQuantityDropdown()
     {
@@ -253,77 +328,40 @@ public class ProductsManager : MonoBehaviour
             return;
 
         quantityDropdown.ClearOptions();
+        List<string> quantities = new List<string> { "Select Quantity" };
 
+        // Get selected color
+        string selectedColor = colorDropdown.options[colorDropdown.value].text;
         // Get selected size
         string selectedSize = sizeDropdown.options[ sizeDropdown.value ].text;
 
-        if (selectedSize == "Select Size" || !product.sizes.ContainsKey(selectedSize))
+        if (selectedColor != "Select Color" && selectedSize != "Select Size" && productColorsAndSizes.ContainsKey(selectedColor) 
+            && productColorsAndSizes[selectedColor].ContainsKey(selectedSize))
         {
-            quantityDropdown.gameObject.SetActive(false);
-            return;
-        }
+            // Get available stock
+            int availableStock = productColorsAndSizes[selectedColor][selectedSize];
 
-        // Get available stock
-        int availableStock = product.sizes[selectedSize];
+            // Set max selectable quantity (min of 5 or available stock)
+            int maxSelectable = Mathf.Min(5, availableStock);
 
-        // Set max selectable quantity (min of 5 or available stock)
-        int maxSelectable = Mathf.Min(5, availableStock);
-
-        // Populate dropdown with values from 1 to maxSelectable
-        List<string> quantities = new List<string>();
-        for (int i = 1; i <= maxSelectable; i++)
-        {
-            quantities.Add(i.ToString());
+            for (int i = 1; i <= maxSelectable; i++)
+            {
+                quantities.Add(i.ToString());
+            }
         }
 
         quantityDropdown.AddOptions(quantities);
         quantityDropdown.RefreshShownValue();
-        quantityDropdown.gameObject.SetActive(true);
+        quantityDropdown.gameObject.SetActive(quantities.Count > 0);
     }
 
-    void UpdateColorDropdown()
-    {
-        if (productColorsAndSizes == null) return;
+    //void OnColorChanged()
+    //{
+    //    if (colorDropdown == null || sizeDropdown == null) return;
 
-        colorDropdown.ClearOptions();
-        List<string> colors = new List<string>(productColorsAndSizes.Keys);
-        colorDropdown.AddOptions(colors);
-
-        // Update sizes based on the first available color
-        if (colors.Count > 0)
-        {
-            UpdateSizeDropdown(colors[0]);
-        }
-        // Add event listener to update sizes when color is changed
-        colorDropdown.onValueChanged.AddListener(delegate { OnColorChanged(); });
-    }
-
-    void OnColorChanged()
-    {
-        if (colorDropdown == null || sizeDropdown == null) return;
-
-        string selectedColor = colorDropdown.options[colorDropdown.value].text;
-        UpdateSizeDropdown(selectedColor);
-    }
-
-    void UpdateSizeDropdown(string color)
-    {
-        if (sizeDropdown == null) return;
-
-        sizeDropdown.ClearOptions();
-
-        if (product != null && product.sizes != null && product.sizes.Count > 0)
-        {
-            List<string> sizes = new List<string>(product.sizes.Keys);
-            sizeDropdown.AddOptions(sizes);
-        }
-        else if (product != null && !string.IsNullOrEmpty(product.singleSize))
-        {
-            sizeDropdown.AddOptions(new List<string> { product.singleSize });
-        }
-
-        sizeDropdown.RefreshShownValue();
-    }
+    //    string selectedColor = colorDropdown.options[colorDropdown.value].text;
+    //    UpdateSizeDropdown(selectedColor);
+    //}
 
     public void OpenProductPopup()
     {
