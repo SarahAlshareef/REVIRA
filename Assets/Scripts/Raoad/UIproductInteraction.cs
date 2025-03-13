@@ -7,7 +7,6 @@ public class UIproductInteraction : MonoBehaviour
 {
     public string productID; // Unique product identifier
     public GameObject productPopup; // UI panel for all products
-    public RectTransform popupTransform; // UI position adjustment
     public Button closeButton; // Close button
 
     private Camera mainCamera;
@@ -27,20 +26,12 @@ public class UIproductInteraction : MonoBehaviour
                 Debug.LogError(gameObject.name + " productPopup is NULL!");
         }
 
-        // Ensure popupTransform is assigned
-        if (popupTransform == null && productPopup != null)
-        {
-            popupTransform = productPopup.GetComponent<RectTransform>();
-            if (popupTransform == null)
-                Debug.LogError(gameObject.name + "popupTransform is NULL!");
-        }
-
         // Ensure closeButton is assigned
         if (closeButton == null)
         {
             closeButton = GameObject.Find("Button (Cancel) (5)").GetComponent<Button>();
             if (closeButton == null)
-                Debug.LogError(gameObject.name + "closeButton is NULL!");
+                Debug.LogError(gameObject.name + " closeButton is NULL!");
         }
 
         // Assign close button functionality
@@ -73,9 +64,9 @@ public class UIproductInteraction : MonoBehaviour
 
     private void OnMouseDown()
     {
-        if (productPopup == null || popupTransform == null)
+        if (productPopup == null)
         {
-            Debug.LogError("UI elements are not assigned in the Inspector!");
+            Debug.LogError("Product popup is not assigned in the Inspector!");
             return;
         }
 
@@ -90,11 +81,10 @@ public class UIproductInteraction : MonoBehaviour
             {
                 Vector3 popupPosition = productPopupPositions[productID];
 
-                // Convert world position to UI position
-                Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(Camera.main, popupPosition);
-                popupTransform.position = screenPoint; // Move UI to match product position
+                // Move the popup to the predefined position
+                productPopup.transform.position = popupPosition;
 
-                Debug.Log("Showing popup for: " + productID);
+                Debug.Log("Showing popup for: " + productID + " at position: " + popupPosition);
                 productPopup.SetActive(true);
             }
             else
