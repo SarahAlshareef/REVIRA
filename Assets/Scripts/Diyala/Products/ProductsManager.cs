@@ -269,15 +269,14 @@ public class ProductsManager : MonoBehaviour
 
     public void UpdateQuantityDropdown()
     {
-        if (quantityDropdown == null || sizeDropdown == null || product.sizes == null)
+        if (quantityDropdown == null || sizeDropdown == null || colorDropdown == null)
             return;
 
         quantityDropdown.ClearOptions();
         List<string> quantities = new List<string> { "Select Quantity" };
 
-        // Get selected color
+        // Get selected color and size
         string selectedColor = colorDropdown.options[colorDropdown.value].text;
-        // Get selected size
         string selectedSize = sizeDropdown.options[ sizeDropdown.value ].text;
 
         if (selectedColor != "Select Color" && selectedSize != "Select Size" && productColorsAndSizes.ContainsKey(selectedColor) 
@@ -295,6 +294,7 @@ public class ProductsManager : MonoBehaviour
             }
         }
         quantityDropdown.AddOptions(quantities);
+        quantityDropdown.value = 0;
         quantityDropdown.RefreshShownValue();
     }
 
