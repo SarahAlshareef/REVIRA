@@ -2,10 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class HomeController : MonoBehaviour
+public class HomeController : MonoBehaviour, IPointerClickHandler
 {
     public Button StoreSelect;
 
@@ -18,6 +19,10 @@ public class HomeController : MonoBehaviour
         StoreSelect.onClick.AddListener(OpenStoreSelection);
     }
 
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        OpenStoreSelection();
+    }
 
     public void OpenStoreSelection()
     {
