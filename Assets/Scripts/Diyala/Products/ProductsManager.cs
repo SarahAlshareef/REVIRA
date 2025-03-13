@@ -194,8 +194,8 @@ public class ProductsManager : MonoBehaviour
                         // Refresh the dropdown to reflect changes
                         sizeDropdown.RefreshShownValue();
 
-                        // Reset quantity to default
-                        SetDefaultQuantityDropdown();
+                        // Update quantity based on available stock
+                        UpdateQuantityDropdown();
                     }
                     else
                     {
@@ -217,7 +217,7 @@ public class ProductsManager : MonoBehaviour
         quantityDropdown.ClearOptions();
 
         // Get selected size
-        string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
+        string selectedSize = sizeDropdown.options[ sizeDropdown.value ].text;
         if (!product.sizes.ContainsKey(selectedSize))
             return;
 
@@ -237,19 +237,6 @@ public class ProductsManager : MonoBehaviour
         quantityDropdown.AddOptions(quantities);
         quantityDropdown.RefreshShownValue();
     }
-
-    // Set default state for quantity dropdown
-    private void SetDefaultQuantityDropdown()
-    {
-        if (quantityDropdown != null)
-        {
-            quantityDropdown.ClearOptions();
-            quantityDropdown.AddOptions(new List<string> { "Select size first" });
-            quantityDropdown.value = 0;
-            quantityDropdown.RefreshShownValue();
-        }
-    }
-
 
     void UpdateColorDropdown()
     {
