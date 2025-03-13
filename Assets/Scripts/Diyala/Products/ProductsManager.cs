@@ -67,7 +67,7 @@ public class ProductsManager : MonoBehaviour
         // Update quantity drop-down when size changes
         if (sizeDropdown != null)
         {
-            sizeDropdown.onValueChanged.AddListener(delegate { UpdateQuantityDropdown(); });
+            sizeDropdown.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
         }
     }
 
@@ -217,7 +217,7 @@ public class ProductsManager : MonoBehaviour
         quantityDropdown.ClearOptions();
 
         // Get selected size
-        string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
+        string selectedSize = sizeDropdown.options[ sizeDropdown.value ].text;
         if (!product.sizes.ContainsKey(selectedSize))
             return;
 
