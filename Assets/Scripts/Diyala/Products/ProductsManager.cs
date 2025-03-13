@@ -65,11 +65,7 @@ public class ProductsManager : MonoBehaviour
         {
             openPopup.onClick.AddListener(OpenProductPopup);
         }
-        // Hide Quantity drop-down when start
-        if (quantityDropdown != null)
-        {
-            quantityDropdown.gameObject.SetActive(false);
-        }
+
         // Update quantity drop-down when size changes
         if (sizeDropdown != null)
         {
@@ -123,31 +119,6 @@ public class ProductsManager : MonoBehaviour
                                 productColorsAndSizes[colorName] = sizes;
                             }
                         }
-
-                        //// Handle product sizes if available
-                        //if (snapshot.HasChild("sizes"))
-                        //{
-                        //    if (snapshot.Child("sizes").Value is string)
-                        //    {
-                        //        // Product has a single size (e.g., "One Size" or "Standard")
-                        //        product.singleSize = snapshot.Child("sizes").Value.ToString();
-                        //        product.sizes = null; // No multiple sizes available
-                        //    }
-                        //    else
-                        //    {
-                        //        // Product has multiple sizes
-                        //        product.sizes = new Dictionary<string, int>();
-                        //        foreach (var size in snapshot.Child("sizes").Children)
-                        //        {
-                        //            product.sizes.Add(size.Key, int.Parse(size.Value.ToString()));
-                        //        }
-                        //    }
-                        //}
-                        //else
-                        //{
-                        //    product.sizes = null;
-                        //    product.singleSize = null;
-                        //}
 
                         // Product name
                         if (productName != null)
@@ -277,18 +248,6 @@ public class ProductsManager : MonoBehaviour
         colorDropdown.AddOptions(colors);
         colorDropdown.value = 0;
         colorDropdown.RefreshShownValue();
-
-        //colorDropdown.ClearOptions();
-        //List<string> colors = new List<string>(productColorsAndSizes.Keys);
-        //colorDropdown.AddOptions(colors);
-
-        //// Update sizes based on the first available color
-        //if (colors.Count > 0)
-        //{
-        //    UpdateSizeDropdown(colors[0]);
-        //}
-        //// Add event listener to update sizes when color is changed
-        //colorDropdown.onValueChanged.AddListener(delegate { OnColorChanged(); });
     }
 
     void UpdateSizeDropdown()
@@ -304,23 +263,9 @@ public class ProductsManager : MonoBehaviour
             sizes.AddRange(productColorsAndSizes[selectedColor].Keys);
         }
         sizeDropdown.AddOptions(sizes);
-        sizeDropdown.value = 0;
+        sizeDropdown.value = sizes.Count == 2 ? 1 : 0;
         sizeDropdown.RefreshShownValue();
-        sizeDropdown.gameObject.SetActive(sizes.Count > 1);
     }
-
-    //    if (product != null && product.sizes != null && product.sizes.Count > 0)
-    //    {
-    //        List<string> sizes = new List<string>(product.sizes.Keys);
-    //        sizeDropdown.AddOptions(sizes);
-    //    }
-    //    else if (product != null && !string.IsNullOrEmpty(product.singleSize))
-    //    {
-    //        sizeDropdown.AddOptions(new List<string> { product.singleSize });
-    //    }
-
-    //    sizeDropdown.RefreshShownValue();
-    //}
 
     public void UpdateQuantityDropdown()
     {
@@ -349,19 +294,9 @@ public class ProductsManager : MonoBehaviour
                 quantities.Add(i.ToString());
             }
         }
-
         quantityDropdown.AddOptions(quantities);
         quantityDropdown.RefreshShownValue();
-        quantityDropdown.gameObject.SetActive(quantities.Count > 0);
     }
-
-    //void OnColorChanged()
-    //{
-    //    if (colorDropdown == null || sizeDropdown == null) return;
-
-    //    string selectedColor = colorDropdown.options[colorDropdown.value].text;
-    //    UpdateSizeDropdown(selectedColor);
-    //}
 
     public void OpenProductPopup()
     {
