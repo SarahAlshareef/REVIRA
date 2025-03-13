@@ -4,6 +4,7 @@ using UnityEngine;
 using Firebase.Database;
 using Firebase.Extensions;
 using UnityEngine.UI;
+using UnityEngine.Networking;
 using TMPro;
 
 public class ProductsManager : MonoBehaviour
@@ -23,6 +24,7 @@ public class ProductsManager : MonoBehaviour
     public TMP_Text productName;
     public TMP_Text productPrice;
     public TMP_Text productDescription;
+    public Image productImage;
 
     // Drop-down lists
     public TMP_Dropdown colorDropdown;
@@ -94,6 +96,7 @@ public class ProductsManager : MonoBehaviour
                         product.price = float.Parse(snapshot.Child("price").Value.ToString());
                         product.color = snapshot.Child("color").Value.ToString();
                         product.description = snapshot.Child("description").Value.ToString();
+                        product.image = snapshot.Child("image").Value.ToString();
                         product.discount = new DiscountData
                         {
                             exists = bool.Parse(snapshot.Child("discount").Child("exists").Value.ToString()),
@@ -137,6 +140,8 @@ public class ProductsManager : MonoBehaviour
                         if (productDescription != null)
                             productDescription.text = product.description;
 
+                        // Product image
+                        StartCoroutine(LoadImageFromURL(product.image));
 
                         // Check if the product has a discount
                         if (product.discount.exists && product.discount.percentage > 0)
@@ -217,6 +222,30 @@ public class ProductsManager : MonoBehaviour
                 }
             });
     }
+    IEnumerator LoadImageFromURL(string url)
+    {
+        if (productImage == null)
+        {
+            Debug.LogError("Product Image component is not assigned in the Inspector.");
+            yield break;
+        }
+
+        using (UnityWebRequest request = UnityWebRequestTexture.GetTexture(url))
+        {
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                Texture2D texture = DownloadHandlerTexture.GetContent(request);
+                productImage.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+            }
+            else
+            {
+                Debug.LogError("Failed to load image: " + request.error);
+            }
+        }
+    }
+
 
     public void UpdateQuantityDropdown()
     {
@@ -295,6 +324,7 @@ public class ProductsManager : MonoBehaviour
 
         sizeDropdown.RefreshShownValue();
     }
+
     public void OpenProductPopup()
     {
         if (productPopup != null)
@@ -314,6 +344,7 @@ public class ProductData
     public string name;
     public float price;
     public string color;
+    public string image;
     public string sizeType;
     public DiscountData discount;
     public Dictionary<string, int> sizes;
