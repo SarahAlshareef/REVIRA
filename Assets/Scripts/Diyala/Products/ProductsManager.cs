@@ -14,8 +14,7 @@ public class ProductsManager : MonoBehaviour
     private ProductData product;
 
     // Product and store identifiers
-    public string productID;
-    public string storeID;
+    public string productID, storeID;
 
     // Popup window
     public GameObject productPopup;
@@ -187,13 +186,14 @@ public class ProductsManager : MonoBehaviour
                         if (colorDropdown != null)
                         {
                             colorDropdown.ClearOptions();
-                            colorDropdown.AddOptions(new List<string> { product.color });
+                            List<string> colorOption = new List<string> { "Select Color", product.color };
+                            colorDropdown.AddOptions(colorOption);
+                            colorDropdown.value = 0;
+                            colorDropdown.RefreshShownValue();
                         }
 
                         // Size drop-down
                         sizeDropdown.ClearOptions();
-
-                        //Defualt Option
                         List<string> sizeOptions = new List<string> { "Select Size" };
 
                         if (product.sizes != null && product.sizes.Count > 0)
