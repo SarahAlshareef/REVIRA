@@ -219,10 +219,7 @@ public class ProductsManager : MonoBehaviour
         // Get selected size
         string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
         if (!product.sizes.ContainsKey(selectedSize))
-        {
-            SetDefaultQuantityDropdown();
             return;
-        }
 
         // Get available stock
         int availableStock = product.sizes[selectedSize];
@@ -231,14 +228,13 @@ public class ProductsManager : MonoBehaviour
         int maxSelectable = Mathf.Min(5, availableStock);
 
         // Populate dropdown with values from 1 to maxSelectable
-        List<string> quantities = new List<string> { "Select Quantity" };
+        List<string> quantities = new List<string>();
         for (int i = 1; i <= maxSelectable; i++)
         {
             quantities.Add(i.ToString());
         }
 
         quantityDropdown.AddOptions(quantities);
-        quantityDropdown.value = 0;
         quantityDropdown.RefreshShownValue();
     }
 
