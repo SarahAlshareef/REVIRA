@@ -18,6 +18,8 @@ public class UIproductInteraction : MonoBehaviour
     {
         mainCamera = Camera.main;
 
+
+
         // Ensure productPopup is assigned
         if (productPopup == null)
         {
@@ -34,6 +36,8 @@ public class UIproductInteraction : MonoBehaviour
                 Debug.LogError(gameObject.name + " closeButton is NULL!");
         }
 
+
+
         // Assign close button functionality
         if (closeButton != null)
             closeButton.onClick.AddListener(ClosePopup);
@@ -45,21 +49,21 @@ public class UIproductInteraction : MonoBehaviour
         }
 
         // Predefined positions for each product
-        productPopupPositions.Add("product_001", new Vector3(12.23f, -2.0f, -6f));
-        productPopupPositions.Add("product_002", new Vector3(12.23f, -2.0f, -5f));
-        productPopupPositions.Add("product_003", new Vector3(12.23f, -2.0f, -4f));
-        productPopupPositions.Add("product_004", new Vector3(12.23f, -2.0f, -3f));
-        productPopupPositions.Add("product_005", new Vector3(12.23f, -2.0f, -2f));
-        productPopupPositions.Add("product_006", new Vector3(12.23f, -2.0f, -1f));
-        productPopupPositions.Add("product_007", new Vector3(12.23f, -2.0f, 0f));
-        productPopupPositions.Add("product_008", new Vector3(12.23f, -2.0f, 1f));
-        productPopupPositions.Add("product_009", new Vector3(12.23f, -2.0f, 2f));
-        productPopupPositions.Add("product_010", new Vector3(12.23f, -2.0f, 3f));
-        productPopupPositions.Add("product_011", new Vector3(12.23f, -2.0f, 4f));
-        productPopupPositions.Add("product_012", new Vector3(12.23f, -2.0f, 5f));
-        productPopupPositions.Add("product_013", new Vector3(12.23f, -2.0f, 6f));
-        productPopupPositions.Add("product_014", new Vector3(12.23f, -2.0f, 7f));
-        productPopupPositions.Add("product_015", new Vector3(12.23f, -2.0f, 8f));
+        productPopupPositions.Add("product_001", new Vector3(12.23f, -2.0f, -5.8f));
+        productPopupPositions.Add("product_002", new Vector3(12.23f, -2.0f, -4.8f));
+        productPopupPositions.Add("product_003", new Vector3(12.23f, -2.0f, -3.8f));
+        productPopupPositions.Add("product_004", new Vector3(12.23f, -2.0f, -2.8f));
+        productPopupPositions.Add("product_005", new Vector3(12.23f, -2.0f, -1.8f));
+        productPopupPositions.Add("product_006", new Vector3(12.23f, -2.0f, -0.8f));
+        productPopupPositions.Add("product_007", new Vector3(12.23f, -2.0f, 0.2f));
+        productPopupPositions.Add("product_008", new Vector3(12.23f, -2.0f, 1.2f));
+        productPopupPositions.Add("product_009", new Vector3(12.23f, -2.0f, 2.2f));
+        productPopupPositions.Add("product_010", new Vector3(12.23f, -2.0f, 3.2f));
+        productPopupPositions.Add("product_011", new Vector3(12.23f, -2.0f, 4.2f));
+        productPopupPositions.Add("product_012", new Vector3(12.23f, -2.0f, 5.2f));
+        productPopupPositions.Add("product_013", new Vector3(12.23f, -2.0f, 6.2f));
+        productPopupPositions.Add("product_014", new Vector3(12.23f, -2.0f, 7.2f));
+        productPopupPositions.Add("product_015", new Vector3(12.23f, -2.0f, 8.2f));
     }
 
     private void OnMouseDown()
