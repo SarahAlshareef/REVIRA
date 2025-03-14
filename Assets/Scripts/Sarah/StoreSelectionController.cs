@@ -2,10 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class StoreSelectionController : MonoBehaviour
+public class StoreSelectionController : MonoBehaviour, IPointerClickHandler
 {
     public Button Enter;
     public GameObject storePopup;
@@ -54,5 +55,28 @@ public class StoreSelectionController : MonoBehaviour
     public void LogoutToMainMenu()
     {
         SceneManager.LoadScene("MainMenu");
+    }
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (eventData.pointerPress == Enter.gameObject)
+        {
+            ShowStorePopUp();
+        }
+        else if (eventData.pointerPress == EnterConfirmation.gameObject)
+        {
+            EnterStore();
+        }
+        else if (eventData.pointerPress == CancelEnter.gameObject)
+        {
+            HideStorePopUp();
+        }
+        else if (eventData.pointerPress == Home.gameObject)
+        {
+            BackToHome();
+        }
+        else if (eventData.pointerPress == Logout.gameObject)
+        {
+            LogoutToMainMenu();
+        }
     }
 }
