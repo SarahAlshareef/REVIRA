@@ -201,14 +201,9 @@ public class ProductsManager : MonoBehaviour
 
         List<string> colors = new List<string> { "Select Color" };
         colors.AddRange(productColorsAndSizes.Keys);
-        
-        // Check if there is an update before reloading
-        if ( colorDropdown.options.Count != colors.Count)
-        {
-            colorDropdown.ClearOptions();
-            colorDropdown.AddOptions(colors);
-        }
 
+        colorDropdown.ClearOptions();
+        colorDropdown.AddOptions(colors);
         colorDropdown.value = 0;
         colorDropdown.RefreshShownValue();
     }
@@ -224,13 +219,9 @@ public class ProductsManager : MonoBehaviour
         {
             sizes.AddRange(productColorsAndSizes[selectedColor].Keys);
         }
-        // Check if there is an update before reloading
-        if ( sizeDropdown.options.Count != sizes.Count )
-        {
-            sizeDropdown.ClearOptions();
-            sizeDropdown.AddOptions(sizes);
-        }
 
+        sizeDropdown.ClearOptions();
+        sizeDropdown.AddOptions(sizes);
         sizeDropdown.value = sizes.Count == 2 ? 1 : 0;
         sizeDropdown.RefreshShownValue();
     }
@@ -260,13 +251,8 @@ public class ProductsManager : MonoBehaviour
                 quantities.Add(i.ToString());
             }
         }
-        // Check if there is an update before reloading
-        if (quantityDropdown.options.Count != quantities.Count)
-        {
-            quantityDropdown.ClearOptions();
-            quantityDropdown.AddOptions(quantities);
-        }
-   
+        quantityDropdown.ClearOptions();
+        quantityDropdown.AddOptions(quantities);
         quantityDropdown.value = 0;
         quantityDropdown.RefreshShownValue();
     }
