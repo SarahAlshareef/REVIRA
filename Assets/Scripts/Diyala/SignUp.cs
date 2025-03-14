@@ -1,32 +1,34 @@
-using System.Collections;
-using System.Collections.Generic;
+// Unity
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using TMPro;
+// Firebase
 using Firebase;
 using Firebase.Auth;
+using Firebase.Database;
 using Firebase.Extensions;
-using TMPro;
+// C#
+using System.Collections;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using System.Data.Common;
 
 public class SignUp : MonoBehaviour
 {
-    [Header("UI Elements")]
-    public TMP_InputField firstNameInput;   // Input field for first name
-    public TMP_InputField lastNameInput;    // Input field for last name
-    public TMP_InputField emailInput;       // Input field for email
-    public TMP_InputField passwordInput;    // Input field for password
-    public Button signUpButton;             // Sign-up button
-    public Button loginButton;              // Login button
-    public TextMeshProUGUI errorText;       // UI element to display error messages
+    
+    public TMP_InputField firstNameInput, lastNameInput, emailInput, passwordInput;   
+    public Button signUpButton, loginButton; 
+    public TextMeshProUGUI errorText;
 
-    private FirebaseAuth auth;  // Firebase Authentication instance
+    private FirebaseAuth auth;
+    private DatabaseReference dbReference;
 
     void Start()
     {
         // Initialize Firebase Authentication
         StartCoroutine(InitializeFirebase());
 
-        // Assign button click events
         if (signUpButton != null)
             signUpButton.onClick.AddListener(OnSignUpButtonClick);
 
@@ -42,14 +44,13 @@ public class SignUp : MonoBehaviour
 
         if (task.Exception != null)
         {
-            // Log and show error if Firebase fails to initialize
             Debug.LogError("Firebase initialization failed: " + task.Exception);
             ShowError("Firebase setup failed.");
         }
         else
         {
-            // Initialize Firebase Authentication
             auth = FirebaseAuth.DefaultInstance;
+            dbReference = FirebaseDatabase.DefaultInstance.RootReference;
         }
     }
 
@@ -60,9 +61,6 @@ public class SignUp : MonoBehaviour
         string lastName = lastNameInput?.text.Trim();
         string email = emailInput?.text.Trim();
         string password = passwordInput?.text;
-
-        // Debugging: Log input values
-        Debug.Log($"First Name: [{firstName}], Last Name: [{lastName}], Email: [{email}], Password: [{password}]");
 
         // Validate inputs before attempting sign-up
         if (ValidateInputs(firstName, lastName, email, password))
@@ -163,15 +161,37 @@ public class SignUp : MonoBehaviour
                 {
                     Debug.Log("User profile updated successfully!");
                 }
+                    StartCoroutine(SaveUserToDatabase(newUser.UserId, firstName, lastName, email));
             }
-            // Navigate to the login scene after successful registration
-            SceneManager.LoadScene("LoginScene");
+        }
+    }
+
+    IEnumerator SaveUserToDatabase(string userId, string firstName, string lastName, string email)
+    {
+ 
+            Dictionary<string, object> userData = new Dictionary<string, object>
+        {
+            { "userId", userId },
+            { "firstName", firstName },
+            { "lastName", lastName },
+            { "email", email }
+        };
+
+        var dbTask = dbReference.Child("users").Child(userId).SetValueAsync(userData);
+        yield return new WaitUntil(() => dbTask.IsCompleted);
+
+        if (dbTask.Exception != null)
+        {
+            Debug.LogError("Failed to save user data: " + dbTask.Exception);
+        }
+        else
+        {
+            GoToLoginScene();
         }
     }
 
     public void GoToLoginScene()
     {
-        // Load the login scene when the user clicks the login button
         SceneManager.LoadScene("LoginScene");
     }
 
