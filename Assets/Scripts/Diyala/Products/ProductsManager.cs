@@ -1,45 +1,33 @@
-using System.Collections;
-using System.Collections.Generic;
+// Unity
 using UnityEngine;
-using Firebase.Database;
-using Firebase.Extensions;
 using UnityEngine.UI;
 using UnityEngine.Networking;
 using TMPro;
+// Firebase
+using Firebase.Database; 
+using Firebase.Extensions;
+// C#
+using System.Collections;
+using System.Collections.Generic;
+
 
 public class ProductsManager : MonoBehaviour
 {
 
+    // Firebase
     private DatabaseReference dbReference;
     private ProductData product;
-
-    // Product and store identifiers
     public string productID, storeID;
 
-    // Popup window
-    public GameObject productPopup;
+    // UI Elements
+    public GameObject productPopup, discountTag;
+    public TMP_Text productName, productPrice, discountedPrice, productDescription;
+    public Image productImage;
+    public TMP_Dropdown colorDropdown, sizeDropdown, quantityDropdown;
+    public Button closePopup, openPopup;
 
     // Product Data
-    public TMP_Text productName;
-    public TMP_Text productPrice;
-    public TMP_Text productDescription;
-    public Image productImage;
-
-    // Drop-down lists
-    public TMP_Dropdown colorDropdown;
-    public TMP_Dropdown sizeDropdown;
-    public TMP_Dropdown quantityDropdown;
-
-    // Discount Data
-    public TMP_Text productDiscount;
-    public TMP_Text discountedPrice;
-    public GameObject discountTag;
-
-    // Active buttons
-    public Button closePopup;
-    public Button openPopup;
-
-    private Dictionary<string, Dictionary<string, int>> productColorsAndSizes; // Store available colors and sizes
+    private Dictionary<string, Dictionary<string, int>> productColorsAndSizes; 
 
     public void Start()
     {
@@ -53,28 +41,30 @@ public class ProductsManager : MonoBehaviour
             }
         });
 
+        // Close the pop-up by default
         if (productPopup != null)
         {
             productPopup.SetActive(false);
         }
-        if (closePopup != null)
-        {
-            closePopup.onClick.AddListener(CloseProductPopup);
-        }
+        // Open the pop-up on click
         if (openPopup != null)
         {
             openPopup.onClick.AddListener(OpenProductPopup);
         }
-
-        // Update quantity drop-down when size changes
-        if (sizeDropdown != null)
+        // Close the pop-up on click
+        if (closePopup != null)
         {
-            sizeDropdown.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
+            closePopup.onClick.AddListener(CloseProductPopup);
         }
-
+        // Only show sizes after selecting a color
         if (colorDropdown != null)
         {
             colorDropdown.onValueChanged.AddListener((index) => UpdateSizeDropdown());
+        }
+        // Only show quantities after selecting a size
+        if (sizeDropdown != null)
+        {
+            sizeDropdown.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
         }
     }
 
@@ -88,18 +78,21 @@ public class ProductsManager : MonoBehaviour
                 {
                     DataSnapshot snapshot = task.Result;
                     if (snapshot.Exists)
-                    {                      
+                    {      
+                        // fetch data from Firebase and save them in ProductData
                         product = new ProductData()
                         { 
                         name = snapshot.Child("name").Value.ToString(),
                         price = float.Parse(snapshot.Child("price").Value.ToString()),
                         description = snapshot.Child("description").Value.ToString(),
                         image = snapshot.Child("image").Value.ToString(),
-                        discount = new DiscountData
-                        {
+
+                            // fetch data from Firebase and save them in DiscountData
+                            discount = new DiscountData
+                            {
                             exists = bool.Parse(snapshot.Child("discount").Child("exists").Value.ToString()),
                             percentage = float.Parse(snapshot.Child("discount").Child("percentage").Value.ToString())
-                        }
+                            }
                         };
 
                         productColorsAndSizes = new Dictionary<string, Dictionary<string, int>>();
@@ -107,6 +100,7 @@ public class ProductsManager : MonoBehaviour
                         // Load colors and sizes
                         if (snapshot.HasChild("colors"))
                         {
+                            product.sizes = new Dictionary<string, int>();
                             foreach (var colorNode in snapshot.Child("colors").Children)
                             {
                                 string colorName = colorNode.Key;
@@ -136,44 +130,7 @@ public class ProductsManager : MonoBehaviour
                         StartCoroutine(LoadImageFromURL(product.image));
 
                         // Check if the product has a discount
-                        if (product.discount.exists && product.discount.percentage > 0)
-                        {
-                            // Calculate new discounted price
-                            float newPrice = product.price - (product.price * (product.discount.percentage / 100));
-
-                            // Display the original price with a strikethrough
-                            if (productPrice != null)
-                            {
-                                productPrice.text = $"{product.price:F2}";
-                                productPrice.fontStyle = FontStyles.Strikethrough;
-                            }
-
-                            // Display the discounted price
-                            if (discountedPrice != null)
-                            {
-                                discountedPrice.text = $"{newPrice:F2}";
-                                discountedPrice.gameObject.SetActive(true);
-                            }
-
-                            // Show the discount tag
-                            if (discountTag != null)
-                                discountTag.SetActive(true);
-                        }
-                        else
-                        {
-                            // No discount, show the original price without strikethrough
-                            if (productPrice != null)
-                            {
-                                productPrice.text = $"{product.price:F2}";
-                                productPrice.fontStyle = FontStyles.Normal;
-                            }
-
-                            if (discountedPrice != null)
-                                discountedPrice.gameObject.SetActive(false);
-
-                            if (discountTag != null)
-                                discountTag.SetActive(false);
-                        }
+                        UpdatePriceAndDiscount();
 
                         // Color drop-down
                         if (colorDropdown != null)
@@ -218,7 +175,7 @@ public class ProductsManager : MonoBehaviour
     {
         if (productImage == null)
         {
-            Debug.LogError("Product Image component is not assigned in the Inspector.");
+            Debug.LogError("Product Image is not assigned in the Inspector.");
             yield break;
         }
 
@@ -242,10 +199,16 @@ public class ProductsManager : MonoBehaviour
     {
         if (productColorsAndSizes == null) return;
 
-        colorDropdown.ClearOptions();
         List<string> colors = new List<string> { "Select Color" };
         colors.AddRange(productColorsAndSizes.Keys);
-        colorDropdown.AddOptions(colors);
+        
+        // Check if there is an update before reloading
+        if ( colorDropdown.options.Count != colors.Count)
+        {
+            colorDropdown.ClearOptions();
+            colorDropdown.AddOptions(colors);
+        }
+
         colorDropdown.value = 0;
         colorDropdown.RefreshShownValue();
     }
@@ -254,7 +217,6 @@ public class ProductsManager : MonoBehaviour
     {
         if (sizeDropdown == null) return;
 
-        sizeDropdown.ClearOptions();
         List<string> sizes = new List<string> { "Select Size" };
 
         string selectedColor = colorDropdown.options[colorDropdown.value].text;
@@ -262,7 +224,13 @@ public class ProductsManager : MonoBehaviour
         {
             sizes.AddRange(productColorsAndSizes[selectedColor].Keys);
         }
-        sizeDropdown.AddOptions(sizes);
+        // Check if there is an update before reloading
+        if ( sizeDropdown.options.Count != sizes.Count )
+        {
+            sizeDropdown.ClearOptions();
+            sizeDropdown.AddOptions(sizes);
+        }
+
         sizeDropdown.value = sizes.Count == 2 ? 1 : 0;
         sizeDropdown.RefreshShownValue();
     }
@@ -272,7 +240,6 @@ public class ProductsManager : MonoBehaviour
         if (quantityDropdown == null || sizeDropdown == null || colorDropdown == null)
             return;
 
-        quantityDropdown.ClearOptions();
         List<string> quantities = new List<string> { "Select Quantity" };
 
         // Get selected color and size
@@ -293,11 +260,58 @@ public class ProductsManager : MonoBehaviour
                 quantities.Add(i.ToString());
             }
         }
-        quantityDropdown.AddOptions(quantities);
+        // Check if there is an update before reloading
+        if (quantityDropdown.options.Count != quantities.Count)
+        {
+            quantityDropdown.ClearOptions();
+            quantityDropdown.AddOptions(quantities);
+        }
+   
         quantityDropdown.value = 0;
         quantityDropdown.RefreshShownValue();
     }
 
+    void UpdatePriceAndDiscount()
+    {
+        if (product.discount.exists && product.discount.percentage > 0)
+        {
+            // Calculate new discounted price
+            float newPrice = product.price - (product.price * (product.discount.percentage / 100));
+
+            // Display the original price with a strikethrough
+            if (productPrice != null)
+            {
+                productPrice.text = $"{product.price:F2}";
+                productPrice.fontStyle = FontStyles.Strikethrough;
+            }
+
+            // Display the discounted price
+            if (discountedPrice != null)
+            {
+                discountedPrice.text = $"{newPrice:F2}";
+                discountedPrice.gameObject.SetActive(true);
+            }
+
+            // Show the discount tag
+            if (discountTag != null)
+                discountTag.SetActive(true);
+        }
+        else
+        {
+            // No discount, show the original price 
+            if (productPrice != null)
+            {
+                productPrice.text = $"{product.price:F2}";
+                productPrice.fontStyle = FontStyles.Normal;
+            }
+
+            if (discountedPrice != null)
+                discountedPrice.gameObject.SetActive(false);
+
+            if (discountTag != null)
+                discountTag.SetActive(false);
+        }
+    }
     public void OpenProductPopup()
     {
         if (productPopup != null)
@@ -310,22 +324,18 @@ public class ProductsManager : MonoBehaviour
     }
 }
 
-// Class for storing product data
+// Allows us to use the class's data in unity inspector
 [System.Serializable]
 public class ProductData
 {
-    public string name;
     public float price;
-    public string color;
-    public string image;
-    public string sizeType;
+    public string name, color, image, sizeType, singleSize, description;
+    public int quantity;
     public DiscountData discount;
     public Dictionary<string, int> sizes;
-    public string singleSize;
-    public int quantity;
-    public string description;
 }
 
+// Allows us to use the class's data in unity inspector
 [System.Serializable]
 public class DiscountData
 {
