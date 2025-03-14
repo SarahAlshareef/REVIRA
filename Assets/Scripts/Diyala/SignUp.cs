@@ -7,12 +7,10 @@ using TMPro;
 using Firebase;
 using Firebase.Auth;
 using Firebase.Database;
-using Firebase.Extensions;
 // C#
 using System.Collections;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.Data.Common;
+using System;
 
 public class SignUp : MonoBehaviour
 {
@@ -29,11 +27,8 @@ public class SignUp : MonoBehaviour
         // Initialize Firebase Authentication
         StartCoroutine(InitializeFirebase());
 
-        if (signUpButton != null)
-            signUpButton.onClick.AddListener(OnSignUpButtonClick);
-
-        if (loginButton != null)
-            loginButton.onClick.AddListener(GoToLoginScene);
+        signUpButton?.onClick.AddListener(OnSignUpButtonClick);
+        loginButton?.onClick.AddListener(GoToLoginScene);
     }
 
     IEnumerator InitializeFirebase()
@@ -71,33 +66,39 @@ public class SignUp : MonoBehaviour
 
     private bool ValidateInputs(string firstName, string lastName, string email, string password)
     {
+        var fields = new Dictionary<string, string>
+        {
+            { "firstName", firstName },
+            { "lastName", lastName },
+            { "email", email },
+            { "password", password }
+        };
+
         // List to store missing fields
         List<string> missingFields = new List<string>();
-
-        // Check for empty fields and add them to the list
-        if (string.IsNullOrWhiteSpace(firstName))
-            missingFields.Add("First Name");
-
-        if (string.IsNullOrWhiteSpace(lastName))
-            missingFields.Add("Last Name");
-
-        if (string.IsNullOrWhiteSpace(email))
-            missingFields.Add("Email");
-
-        if (string.IsNullOrWhiteSpace(password))
-            missingFields.Add("Password");
+        foreach (var field in fields)
+        {
+            if (string.IsNullOrWhiteSpace(field.Value))
+                missingFields.Add(field.Key);
+        }
 
         // If there are missing fields, display them all at once
         if (missingFields.Count > 0)
         {
             ShowError($"{string.Join(", ", missingFields)} {(missingFields.Count == 1 ? "is" : "are")} required.");
-            return false; // Validation failed
+            return false; 
         }
-        return true; // Validation successful
+        return true; 
     }
 
     IEnumerator SignUpUser(string firstName, string lastName, string email, string password)
     {
+        if ( auth == null)
+        {
+            ShowError("Authentication service is not initiated.");
+            yield break;
+        }
+
         // Attempt to create a new user with email and password
         var signUpTask = auth.CreateUserWithEmailAndPasswordAsync(email, password);
         yield return new WaitUntil(() => signUpTask.IsCompleted);
@@ -105,36 +106,7 @@ public class SignUp : MonoBehaviour
         // Check if the sign-up operation failed
         if (signUpTask.IsCanceled || signUpTask.IsFaulted)
         {
-            Debug.LogError("Sign Up Failed: " + signUpTask.Exception);
-
-            // Extract Firebase-specific error code
-            FirebaseException firebaseEx = signUpTask.Exception.GetBaseException() as FirebaseException;
-            AuthError errorCode = (AuthError)firebaseEx.ErrorCode;
-
-            // Default error message
-            string errorMessage = "Sign up failed. Please try again.";
-
-            // Provide user-friendly error messages based on error code
-            switch (errorCode)
-            {
-                case AuthError.EmailAlreadyInUse:
-                    errorMessage = "This email is already in use.";
-                    break;
-                case AuthError.InvalidEmail:
-                    errorMessage = "Invalid email format.";
-                    break;
-                case AuthError.WeakPassword:
-                    errorMessage = "Password is too weak.";
-                    break;
-                case AuthError.NetworkRequestFailed:
-                    errorMessage = "Network error. Check your connection.";
-                    break;
-                default:
-                    errorMessage = firebaseEx.Message;
-                    break;
-            }
-            // Display the error message to the user
-            ShowError(errorMessage);
+            HandleSignUpError(signUpTask.Exception);
         }
         else
         {
@@ -153,16 +125,32 @@ public class SignUp : MonoBehaviour
                 var profileUpdateTask = newUser.UpdateUserProfileAsync(profile);
                 yield return new WaitUntil(() => profileUpdateTask.IsCompleted);
 
-                if (profileUpdateTask.Exception != null)
-                {
-                    Debug.LogError("Failed to update user profile: " + profileUpdateTask.Exception);
-                }
-                else
-                {
-                    Debug.Log("User profile updated successfully!");
-                }
-                    StartCoroutine(SaveUserToDatabase(newUser.UserId, firstName, lastName, email));
+                StartCoroutine(SaveUserToDatabase(newUser.UserId, firstName, lastName, email));
             }
+        }
+    }
+
+    void HandleSignUpError(AggregateException exception)
+    {
+        Debug.LogError("Sign Up Failed: " + exception);
+
+        // Extract Firebase-specific error code
+        if (exception.GetBaseException() is FirebaseException firebaseEx)
+        {
+            AuthError errorCode = (AuthError)firebaseEx.ErrorCode;
+            string errorMessage = errorCode switch
+            {
+                AuthError.EmailAlreadyInUse => "This email is already in use.",
+                AuthError.InvalidEmail => "Invalid email format.",
+                AuthError.WeakPassword => "Password is too weak.",
+                AuthError.NetworkRequestFailed => "Network error. Check your connection.",
+                _ => firebaseEx.Message
+            };
+            ShowError(errorMessage);
+        }
+        else
+        {
+            ShowError("An unkown error occurerd.");
         }
     }
 
@@ -174,20 +162,18 @@ public class SignUp : MonoBehaviour
             { "userId", userId },
             { "firstName", firstName },
             { "lastName", lastName },
-            { "email", email }
+            { "email", email },
+            { "accountBalance", 1000 }
+
         };
 
         var dbTask = dbReference.Child("users").Child(userId).SetValueAsync(userData);
         yield return new WaitUntil(() => dbTask.IsCompleted);
 
         if (dbTask.Exception != null)
-        {
             Debug.LogError("Failed to save user data: " + dbTask.Exception);
-        }
         else
-        {
             GoToLoginScene();
-        }
     }
 
     public void GoToLoginScene()
@@ -199,10 +185,8 @@ public class SignUp : MonoBehaviour
     {
         if (errorText != null)
         {
-            errorText.text = message; // Update error text
+            errorText.text = message; 
             errorText.color = Color.red;
         }
-        // Debugging: Log error message
-        Debug.LogError("Displayed Error: " + message);
     }
 }
