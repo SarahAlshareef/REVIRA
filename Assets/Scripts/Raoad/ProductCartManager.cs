@@ -2,14 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Firebase;
 using Firebase.Database;
-using Firebase.Extensions;
 using TMPro;
 
 public class ProductCartManager : MonoBehaviour
 {
     private DatabaseReference dbReference;
-
     public TMP_Dropdown sizeDropdown;
     public TMP_Dropdown colorDropdown;
     public TMP_Dropdown quantityDropdown;
@@ -17,39 +16,42 @@ public class ProductCartManager : MonoBehaviour
 
     private string storeID = "storeID_123"; // Store ID
     private ProductsManager productsManager; // Reference to ProductsManager
+    private UserManager userManager; // Reference to UserManager
 
     void Start()
     {
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
 
-        // Find ProductsManager in the scene
+        // Find the required managers
         productsManager = FindObjectOfType<ProductsManager>();
+        userManager = FindObjectOfType<UserManager>();
 
-        // Add listener to "Add to Cart" button
-        addToCartButton.onClick.AddListener(AddToCart);
+        if (addToCartButton != null)
+        {
+            addToCartButton.onClick.AddListener(AddToCart);
+        }
     }
 
     public void AddToCart()
     {
-        // Ensure UserManager is initialized
-        if (UserManager.Instance == null)
+        if (userManager == null)
         {
-            Debug.LogError("UserManager is not initialized!");
+            Debug.LogError("UserManager is missing in the scene!");
             return;
         }
 
-        // Get user data from UserManager
-        string userID = UserManager.Instance.UserId;
-        string userName = UserManager.Instance.FirstName + " " + UserManager.Instance.LastName;
-
-        // Ensure ProductsManager is initialized
         if (productsManager == null)
         {
-            Debug.LogError("ProductsManager script is missing in the scene!");
+            Debug.LogError("ProductsManager is missing in the scene!");
             return;
         }
 
-        // Get product data from ProductsManager
+        if (string.IsNullOrEmpty(userManager.UserId))
+        {
+            Debug.LogError("User is not logged in!");
+            return;
+        }
+
         ProductData productData = productsManager.GetProductData();
         if (productData == null || string.IsNullOrEmpty(productsManager.productID))
         {
@@ -57,11 +59,12 @@ public class ProductCartManager : MonoBehaviour
             return;
         }
 
+        string userID = userManager.UserId;
         string productID = productsManager.productID;
         string productName = productData.name;
         float productPrice = productData.price;
 
-        // Get selected options
+        // Get selected values from dropdowns
         string selectedColor = colorDropdown.options[colorDropdown.value].text;
         string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
         string selectedQuantity = quantityDropdown.options[quantityDropdown.value].text;
@@ -79,22 +82,21 @@ public class ProductCartManager : MonoBehaviour
         }
 
         int quantity = int.Parse(selectedQuantity);
-        string orderID = dbReference.Child("carts").Child(storeID).Child(userID).Push().Key; // Generate unique order ID
+        string orderID = dbReference.Child("carts").Push().Key; // Generate unique order ID
         long expirationTime = GetUnixTimestamp() + (24 * 60 * 60); // 24 hours in seconds
 
-        // Create cart item dictionary
+        // Prepare the cart data to be stored in Firebase
         Dictionary<string, object> cartItem = new Dictionary<string, object>
         {
-            { "userID", userID },
-            { "userName", userName },
             { "productID", productID },
             { "productName", productName },
             { "price", productPrice },
             { "size", selectedSize },
             { "color", selectedColor },
             { "quantity", quantity },
-            { "timestamp", ServerValue.Timestamp },
-            { "expiresAt", expirationTime } // Session expiration
+            { "storeID", storeID },
+            { "timestamp", GetUnixTimestamp() },
+            { "expiresAt", expirationTime }
         };
 
         // Store the order under carts/{storeID}/{userID}/{orderID}
