@@ -29,6 +29,16 @@ public class ProductsManager : MonoBehaviour
     // Product Data
     private Dictionary<string, Dictionary<string, int>> productColorsAndSizes; 
 
+    // Getter & Setter
+    public ProductData GetProductData()
+    {
+        return product;
+    }
+    public void SetProductData(ProductData newProduct)
+    {
+        product = newProduct;
+    }
+
     public void Start()
     {
         Firebase.FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
