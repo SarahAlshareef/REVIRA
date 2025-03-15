@@ -1,24 +1,24 @@
-using System.Collections;
-using System.Collections.Generic;
+// Unity
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using TMPro;
+// Firebase
 using Firebase;
 using Firebase.Auth;
-using Firebase.Extensions;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
-using TMPro;
+// C#
+using System.Collections;
+using System.Collections.Generic;
+using Firebase.Database;
 
 public class Login : MonoBehaviour
 {
     [Header("UI Elements")]
-    public TMP_InputField emailInput;       // Input field for email
-    public TMP_InputField passwordInput;    // Input field for password
-    public Button loginButton;              // Login button
-    public Button signUpButton;             // Button to switch to Sign-Up scene
-    public TextMeshProUGUI errorText;       // UI text for error messages
+    public TMP_InputField emailInput, passwordInput;  
+    public Button loginButton, signUpButton;   
+    public TextMeshProUGUI errorText;     
 
-    private FirebaseAuth auth;  // Firebase Authentication instance
-    private FirebaseUser user;  // Stores the logged in user's data
+    private FirebaseAuth auth;  
 
     void Start()
     {
@@ -47,7 +47,6 @@ public class Login : MonoBehaviour
         }
         else
         {
-            // Initialize Firebase Authentication
             auth = FirebaseAuth.DefaultInstance;
         }
     }
@@ -60,10 +59,7 @@ public class Login : MonoBehaviour
         string email = emailInput?.text.Trim();
         string password = passwordInput?.text;
 
-        // Debugging: Log input values
-        Debug.Log($"Attempting login with Email: [{email}]");
 
-        // Validate inputs before attempting login
         if (ValidateInputs(email, password))
         {
             StartCoroutine(LoginUser(email, password));
@@ -74,7 +70,6 @@ public class Login : MonoBehaviour
     {
         List<string> missingFields = new List<string>();
 
-        // Check for empty fields and add them to the list
         if (string.IsNullOrWhiteSpace(email))
             missingFields.Add("Email");
 
@@ -85,9 +80,9 @@ public class Login : MonoBehaviour
         if (missingFields.Count > 0)
         {
             ShowError($"{string.Join(", ", missingFields)} {(missingFields.Count == 1 ? "is" : "are")} required.");
-            return false; // Validation failed
+            return false; 
         }
-        return true; // Validation successful
+        return true; 
     }
 
     IEnumerator LoginUser(string email, string password)
@@ -106,13 +101,47 @@ public class Login : MonoBehaviour
             ShowError("Invalid email or password. Please try again.");
             yield break;
         }
+        FirebaseUser user = auth.CurrentUser;
 
-        // Successful login
-        SceneManager.LoadScene("HomeScene");
+        if (user != null)
+        {
+            StartCoroutine(FetchUserData(user.UserId));
+        }
     }
+
+    IEnumerator FetchUserData(string userId)
+    {
+        DatabaseReference dbReference = FirebaseDatabase.DefaultInstance.RootReference;
+
+        var dbTask = dbReference.Child("users").Child(userId).GetValueAsync();
+        yield return new WaitUntil(() => dbTask.IsCompleted);
+
+        if (dbTask.Exception != null)
+        {
+            ShowError("Failed to load user data.");
+            yield break;
+        }
+
+        if (dbTask.Result.Exists)
+        {
+            DataSnapshot snapshot = dbTask.Result;
+
+            string firstName = snapshot.Child("firstName").Value.ToString();
+            string lastName = snapshot.Child("lastName").Value.ToString();
+            string email = snapshot.Child("email").Value.ToString();
+            float accountBalance = float.Parse(snapshot.Child("accountBalance").Value.ToString());
+
+            UserManager.Instance.SetUserData(userId, firstName, lastName, email, accountBalance);
+            SceneManager.LoadScene("HomeScene");
+        }
+        else
+        {
+            ShowError("User data not found.");
+        }
+    }
+
     public void SignUp()
     {
-        // Load the sign-up scene
         SceneManager.LoadScene("SignUpScene");
     }
 
