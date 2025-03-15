@@ -1,29 +1,25 @@
-using System.Collections;
-using System.Collections.Generic;
+// Unity
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
-using Firebase.Auth;
 using UnityEngine.SceneManagement;
+using TMPro;
+// Firebase
+using Firebase.Auth;
 
 public class Logout : MonoBehaviour
 {
-    public GameObject popupPanel; // Assign in the Inspector
-    public Button confirmButton;
-    public Button cancelButton;
+    public GameObject popupPanel; 
+    public Button confirmButton, cancelButton;
     public TextMeshProUGUI popupMessage;
 
     void Start()
     {
-        // Hide popup initially
         popupPanel.SetActive(false);
 
-        // Add button listeners
         confirmButton.onClick.AddListener(ConfirmLogout);
         cancelButton.onClick.AddListener(ClosePopup);
     }
 
-    // Function to show the popup
     public void ShowLogoutPopup()
     {
         popupPanel.SetActive(true);
@@ -31,10 +27,9 @@ public class Logout : MonoBehaviour
 
     private void ConfirmLogout()
     {
+        UserManager.Instance.SetUserData("", "", "", "", 0);
         FirebaseAuth.DefaultInstance.SignOut();
-        Debug.Log("User logged out successfully.");
-
-        // Close popup and load MainMenu scene
+   
         popupPanel.SetActive(false);
         SceneManager.LoadScene("MainMenu");
     }
