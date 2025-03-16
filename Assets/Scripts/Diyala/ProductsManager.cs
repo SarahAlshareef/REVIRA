@@ -26,7 +26,7 @@ public class ProductsManager : MonoBehaviour
     public TMP_Dropdown colorDropdown, sizeDropdown, quantityDropdown;
     public Button closePopup, openPopup;
 
-    // Product Data
+    // Declare Product Data
     public Dictionary<string, Dictionary<string, int>> productColorsAndSizes;
 
     // Getter & Setter
@@ -110,16 +110,13 @@ public class ProductsManager : MonoBehaviour
                         }
 
                         // Product name
-                        if (productName != null)
-                            productName.text = product.name;
+                        productName?.SetText(product.name);
 
                         // Product price
-                        if (productPrice != null)
-                            productPrice.text = $"{product.price:F2}";
+                        productPrice?.SetText($"{product.price:F2}");
 
                         // Product description
-                        if (productDescription != null)
-                            productDescription.text = product.description;
+                        productDescription?.SetText(product.description);
 
                         // Product image
                         StartCoroutine(LoadImageFromURL(product.image));
