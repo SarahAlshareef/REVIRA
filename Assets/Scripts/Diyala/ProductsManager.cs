@@ -51,19 +51,14 @@ public class ProductsManager : MonoBehaviour
             }
         });
 
-        // Close the pop-up by default
         productPopup?.SetActive(false);
  
-        // Open the pop-up on click
         openPopup?.onClick.AddListener(OpenProductPopup);
 
-        // Close the pop-up on click
         closePopup?.onClick.AddListener(CloseProductPopup);
         
-        // Only show sizes after selecting a color
         colorDropdown?.onValueChanged.AddListener((index) => UpdateSizeDropdown());
 
-        // Only show quantities after selecting a size
         sizeDropdown?.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
         
     }
@@ -300,13 +295,11 @@ public class ProductsManager : MonoBehaviour
     }
     public void OpenProductPopup()
     {
-        if (productPopup != null)
-            productPopup.SetActive(true);
+        productPopup?.SetActive(true);
     }
     public void CloseProductPopup()
     {
-        if (productPopup != null)
-            productPopup.SetActive(false);
+        productPopup?.SetActive(false);
     }
 }
 
