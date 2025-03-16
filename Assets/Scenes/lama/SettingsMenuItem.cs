@@ -4,14 +4,12 @@ using UnityEngine.UI;
 
 public class SettingsMenuItem : MonoBehaviour
 {
-
-    [HideInInspector] public Image img;
-    [HideInInspector] public Transform trans;
+  
+    [HideInInspector] public RectTransform rectTrans;
 
     void Awake()
     {
-
-        img = GetComponent<Image> ();
-        trans = transform;
+       
+        rectTrans = GetComponent<RectTransform>();
     }
 }
