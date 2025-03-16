@@ -4,7 +4,7 @@ using UnityEngine.UI;
 using UnityEngine.Networking;
 using TMPro;
 // Firebase
-using Firebase.Database; 
+using Firebase.Database;
 using Firebase.Extensions;
 // C#
 using System.Collections;
@@ -27,7 +27,7 @@ public class ProductsManager : MonoBehaviour
     public Button closePopup, openPopup;
 
     // Product Data
-    private Dictionary<string, Dictionary<string, int>> productColorsAndSizes; 
+    private Dictionary<string, Dictionary<string, int>> productColorsAndSizes;
 
     // Getter & Setter
     public ProductData GetProductData()
@@ -88,20 +88,20 @@ public class ProductsManager : MonoBehaviour
                 {
                     DataSnapshot snapshot = task.Result;
                     if (snapshot.Exists)
-                    {      
+                    {
                         // fetch data from Firebase and save them in ProductData
                         product = new ProductData()
-                        { 
-                        name = snapshot.Child("name").Value.ToString(),
-                        price = float.Parse(snapshot.Child("price").Value.ToString()),
-                        description = snapshot.Child("description").Value.ToString(),
-                        image = snapshot.Child("image").Value.ToString(),
+                        {
+                            name = snapshot.Child("name").Value.ToString(),
+                            price = float.Parse(snapshot.Child("price").Value.ToString()),
+                            description = snapshot.Child("description").Value.ToString(),
+                            image = snapshot.Child("image").Value.ToString(),
 
                             // fetch data from Firebase and save them in DiscountData
                             discount = new DiscountData
                             {
-                            exists = bool.Parse(snapshot.Child("discount").Child("exists").Value.ToString()),
-                            percentage = float.Parse(snapshot.Child("discount").Child("percentage").Value.ToString())
+                                exists = bool.Parse(snapshot.Child("discount").Child("exists").Value.ToString()),
+                                percentage = float.Parse(snapshot.Child("discount").Child("percentage").Value.ToString())
                             }
                         };
 
@@ -168,7 +168,7 @@ public class ProductsManager : MonoBehaviour
                         sizeDropdown.value = 0;
                         sizeDropdown.RefreshShownValue();
 
-                        UpdateColorDropdown();  
+                        UpdateColorDropdown();
                     }
                     else
                     {
@@ -245,9 +245,9 @@ public class ProductsManager : MonoBehaviour
 
         // Get selected color and size
         string selectedColor = colorDropdown.options[colorDropdown.value].text;
-        string selectedSize = sizeDropdown.options[ sizeDropdown.value ].text;
+        string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
 
-        if (selectedColor != "Select Color" && selectedSize != "Select Size" && productColorsAndSizes.ContainsKey(selectedColor) 
+        if (selectedColor != "Select Color" && selectedSize != "Select Size" && productColorsAndSizes.ContainsKey(selectedColor)
             && productColorsAndSizes[selectedColor].ContainsKey(selectedSize))
         {
             // Get available stock
