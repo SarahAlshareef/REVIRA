@@ -27,7 +27,7 @@ public class ProductsManager : MonoBehaviour
     public Button closePopup, openPopup;
 
     // Product Data
-    private Dictionary<string, Dictionary<string, int>> productColorsAndSizes;
+    public Dictionary<string, Dictionary<string, int>> productColorsAndSizes;
 
     // Getter & Setter
     public ProductData GetProductData()
