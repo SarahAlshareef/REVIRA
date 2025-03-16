@@ -52,30 +52,20 @@ public class ProductsManager : MonoBehaviour
         });
 
         // Close the pop-up by default
-        if (productPopup != null)
-        {
-            productPopup.SetActive(false);
-        }
+        productPopup?.SetActive(false);
+ 
         // Open the pop-up on click
-        if (openPopup != null)
-        {
-            openPopup.onClick.AddListener(OpenProductPopup);
-        }
+        openPopup?.onClick.AddListener(OpenProductPopup);
+
         // Close the pop-up on click
-        if (closePopup != null)
-        {
-            closePopup.onClick.AddListener(CloseProductPopup);
-        }
+        closePopup?.onClick.AddListener(CloseProductPopup);
+        
         // Only show sizes after selecting a color
-        if (colorDropdown != null)
-        {
-            colorDropdown.onValueChanged.AddListener((index) => UpdateSizeDropdown());
-        }
+        colorDropdown?.onValueChanged.AddListener((index) => UpdateSizeDropdown());
+
         // Only show quantities after selecting a size
-        if (sizeDropdown != null)
-        {
-            sizeDropdown.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
-        }
+        sizeDropdown?.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
+        
     }
 
     public void LoadProductData()
