@@ -11,7 +11,6 @@ public class ProductCartManager : MonoBehaviour
     public TMP_Dropdown colorDropdown;
     public TMP_Dropdown quantityDropdown;
     public Button addToCartButton;
-    public TextMeshProUGUI errorText; // ·≈ŸÂ«— «·√Œÿ«¡ ›Ì «·Ê«ÃÂ…
 
     private string storeID = "storeID_123"; // Store ID
     private ProductsManager productsManager; // Reference to ProductsManager
@@ -21,7 +20,7 @@ public class ProductCartManager : MonoBehaviour
     {
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
 
-        // «·⁄ÀÊ— ⁄·Ï «·”ﬂ—» «  «·√Œ—Ï ›Ì «·„‘Âœ
+        // Find the required managers
         productsManager = FindObjectOfType<ProductsManager>();
         userManager = FindObjectOfType<UserManager>();
 
@@ -30,10 +29,59 @@ public class ProductCartManager : MonoBehaviour
             addToCartButton.onClick.AddListener(AddToCart);
         }
 
-        if (errorText != null)
+        // Ensure dropdown listeners to trigger validation
+        if (colorDropdown != null)
+            colorDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); });
+
+        if (sizeDropdown != null)
+            sizeDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); });
+
+        if (quantityDropdown != null)
+            quantityDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); });
+    }
+
+    public void ValidateSelection()
+    {
+        if (productsManager == null)
         {
-            errorText.text = ""; // ≈Œ›«¡ √Ì —”«·… Œÿ√ ⁄‰œ «·»œ«Ì…
+            Debug.LogError("ProductsManager is missing!");
+            return;
         }
+
+        // Fetch the latest product data
+        ProductData productData = productsManager.GetProductData();
+        if (productData == null)
+        {
+            Debug.LogError("Product data is not loaded yet! Retrying...");
+            productsManager.LoadProductData();
+            return;
+        }
+
+        // Get selected values
+        string selectedColor = colorDropdown.options[colorDropdown.value].text;
+        string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
+        string selectedQuantity = quantityDropdown.options[quantityDropdown.value].text;
+
+        // Step-by-step validation
+        if (selectedColor == "Select Color")
+        {
+            Debug.LogError("Please select a color!");
+            return;
+        }
+
+        if (selectedSize == "Select Size")
+        {
+            Debug.LogError("Please select a size!");
+            return;
+        }
+
+        if (selectedQuantity == "Select Quantity")
+        {
+            Debug.LogError("Please select a quantity!");
+            return;
+        }
+
+        Debug.Log(" Selection Valid: Color: " + selectedColor + ", Size: " + selectedSize + ", Quantity: " + selectedQuantity);
     }
 
     public void AddToCart()
@@ -63,39 +111,28 @@ public class ProductCartManager : MonoBehaviour
             return;
         }
 
-        string selectedColor = colorDropdown.options[colorDropdown.value].text;
-        string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
-        string selectedQuantity = quantityDropdown.options[quantityDropdown.value].text;
-
-        // «· Õﬁﬁ «· œ—ÌÃÌ „‰ «·ﬁÌ„ »«· — Ì» «·’ÕÌÕ
-        if (selectedColor == "Select Color" && selectedSize == "Select Size" && selectedQuantity == "Select Quantity")
-        {
-            ShowError("«·—Ã«¡ «Œ Ì«— „Ê«’›«  «·„‰ Ã.");
-            return;
-        }
-
-        if (selectedColor != "Select Color" && selectedSize == "Select Size")
-        {
-            ShowError("«·—Ã«¡ «Œ Ì«— «·ÕÃ„ Ê«·ﬂ„Ì….");
-            return;
-        }
-
-        if (selectedColor != "Select Color" && selectedSize != "Select Size" && selectedQuantity == "Select Quantity")
-        {
-            ShowError("«·—Ã«¡ «Œ Ì«— «·ﬂ„Ì….");
-            return;
-        }
-
-        // ≈–« Ê’· ≈·Ï Â‰«° ›Â–« Ì⁄‰Ì √‰ ﬂ· «·ﬁÌ„  „ «Œ Ì«—Â«
-        int quantity = int.Parse(selectedQuantity);
         string userID = userManager.UserId;
         string productID = productsManager.productID;
         string productName = productData.name;
         float productPrice = productData.price;
-        string orderID = dbReference.Child("carts").Push().Key;
-        long expirationTime = GetUnixTimestamp() + (24 * 60 * 60);
 
-        //  ÃÂÌ“ «·»Ì«‰«  ·Õ›ŸÂ« ›Ì Firebase
+        // Get selected values from dropdowns
+        string selectedColor = colorDropdown.options[colorDropdown.value].text;
+        string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
+        string selectedQuantity = quantityDropdown.options[quantityDropdown.value].text;
+
+        // Ensure selections are valid
+        if (selectedColor == "Select Color" || selectedSize == "Select Size" || selectedQuantity == "Select Quantity")
+        {
+            Debug.LogError("Size, Color, or Quantity is not selected properly!");
+            return;
+        }
+
+        int quantity = int.Parse(selectedQuantity);
+        string orderID = dbReference.Child("carts").Push().Key; // Generate unique order ID
+        long expirationTime = GetUnixTimestamp() + (24 * 60 * 60); // 24 hours in seconds
+
+        // Prepare the cart data to be stored in Firebase
         Dictionary<string, object> cartItem = new Dictionary<string, object>
         {
             { "productID", productID },
@@ -109,33 +146,22 @@ public class ProductCartManager : MonoBehaviour
             { "expiresAt", expirationTime }
         };
 
-        // Õ›Ÿ «·»Ì«‰«  ›Ì Firebase
+        // Store the order under carts/{storeID}/{userID}/{orderID}
         dbReference.Child("carts").Child(storeID).Child(userID).Child(orderID).SetValueAsync(cartItem)
             .ContinueWith(task =>
             {
                 if (task.IsCompleted)
                 {
-                    ShowError(" „  ≈÷«›… «·„‰ Ã ≈·Ï «·”·… »‰Ã«Õ!", success: true);
-                    Debug.Log("Order added to Firebase successfully!");
+                    Debug.Log(" Order added to Firebase successfully!");
                 }
                 else
                 {
-                    Debug.LogError("Error adding order to Firebase: " + task.Exception);
+                    Debug.LogError(" Error adding order to Firebase: " + task.Exception);
                 }
             });
     }
 
-    // œ«·… ·≈ŸÂ«— «·√Œÿ«¡ ⁄·Ï «·‘«‘…
-    void ShowError(string message, bool success = false)
-    {
-        if (errorText != null)
-        {
-            errorText.text = message;
-            errorText.color = success ? Color.green : Color.red; // «·√Œ÷— ··‰Ã«Õ° «·√Õ„— ··√Œÿ«¡
-        }
-    }
-
-    // œ«·… ··Õ’Ê· ⁄·Ï «· ÊﬁÌ  «·Õ«·Ì
+    // Helper function to get current Unix timestamp
     private long GetUnixTimestamp()
     {
         return (long)(System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1))).TotalSeconds;
