@@ -228,11 +228,9 @@ public class ProductsManager : MonoBehaviour
         {
             float newPrice = product.price - (product.price * (product.discount.percentage / 100));
 
+            productPrice?.SetText($"{product.price:F2}");
             if (productPrice != null)
-            {
-                productPrice.text = $"{product.price:F2}";
                 productPrice.fontStyle = FontStyles.Strikethrough;
-            }
 
             discountedPrice?.SetText($"{newPrice:F2}");
             discountedPrice?.gameObject.SetActive(true);
