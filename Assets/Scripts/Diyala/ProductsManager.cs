@@ -256,7 +256,7 @@ public class ProductsManager : MonoBehaviour
 public class ProductData
 {
     public float price;
-    public string name, color, image, sizeType, description;
+    public string name, color, image, description;
     public int quantity;
     public DiscountData discount;
     public Dictionary<string, int> sizes;
