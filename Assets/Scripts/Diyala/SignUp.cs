@@ -64,31 +64,20 @@ public class SignUp : MonoBehaviour
         }
     }
 
-    private bool ValidateInputs(string firstName, string lastName, string email, string password)
+    bool ValidateInputs(string firstName, string lastName, string email, string password)
     {
-        var fields = new Dictionary<string, string>
-        {
-            { "firstName", firstName },
-            { "lastName", lastName },
-            { "email", email },
-            { "password", password }
-        };
+        List<string> missingFields = new();
+        if (string.IsNullOrWhiteSpace(firstName)) missingFields.Add("First Name");
+        if (string.IsNullOrWhiteSpace(lastName)) missingFields.Add("Last Name");
+        if (string.IsNullOrWhiteSpace(email)) missingFields.Add("Email");
+        if (string.IsNullOrWhiteSpace(password)) missingFields.Add("Password");
 
-        // List to store missing fields
-        List<string> missingFields = new List<string>();
-        foreach (var field in fields)
-        {
-            if (string.IsNullOrWhiteSpace(field.Value))
-                missingFields.Add(field.Key);
-        }
-
-        // If there are missing fields, display them all at once
         if (missingFields.Count > 0)
         {
             ShowError($"{string.Join(", ", missingFields)} {(missingFields.Count == 1 ? "is" : "are")} required.");
-            return false; 
+            return false;
         }
-        return true; 
+        return true;
     }
 
     IEnumerator SignUpUser(string firstName, string lastName, string email, string password)
@@ -132,7 +121,6 @@ public class SignUp : MonoBehaviour
 
     void HandleSignUpError(AggregateException exception)
     {
-        Debug.LogError("Sign Up Failed: " + exception);
 
         // Extract Firebase-specific error code
         if (exception.GetBaseException() is FirebaseException firebaseEx)
@@ -157,7 +145,7 @@ public class SignUp : MonoBehaviour
     IEnumerator SaveUserToDatabase(string userId, string firstName, string lastName, string email)
     {
  
-            Dictionary<string, object> userData = new Dictionary<string, object>
+        Dictionary<string, object> userData = new Dictionary<string, object>
         {
             { "userId", userId },
             { "firstName", firstName },
