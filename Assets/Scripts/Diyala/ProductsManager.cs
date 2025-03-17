@@ -125,29 +125,10 @@ public class ProductsManager : MonoBehaviour
                         UpdatePriceAndDiscount();
 
                         // Color drop-down
-                        if (colorDropdown != null)
-                        {
-                            colorDropdown.ClearOptions();
-                            List<string> colorOption = new List<string> { "Select Color", product.color };
-                            colorDropdown.AddOptions(colorOption);
-                            colorDropdown.value = 0;
-                            colorDropdown.RefreshShownValue();
-                        }
+                        UpdateColorDropdown();
 
                         // Size drop-down
-                        sizeDropdown.ClearOptions();
-                        List<string> sizeOptions = new List<string> { "Select Size" };
-
-                        if (product.sizes != null && product.sizes.Count > 0)
-                        {
-                            sizeOptions.AddRange(product.sizes.Keys);
-                        }
-
-                        sizeDropdown.AddOptions(sizeOptions);
-                        sizeDropdown.value = 0;
-                        sizeDropdown.RefreshShownValue();
-
-                        UpdateColorDropdown();
+                        UpdateSizeDropdown();
                     }
                     else
                     {
@@ -177,10 +158,8 @@ public class ProductsManager : MonoBehaviour
                 Texture2D texture = DownloadHandlerTexture.GetContent(request);
                 productImage.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
             }
-            else
-            {
-                Debug.LogError("Failed to load image: " + request.error);
-            }
+            else           
+                Debug.LogError("Failed to load image: " + request.error);           
         }
     }
 
