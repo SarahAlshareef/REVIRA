@@ -25,12 +25,8 @@ public class Login : MonoBehaviour
         // Initialize Firebase Authentication
         StartCoroutine(InitializeFirebase());
 
-        // Assign button click events
-        if (loginButton != null)
-            loginButton.onClick.AddListener(OnLoginButtonClick);
-
-        if (signUpButton != null)
-            signUpButton.onClick.AddListener(SignUp);
+        loginButton?.onClick.AddListener(OnLoginButtonClick);
+        signUpButton?.onClick.AddListener(SignUp);
     }
 
     IEnumerator InitializeFirebase()
@@ -152,6 +148,5 @@ public class Login : MonoBehaviour
             errorText.text = message;
             errorText.color = Color.red;
         }
-        Debug.LogError("Displayed Error: " + message);
     }
 }
