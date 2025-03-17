@@ -169,7 +169,7 @@ public class ProductsManager : MonoBehaviour
 
         colorDropdown.ClearOptions();
         colorDropdown.AddOptions(colors);
-        colorDropdown.value = 0;
+        colorDropdown.SetValueWithoutNotify(0);
         colorDropdown.RefreshShownValue();
     }
 
@@ -187,7 +187,7 @@ public class ProductsManager : MonoBehaviour
 
         sizeDropdown.ClearOptions();
         sizeDropdown.AddOptions(sizes);
-        sizeDropdown.value = 0;
+        sizeDropdown.SetValueWithoutNotify(0);
         sizeDropdown.RefreshShownValue();
     }
 
@@ -218,7 +218,7 @@ public class ProductsManager : MonoBehaviour
         }
         quantityDropdown.ClearOptions();
         quantityDropdown.AddOptions(quantities);
-        quantityDropdown.value = 0;
+        quantityDropdown.SetValueWithoutNotify(0);
         quantityDropdown.RefreshShownValue();
     }
 
