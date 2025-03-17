@@ -253,8 +253,6 @@ public class ProductsManager : MonoBehaviour
     }
 }
 
-// Allows us to use the class's data in unity inspector
-[System.Serializable]
 public class ProductData
 {
     public float price;
@@ -264,8 +262,6 @@ public class ProductData
     public Dictionary<string, int> sizes;
 }
 
-// Allows us to use the class's data in unity inspector
-[System.Serializable]
 public class DiscountData
 {
     public bool exists;
