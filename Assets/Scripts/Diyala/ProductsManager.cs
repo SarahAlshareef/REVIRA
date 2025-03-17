@@ -251,6 +251,35 @@ public class ProductsManager : MonoBehaviour
     {
         productPopup?.SetActive(false);
     }
+
+    //test
+    public SelectedProduct GetSelectedProduct()
+    {
+        if (colorDropdown.value == 0 || sizeDropdown.value == 0 || quantityDropdown.value == 0)
+        {
+            Debug.LogWarning("Please select color, size, and quantity.");
+            return null;
+        }
+
+
+        string selectedColor = colorDropdown.options[colorDropdown.value].text;
+        string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
+        int selectedQuantity = int.Parse(quantityDropdown.options[quantityDropdown.value].text);
+
+
+        SelectedProduct selectedProduct = new SelectedProduct
+        {
+            productID = productID,
+            storeID = storeID,
+            name = product.name,
+            price = product.price,
+            color = selectedColor,
+            size = selectedSize,
+            quantity = selectedQuantity
+        };
+
+        return selectedProduct;
+    }
 }
 
 public class ProductData
@@ -266,4 +295,15 @@ public class DiscountData
 {
     public bool exists;
     public float percentage;
+}
+//test
+public class SelectedProduct
+{
+    public string productID;
+    public string storeID;
+    public string name;
+    public float price;
+    public string color;
+    public string size;
+    public int quantity;
 }
