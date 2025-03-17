@@ -190,7 +190,7 @@ public class ProductsManager : MonoBehaviour
 
         sizeDropdown.ClearOptions();
         sizeDropdown.AddOptions(sizes);
-        sizeDropdown.value = sizes.Count == 2 ? 1 : 0;
+        colorDropdown.value = 0;
         sizeDropdown.RefreshShownValue();
     }
 
