@@ -108,23 +108,21 @@ public class SignUp : MonoBehaviour
     void HandleSignUpError(AggregateException exception)
     {
 
-        // Extract Firebase-specific error code
         if (exception.GetBaseException() is FirebaseException firebaseEx)
         {
-            AuthError errorCode = (AuthError)firebaseEx.ErrorCode;
-            string errorMessage = errorCode switch
+            string errorMessage = firebaseEx.ErrorCode switch
             {
-                AuthError.EmailAlreadyInUse => "This email is already in use.",
-                AuthError.InvalidEmail => "Invalid email format.",
-                AuthError.WeakPassword => "Password is too weak.",
-                AuthError.NetworkRequestFailed => "Network error. Check your connection.",
+                (int)AuthError.EmailAlreadyInUse => "This email is already in use.",
+                (int)AuthError.InvalidEmail => "Invalid email format.",
+                (int)AuthError.WeakPassword => "Password is too weak.",
+                (int)AuthError.NetworkRequestFailed => "Network error. Check your connection.",
                 _ => firebaseEx.Message
             };
             ShowError(errorMessage);
         }
         else
         {
-            ShowError("An unkown error occurerd.");
+            ShowError("An unknown error occurred.");
         }
     }
 
