@@ -1,8 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI; // Needed for UI elements
 using TMPro;
+using UnityEngine.EventSystems;
 
-public class PlayerRotation : MonoBehaviour
+public class PlayerRotation : MonoBehaviour, IPointerClickHandler
 {
     public float smoothRotationSpeed = 50.0f;
     public float snapAngle = 30.0f;
@@ -77,5 +78,10 @@ public class PlayerRotation : MonoBehaviour
         {
             toggleButtonText.text = useSnapRotation ? "Snap: ON" : "Snap: OFF";
         }
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        ToggleRotationMode();
     }
 }
