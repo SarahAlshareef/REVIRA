@@ -294,21 +294,27 @@ public class ProductsManager : MonoBehaviour
     //test
     public SelectedProduct GetSelectedProduct()
     {
+        colorDropdown.RefreshShownValue();
+        sizeDropdown.RefreshShownValue();
+        quantityDropdown.RefreshShownValue();
 
         if (colorDropdown.value == 0 || sizeDropdown.value == 0 || quantityDropdown.value == 0)
         {
             Debug.LogError("Please select color, size, and quantity.");
             return null;
         }
+
         string selectedColor = colorDropdown.options[colorDropdown.value].text;
         string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
         int selectedQuantity = int.Parse(quantityDropdown.options[quantityDropdown.value].text);
 
-        Debug.Log($" Selected Product -> Color: {selectedColor}, Size: {selectedSize}, Quantity: {selectedQuantity}");
+
+        Debug.Log($"Selected Product -> Color: {selectedColor}, Size: {selectedSize}, Quantity: {selectedQuantity}");
+
 
         if (selectedColor == "Select Color" || selectedSize == "Select Size" || selectedQuantity == 0)
         {
-            Debug.LogError("Invalid selection detected.");
+            Debug.LogError(" Invalid selection detected.");
             return null;
         }
 
@@ -323,7 +329,7 @@ public class ProductsManager : MonoBehaviour
             quantity = selectedQuantity
         };
 
-        Debug.Log($"Selected Product Created: {selectedProduct.name}, Color: {selectedProduct.color}, Size: {selectedProduct.size}, Quantity: {selectedProduct.quantity}");
+        Debug.Log($" Selected Product Created: {selectedProduct.name}, Color: {selectedProduct.color}, Size: {selectedProduct.size}, Quantity: {selectedProduct.quantity}");
 
         return selectedProduct;
     }
