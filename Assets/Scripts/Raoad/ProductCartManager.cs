@@ -11,17 +11,16 @@ public class ProductCartManager : MonoBehaviour
     public TMP_Dropdown colorDropdown;
     public TMP_Dropdown quantityDropdown;
     public Button addToCartButton;
-    public TextMeshProUGUI errorText; // UI text for error messages
+    public TextMeshProUGUI errorText;
 
-    private string storeID = "storeID_123"; // Store ID
-    private ProductsManager productsManager; // Reference to ProductsManager
-    private UserManager userManager; // Reference to UserManager
+    private string storeID = "storeID_123";
+    private ProductsManager productsManager;
+    private UserManager userManager;
 
     void Start()
     {
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
 
-        // Find the required managers
         productsManager = FindObjectOfType<ProductsManager>();
         userManager = FindObjectOfType<UserManager>();
 
@@ -30,14 +29,14 @@ public class ProductCartManager : MonoBehaviour
             addToCartButton.onClick.AddListener(AddToCart);
         }
 
-        // Ensure error message is hidden at start
+        // Hide error message on start
         if (errorText != null)
         {
             errorText.text = "";
             errorText.gameObject.SetActive(false);
         }
 
-        // Add dropdown listeners to update validation on selection
+        // Add dropdown listeners to validate selection
         if (colorDropdown != null)
             colorDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); });
 
@@ -50,16 +49,29 @@ public class ProductCartManager : MonoBehaviour
 
     public void ValidateSelection()
     {
-        // Get selected values dynamically
         string selectedColor = (colorDropdown.value > 0) ? colorDropdown.options[colorDropdown.value].text : null;
         string selectedSize = (sizeDropdown.value > 0) ? sizeDropdown.options[sizeDropdown.value].text : null;
         string selectedQuantity = (quantityDropdown.value > 0) ? quantityDropdown.options[quantityDropdown.value].text : null;
 
-        // If all selections are made, hide error message
-        if (selectedColor != null && selectedSize != null && selectedQuantity != null)
+        if (selectedColor == null)
         {
-            HideError();
+            ShowError("Please select a color.");
+            return;
         }
+
+        if (selectedSize == null)
+        {
+            ShowError("Please select a size.");
+            return;
+        }
+
+        if (selectedQuantity == null)
+        {
+            ShowError("Please select a quantity.");
+            return;
+        }
+
+        HideError();
     }
 
     public void AddToCart()
@@ -94,17 +106,17 @@ public class ProductCartManager : MonoBehaviour
         string productName = productData.name;
         float productPrice = productData.price;
 
-        // Get selected values dynamically
         string selectedColor = (colorDropdown.value > 0) ? colorDropdown.options[colorDropdown.value].text : null;
         string selectedSize = (sizeDropdown.value > 0) ? sizeDropdown.options[sizeDropdown.value].text : null;
         string selectedQuantity = (quantityDropdown.value > 0) ? quantityDropdown.options[quantityDropdown.value].text : null;
 
-        // Debug logs to check dropdown values
+        Debug.Log("Attempting to add product to cart...");
+        Debug.Log("User ID: " + userManager.UserId);
+        Debug.Log("Product ID: " + productsManager.productID);
         Debug.Log("Selected Color: " + selectedColor);
         Debug.Log("Selected Size: " + selectedSize);
         Debug.Log("Selected Quantity: " + selectedQuantity);
 
-        // Ensure selections are valid
         if (selectedColor == null)
         {
             ShowError("Please select a color.");
@@ -134,9 +146,8 @@ public class ProductCartManager : MonoBehaviour
             return;
         }
 
-        long expirationTime = GetUnixTimestamp() + (24 * 60 * 60); // 24 hours in seconds
+        long expirationTime = GetUnixTimestamp() + (24 * 60 * 60);
 
-        // Prepare the cart data to be stored in Firebase
         Dictionary<string, object> cartItem = new Dictionary<string, object>
         {
             { "productID", productID },
@@ -150,7 +161,6 @@ public class ProductCartManager : MonoBehaviour
             { "expiresAt", expirationTime }
         };
 
-        // Store the order under users/{userID}/cart/{productID}
         dbReference.Child("users").Child(userID).Child("cart").Child(productID).SetValueAsync(cartItem)
             .ContinueWith(task =>
             {
@@ -166,18 +176,16 @@ public class ProductCartManager : MonoBehaviour
             });
     }
 
-    // Function to display errors or success messages on the UI
     void ShowError(string message, bool success = false)
     {
         if (errorText != null)
         {
             errorText.text = message;
-            errorText.color = success ? Color.green : Color.red; // Green for success, red for errors
+            errorText.color = success ? Color.green : Color.red;
             errorText.gameObject.SetActive(true);
         }
     }
 
-    // Function to hide error messages when selections are valid
     void HideError()
     {
         if (errorText != null)
@@ -187,7 +195,6 @@ public class ProductCartManager : MonoBehaviour
         }
     }
 
-    // Function to get current Unix timestamp
     private long GetUnixTimestamp()
     {
         return (long)(System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1))).TotalSeconds;
