@@ -121,13 +121,10 @@ public class ProductsManager : MonoBehaviour
                         // Product image
                         StartCoroutine(LoadImageFromURL(product.image));
 
-                        // Check if the product has a discount
                         UpdatePriceAndDiscount();
 
-                        // Color drop-down
                         UpdateColorDropdown();
 
-                        // Size drop-down
                         UpdateSizeDropdown();
                     }
                     else
@@ -190,7 +187,7 @@ public class ProductsManager : MonoBehaviour
 
         sizeDropdown.ClearOptions();
         sizeDropdown.AddOptions(sizes);
-        colorDropdown.value = 0;
+        sizeDropdown.value = 0;
         sizeDropdown.RefreshShownValue();
     }
 
@@ -229,41 +226,23 @@ public class ProductsManager : MonoBehaviour
     {
         if (product.discount.exists && product.discount.percentage > 0)
         {
-            // Calculate new discounted price
             float newPrice = product.price - (product.price * (product.discount.percentage / 100));
 
-            // Display the original price with a strikethrough
             if (productPrice != null)
             {
                 productPrice.text = $"{product.price:F2}";
                 productPrice.fontStyle = FontStyles.Strikethrough;
             }
 
-            // Display the discounted price
-            if (discountedPrice != null)
-            {
-                discountedPrice.text = $"{newPrice:F2}";
-                discountedPrice.gameObject.SetActive(true);
-            }
-
-            // Show the discount tag
-            if (discountTag != null)
-                discountTag.SetActive(true);
+            discountedPrice?.SetText($"{newPrice:F2}");
+            discountedPrice?.gameObject.SetActive(true);
+            discountTag?.SetActive(true);
         }
         else
         {
-            // No discount, show the original price 
-            if (productPrice != null)
-            {
-                productPrice.text = $"{product.price:F2}";
-                productPrice.fontStyle = FontStyles.Normal;
-            }
-
-            if (discountedPrice != null)
-                discountedPrice.gameObject.SetActive(false);
-
-            if (discountTag != null)
-                discountTag.SetActive(false);
+            productPrice?.SetText($"{product.price:F2}");
+            discountedPrice?.gameObject.SetActive(false);
+            discountTag?.SetActive(false);
         }
     }
     public void OpenProductPopup()
