@@ -9,6 +9,7 @@ using UnityEngine.UI;
 public class HomeController : MonoBehaviour, IPointerClickHandler
 {
     public Button StoreSelect;
+    public TextMeshProUGUI WelcomeText;
     public TextMeshProUGUI CoinText;
 
 
@@ -18,6 +19,7 @@ public class HomeController : MonoBehaviour, IPointerClickHandler
 
         // Assign button click events
         StoreSelect.onClick.AddListener(OpenStoreSelection);
+        WelcomeText.text = $"Welcome \ndear {UserManager.Instance.FirstName} in \nREVIRA";
         CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
     }
 
@@ -28,6 +30,6 @@ public class HomeController : MonoBehaviour, IPointerClickHandler
 
     public void OpenStoreSelection()
     {
-        SceneManager.LoadScene("StoreSelection"); 
+        SceneManager.LoadScene("StoreSelection");
     }
 }

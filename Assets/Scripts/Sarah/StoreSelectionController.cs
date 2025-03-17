@@ -17,6 +17,8 @@ public class StoreSelectionController : MonoBehaviour, IPointerClickHandler
     public Button Home;
     public Button Logout;
 
+    public TextMeshProUGUI CoinText;
+
 
 
     void Start()
@@ -28,6 +30,8 @@ public class StoreSelectionController : MonoBehaviour, IPointerClickHandler
         CancelEnter.onClick.AddListener(HideStorePopUp);
         Home.onClick.AddListener(BackToHome);
         Logout.onClick.AddListener(LogoutToMainMenu);
+
+        CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
 
         storePopup.SetActive(false); // Hide pop-up intially 
     }
