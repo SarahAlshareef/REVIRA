@@ -52,15 +52,15 @@ public class ProductsManager : MonoBehaviour
         });
 
         productPopup?.SetActive(false);
- 
+
         openPopup?.onClick.AddListener(OpenProductPopup);
 
         closePopup?.onClick.AddListener(CloseProductPopup);
-        
+
         colorDropdown?.onValueChanged.AddListener((index) => UpdateSizeDropdown());
 
         sizeDropdown?.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
-        
+
     }
 
     public void LoadProductData()
@@ -155,8 +155,8 @@ public class ProductsManager : MonoBehaviour
                 Texture2D texture = DownloadHandlerTexture.GetContent(request);
                 productImage.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
             }
-            else           
-                Debug.LogError("Failed to load image: " + request.error);           
+            else
+                Debug.LogError("Failed to load image: " + request.error);
         }
     }
 
@@ -261,11 +261,20 @@ public class ProductsManager : MonoBehaviour
             return null;
         }
 
-
         string selectedColor = colorDropdown.options[colorDropdown.value].text;
         string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
         int selectedQuantity = int.Parse(quantityDropdown.options[quantityDropdown.value].text);
 
+
+        Debug.Log($"Selected Color: {selectedColor}");
+        Debug.Log($"Selected Size: {selectedSize}");
+        Debug.Log($"Selected Quantity: {selectedQuantity}");
+
+        if (selectedColor == "Select Color" || selectedSize == "Select Size" || selectedQuantity == 0)
+        {
+            Debug.LogError("Invalid selection detected.");
+            return null;
+        }
 
         SelectedProduct selectedProduct = new SelectedProduct
         {
@@ -278,11 +287,13 @@ public class ProductsManager : MonoBehaviour
             quantity = selectedQuantity
         };
 
+        Debug.Log($"Selected Product Created: {selectedProduct.name}, Color: {selectedProduct.color}, Size: {selectedProduct.size}, Quantity: {selectedProduct.quantity}");
+
         return selectedProduct;
     }
 }
 
-public class ProductData
+    public class ProductData
 {
     public float price;
     public string name, color, image, description;
