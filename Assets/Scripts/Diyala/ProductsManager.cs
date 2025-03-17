@@ -184,7 +184,7 @@ public class ProductsManager : MonoBehaviour
         }
     }
 
-    void UpdateColorDropdown()
+    public void UpdateColorDropdown()
     {
         if (productColorsAndSizes == null) return;
 
@@ -197,7 +197,7 @@ public class ProductsManager : MonoBehaviour
         colorDropdown.RefreshShownValue();
     }
 
-    void UpdateSizeDropdown()
+    public void UpdateSizeDropdown()
     {
         if (sizeDropdown == null) return;
 
@@ -246,7 +246,7 @@ public class ProductsManager : MonoBehaviour
         quantityDropdown.RefreshShownValue();
     }
 
-    void UpdatePriceAndDiscount()
+    public void UpdatePriceAndDiscount()
     {
         if (product.discount.exists && product.discount.percentage > 0)
         {
