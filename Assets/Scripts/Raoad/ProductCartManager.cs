@@ -81,7 +81,7 @@ public class ProductCartManager : MonoBehaviour
             return;
         }
 
-        Debug.Log(" Selection Valid: Color: " + selectedColor + ", Size: " + selectedSize + ", Quantity: " + selectedQuantity);
+        Debug.Log("Selection Valid: Color: " + selectedColor + ", Size: " + selectedSize + ", Quantity: " + selectedQuantity);
     }
 
     public void AddToCart()
@@ -152,11 +152,11 @@ public class ProductCartManager : MonoBehaviour
             {
                 if (task.IsCompleted)
                 {
-                    Debug.Log(" Order added to Firebase successfully!");
+                    Debug.Log("Order added to Firebase successfully!");
                 }
                 else
                 {
-                    Debug.LogError(" Error adding order to Firebase: " + task.Exception);
+                    Debug.LogError("Error adding order to Firebase: " + task.Exception);
                 }
             });
     }
