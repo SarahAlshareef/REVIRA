@@ -51,57 +51,18 @@ public class ProductsManager : MonoBehaviour
             }
         });
 
-        //productPopup?.SetActive(false);
-
-        //openPopup?.onClick.AddListener(OpenProductPopup);
-
-        //closePopup?.onClick.AddListener(CloseProductPopup);
-
-        //colorDropdown?.onValueChanged.AddListener((index) => UpdateSizeDropdown());
-
-        //sizeDropdown?.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
-
-        //test
         productPopup?.SetActive(false);
+
         openPopup?.onClick.AddListener(OpenProductPopup);
+
         closePopup?.onClick.AddListener(CloseProductPopup);
 
-        colorDropdown?.onValueChanged.AddListener((index) =>
-        {
-            UpdateSizeDropdown();
-            RefreshDropdown(colorDropdown);
-            DebugDropdownValues();
-        });
+        colorDropdown?.onValueChanged.AddListener((index) => UpdateSizeDropdown());
 
-        sizeDropdown?.onValueChanged.AddListener((index) =>
-        {
-            UpdateQuantityDropdown();
-            RefreshDropdown(sizeDropdown);
-            DebugDropdownValues();
-        });
+        sizeDropdown?.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
 
-        quantityDropdown?.onValueChanged.AddListener((index) =>
-        {
-            RefreshDropdown(quantityDropdown);
-            DebugDropdownValues();
-        });
     }
-    //test
-    void RefreshDropdown(TMP_Dropdown dropdown)
-    {
-        dropdown.RefreshShownValue();
-    }
-    //test
-    void DebugDropdownValues()
-    {
-        string selectedColor = colorDropdown.options[colorDropdown.value].text;
-        string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
-        string selectedQuantity = (quantityDropdown.value > 0) ? quantityDropdown.options[quantityDropdown.value].text : "0";
-
-        Debug.Log($"DEBUG -> Selected Color: {selectedColor}, Size: {selectedSize}, Quantity: {selectedQuantity}");
-    }
-
-
+    
     public void LoadProductData()
     {
         // Fetch product data from Firebase
@@ -290,49 +251,6 @@ public class ProductsManager : MonoBehaviour
     {
         productPopup?.SetActive(false);
     }
-
-    //test
-    public SelectedProduct GetSelectedProduct()
-    {
-        colorDropdown.RefreshShownValue();
-        sizeDropdown.RefreshShownValue();
-        quantityDropdown.RefreshShownValue();
-
-        if (colorDropdown.value == 0 || sizeDropdown.value == 0 || quantityDropdown.value == 0)
-        {
-            Debug.LogError("Please select color, size, and quantity.");
-            return null;
-        }
-
-        string selectedColor = colorDropdown.options[colorDropdown.value].text;
-        string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
-        int selectedQuantity = int.Parse(quantityDropdown.options[quantityDropdown.value].text);
-
-
-        Debug.Log($"Selected Product -> Color: {selectedColor}, Size: {selectedSize}, Quantity: {selectedQuantity}");
-
-
-        if (selectedColor == "Select Color" || selectedSize == "Select Size" || selectedQuantity == 0)
-        {
-            Debug.LogError(" Invalid selection detected.");
-            return null;
-        }
-
-        SelectedProduct selectedProduct = new SelectedProduct
-        {
-            productID = productID,
-            storeID = storeID,
-            name = product.name,
-            price = product.price,
-            color = selectedColor,
-            size = selectedSize,
-            quantity = selectedQuantity
-        };
-
-        Debug.Log($" Selected Product Created: {selectedProduct.name}, Color: {selectedProduct.color}, Size: {selectedProduct.size}, Quantity: {selectedProduct.quantity}");
-
-        return selectedProduct;
-    }
 }
 
     public class ProductData
@@ -348,15 +266,4 @@ public class DiscountData
 {
     public bool exists;
     public float percentage;
-}
-//test
-public class SelectedProduct
-{
-    public string productID;
-    public string storeID;
-    public string name;
-    public float price;
-    public string color;
-    public string size;
-    public int quantity;
 }
