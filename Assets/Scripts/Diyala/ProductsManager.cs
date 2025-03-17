@@ -51,17 +51,56 @@ public class ProductsManager : MonoBehaviour
             }
         });
 
+        //productPopup?.SetActive(false);
+
+        //openPopup?.onClick.AddListener(OpenProductPopup);
+
+        //closePopup?.onClick.AddListener(CloseProductPopup);
+
+        //colorDropdown?.onValueChanged.AddListener((index) => UpdateSizeDropdown());
+
+        //sizeDropdown?.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
+
+        //test
         productPopup?.SetActive(false);
-
         openPopup?.onClick.AddListener(OpenProductPopup);
-
         closePopup?.onClick.AddListener(CloseProductPopup);
 
-        colorDropdown?.onValueChanged.AddListener((index) => UpdateSizeDropdown());
+        colorDropdown?.onValueChanged.AddListener((index) =>
+        {
+            UpdateSizeDropdown();
+            RefreshDropdown(colorDropdown);
+            DebugDropdownValues();
+        });
 
-        sizeDropdown?.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
+        sizeDropdown?.onValueChanged.AddListener((index) =>
+        {
+            UpdateQuantityDropdown();
+            RefreshDropdown(sizeDropdown);
+            DebugDropdownValues();
+        });
 
+        quantityDropdown?.onValueChanged.AddListener((index) =>
+        {
+            RefreshDropdown(quantityDropdown);
+            DebugDropdownValues();
+        });
     }
+    //test
+    void RefreshDropdown(TMP_Dropdown dropdown)
+    {
+        dropdown.RefreshShownValue();
+    }
+    //test
+    void DebugDropdownValues()
+    {
+        string selectedColor = colorDropdown.options[colorDropdown.value].text;
+        string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
+        string selectedQuantity = (quantityDropdown.value > 0) ? quantityDropdown.options[quantityDropdown.value].text : "0";
+
+        Debug.Log($"DEBUG -> Selected Color: {selectedColor}, Size: {selectedSize}, Quantity: {selectedQuantity}");
+    }
+
 
     public void LoadProductData()
     {
@@ -255,20 +294,17 @@ public class ProductsManager : MonoBehaviour
     //test
     public SelectedProduct GetSelectedProduct()
     {
+
         if (colorDropdown.value == 0 || sizeDropdown.value == 0 || quantityDropdown.value == 0)
         {
-            Debug.LogWarning("Please select color, size, and quantity.");
+            Debug.LogError("Please select color, size, and quantity.");
             return null;
         }
-
         string selectedColor = colorDropdown.options[colorDropdown.value].text;
         string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
         int selectedQuantity = int.Parse(quantityDropdown.options[quantityDropdown.value].text);
 
-
-        Debug.Log($"Selected Color: {selectedColor}");
-        Debug.Log($"Selected Size: {selectedSize}");
-        Debug.Log($"Selected Quantity: {selectedQuantity}");
+        Debug.Log($" Selected Product -> Color: {selectedColor}, Size: {selectedSize}, Quantity: {selectedQuantity}");
 
         if (selectedColor == "Select Color" || selectedSize == "Select Size" || selectedQuantity == 0)
         {
