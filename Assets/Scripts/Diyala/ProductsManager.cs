@@ -142,10 +142,7 @@ public class ProductsManager : MonoBehaviour
                         {
                             sizeOptions.AddRange(product.sizes.Keys);
                         }
-                        else if (!string.IsNullOrEmpty(product.singleSize))
-                        {
-                            sizeOptions.Add(product.singleSize);
-                        }
+
                         sizeDropdown.AddOptions(sizeOptions);
                         sizeDropdown.value = 0;
                         sizeDropdown.RefreshShownValue();
@@ -305,7 +302,7 @@ public class ProductsManager : MonoBehaviour
 public class ProductData
 {
     public float price;
-    public string name, color, image, sizeType, singleSize, description;
+    public string name, color, image, sizeType, description;
     public int quantity;
     public DiscountData discount;
     public Dictionary<string, int> sizes;
