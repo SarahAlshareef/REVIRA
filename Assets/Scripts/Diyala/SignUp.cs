@@ -88,35 +88,21 @@ public class SignUp : MonoBehaviour
             yield break;
         }
 
-        // Attempt to create a new user with email and password
+        // Create a new user with email and password
         var signUpTask = auth.CreateUserWithEmailAndPasswordAsync(email, password);
         yield return new WaitUntil(() => signUpTask.IsCompleted);
 
-        // Check if the sign-up operation failed
+        // Check if the sign up operation failed
         if (signUpTask.IsCanceled || signUpTask.IsFaulted)
         {
             HandleSignUpError(signUpTask.Exception);
+            yield break;
         }
-        else
-        {
-            // If sign-up is successful, get the user
-            FirebaseUser newUser = auth.CurrentUser;
-
-            if (newUser != null)
-            {
-                // Create a profile update request
-                UserProfile profile = new UserProfile
-                {
-                    DisplayName = $"{firstName} {lastName}"
-                };
-
-                // Apply the profile update
-                var profileUpdateTask = newUser.UpdateUserProfileAsync(profile);
-                yield return new WaitUntil(() => profileUpdateTask.IsCompleted);
-
-                StartCoroutine(SaveUserToDatabase(newUser.UserId, firstName, lastName, email));
-            }
-        }
+ 
+        FirebaseUser newUser = auth.CurrentUser;
+        if (newUser == null) yield break;
+ 
+        StartCoroutine(SaveUserToDatabase(newUser.UserId, firstName, lastName, email));             
     }
 
     void HandleSignUpError(AggregateException exception)
