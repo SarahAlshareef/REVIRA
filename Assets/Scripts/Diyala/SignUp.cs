@@ -39,7 +39,6 @@ public class SignUp : MonoBehaviour
 
         if (task.Exception != null)
         {
-            Debug.LogError("Firebase initialization failed: " + task.Exception);
             ShowError("Firebase setup failed.");
         }
         else
