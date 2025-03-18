@@ -70,12 +70,8 @@ public class Login : MonoBehaviour
             ShowError("Invalid email or password. Please try again.");
             yield break;
         }
-        FirebaseUser user = auth.CurrentUser;
-
-        if (user != null)
-        {
-            StartCoroutine(FetchUserData(user.UserId));
-        }
+        if (auth.CurrentUser != null)
+            StartCoroutine(FetchUserData(auth.CurrentUser.UserId));
     }
 
     IEnumerator FetchUserData(string userId)
