@@ -36,9 +36,9 @@ public class ProductCartManager : MonoBehaviour
             quantityDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); });
 
         if (errorText != null)
-            errorText.text = "";
+            errorText.text = ""; // Hide error messages initially
 
-        RemoveExpiredCartItems();
+        RemoveExpiredCartItems(); // Remove expired items at start
     }
 
     public void ValidateSelection()
@@ -100,7 +100,6 @@ public class ProductCartManager : MonoBehaviour
             return;
         }
 
-        // ÎÕã ÇáßãíÉ ãÈÇÔÑÉ ÞÈá ÇáÅÖÇÝÉ
         ReduceStock(selectedColor, selectedSize, quantity, () =>
         {
             dbReference.Child("users").Child(userID).Child("cart").Child(productID).Child("sizes").Child(selectedSize).GetValueAsync().ContinueWith(task =>
@@ -204,7 +203,6 @@ public class ProductCartManager : MonoBehaviour
         if (errorText != null)
         {
             errorText.text = message;
-            
         }
     }
 
