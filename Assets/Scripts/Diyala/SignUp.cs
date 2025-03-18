@@ -81,10 +81,8 @@ public class SignUp : MonoBehaviour
             yield break;
         }
  
-        FirebaseUser newUser = auth.CurrentUser;
-        if (newUser == null) yield break;
- 
-        StartCoroutine(SaveUserToDatabase(newUser.UserId, firstName, lastName, email));             
+        if (auth.CurrentUser == null) yield break;
+        StartCoroutine(SaveUserToDatabase(auth.CurrentUser.UserId, firstName, lastName, email));             
     }
     void HandleSignUpError(AggregateException exception)
     {
