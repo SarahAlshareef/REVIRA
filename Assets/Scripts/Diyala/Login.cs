@@ -40,8 +40,6 @@ public class Login : MonoBehaviour
 
     public void OnLoginButtonClick()
     {
-        // Ensure UI fields are updated before validation
-        UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
 
         string email = emailInput?.text.Trim();
         string password = passwordInput?.text;
