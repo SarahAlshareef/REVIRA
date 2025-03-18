@@ -12,12 +12,11 @@ using System.Collections;
 
 public class Login : MonoBehaviour
 {
+    public TMP_InputField emailInput, passwordInput;
+    public Button loginButton, signUpButton;
+    public TextMeshProUGUI errorText;
 
-    public TMP_InputField emailInput, passwordInput;  
-    public Button loginButton, signUpButton;   
-    public TextMeshProUGUI errorText;     
-
-    private FirebaseAuth auth;  
+    private FirebaseAuth auth;
 
     void Start()
     {
@@ -32,15 +31,16 @@ public class Login : MonoBehaviour
         var task = FirebaseApp.CheckAndFixDependenciesAsync();
         yield return new WaitUntil(() => task.IsCompleted);
 
-        if (task.Exception != null)
+        if (task.Exception != null)       
             ShowError("Firebase setup failed.");
-       
-        else
-            auth = FirebaseAuth.DefaultInstance;
+        
+        else    
+            auth = FirebaseAuth.DefaultInstance; 
     }
 
-    IEnumerator LoginUser()
+    public void OnLoginButtonClick()
     {
+        // Ensure UI fields are updated before validation
         UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
 
         string email = emailInput?.text.Trim();
@@ -49,27 +49,39 @@ public class Login : MonoBehaviour
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
         {
             ShowError("Email and Password are required.");
-            yield break;
         }
-        if ( auth == null)
+        else
         {
-            ShowError("Authentication is not initialized.");
+            StartCoroutine(LoginUser(email, password));
+        }
+    }
+
+    IEnumerator LoginUser(string email, string password)
+    {
+        if (auth == null)
+        {
+            ShowError("Invalid email or password. Please try again.");
             yield break;
         }
 
-        var loginTask = auth?.SignInWithEmailAndPasswordAsync(email, password);
+        var loginTask = auth.SignInWithEmailAndPasswordAsync(email, password);
         yield return new WaitUntil(() => loginTask.IsCompleted);
 
         if (loginTask.IsFaulted || loginTask.IsCanceled)
+        {
             ShowError("Invalid email or password. Please try again.");
- 
-        else
-            StartCoroutine(FetchUserData(auth.CurrentUser.UserId));
+            yield break;
+        }
+        FirebaseUser user = auth.CurrentUser;
+
+        if (user != null)
+        {
+            StartCoroutine(FetchUserData(user.UserId));
+        }
     }
 
     IEnumerator FetchUserData(string userId)
     {
-
         var dbTask = FirebaseDatabase.DefaultInstance.RootReference.Child("users").Child(userId).GetValueAsync();
         yield return new WaitUntil(() => dbTask.IsCompleted);
 
@@ -88,11 +100,6 @@ public class Login : MonoBehaviour
 
             UserManager.Instance.SetUserData(userId, firstName, lastName, email, accountBalance);
             SceneManager.LoadScene("HomeScene");
-    }
-
-    void OnLoginButtonClick()
-    {
-        StartCoroutine(LoginUser());
     }
 
     void ShowError(string message)
