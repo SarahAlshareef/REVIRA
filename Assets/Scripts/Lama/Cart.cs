@@ -1,0 +1,33 @@
+
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+using TMPro;
+
+public class Cart : MonoBehaviour{
+    public GameObject storePopup;  // «·‰«›–… «·„‰»Àﬁ… «·Œ«’… »«·„ Ã—
+    public Button CancelEnter;      // “— «·≈€·«ﬁ (≈·€«¡ «·œŒÊ·)
+
+    void Start()
+    {
+        //  ⁄ÌÌ‰ «·ÕœÀ ⁄‰œ »œ¡ «· ‘€Ì· ·ÌﬁÊ„ «·“— »≈Œ›«¡ «·‰«›–… «·„‰»Àﬁ… ⁄‰œ «·‰ﬁ— ⁄·ÌÂ
+        CancelEnter.onClick.AddListener(HideStorePopUp);
+
+        // «· √ﬂœ „‰ √‰ «·‰«›–… «·„‰»Àﬁ… „Œ›Ì… ⁄‰œ »œ¡ «· ‘€Ì·
+        storePopup.SetActive(false);
+    }
+
+    public void HideStorePopUp()
+    {
+        storePopup.SetActive(false); // ≈Œ›«¡ «·‰«›–… «·„‰»Àﬁ…
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        // «· Õﬁﬁ „„« ≈–« ﬂ«‰ «·„” Œœ„ ﬁœ ÷€ÿ ⁄·Ï “— «·≈€·«ﬁ (CancelEnter)
+        if (eventData.pointerPress == CancelEnter.gameObject)
+        {
+            HideStorePopUp();
+        }
+    }
+}
