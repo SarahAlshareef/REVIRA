@@ -29,7 +29,6 @@ public class SignUp : MonoBehaviour
         {
             if (task.Result == Firebase.DependencyStatus.Available)
             {
-                Debug.Log("Firebase is ready to use.");
                 auth = FirebaseAuth.DefaultInstance;
                 dbReference = FirebaseDatabase.DefaultInstance.RootReference;
             }
