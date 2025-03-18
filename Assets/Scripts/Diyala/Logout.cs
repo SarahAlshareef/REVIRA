@@ -10,14 +10,13 @@ public class Logout : MonoBehaviour
 {
     public GameObject popupPanel; 
     public Button confirmButton, cancelButton;
-    public TextMeshProUGUI popupMessage;
 
     void Start()
     {
         popupPanel.SetActive(false);
 
-        confirmButton.onClick.AddListener(ConfirmLogout);
-        cancelButton.onClick.AddListener(ClosePopup);
+        confirmButton?.onClick.AddListener(ConfirmLogout);
+        cancelButton?.onClick.AddListener(ClosePopup);
     }
 
     public void ShowLogoutPopup()
