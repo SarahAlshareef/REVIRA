@@ -7,6 +7,7 @@ using TMPro;
 using Firebase;
 using Firebase.Auth;
 using Firebase.Database;
+using Firebase.Extensions;
 // C#
 using System.Collections;
 
@@ -20,22 +21,16 @@ public class Login : MonoBehaviour
 
     void Start()
     {
-        StartCoroutine(InitializeFirebase());
+        Firebase.FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.Result == Firebase.DependencyStatus.Available)
+            {
+                auth = FirebaseAuth.DefaultInstance;
+            }
+        });
 
         loginButton?.onClick.AddListener(OnLoginButtonClick);
         signUpButton?.onClick.AddListener(() => SceneManager.LoadScene("SignUpScene"));
-    }
-
-    IEnumerator InitializeFirebase()
-    {
-        var task = FirebaseApp.CheckAndFixDependenciesAsync();
-        yield return new WaitUntil(() => task.IsCompleted);
-
-        if (task.Exception != null)       
-            ShowError("Firebase setup failed.");
-        
-        else    
-            auth = FirebaseAuth.DefaultInstance; 
     }
 
     public void OnLoginButtonClick()
