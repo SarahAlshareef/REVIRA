@@ -25,9 +25,9 @@ public class SignUp : MonoBehaviour
 
     void Start()
     {
-        Firebase.FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
+        FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
         {
-            if (task.Result == Firebase.DependencyStatus.Available)
+            if (task.Result == DependencyStatus.Available)
             {
                 auth = FirebaseAuth.DefaultInstance;
                 dbReference = FirebaseDatabase.DefaultInstance.RootReference;
@@ -37,22 +37,18 @@ public class SignUp : MonoBehaviour
         signUpButton?.onClick.AddListener(OnSignUpButtonClick);
         loginButton?.onClick.AddListener(GoToLoginScene);
     }
-
     public void OnSignUpButtonClick()
     {
-        // Get trimmed input values
         string firstName = firstNameInput?.text.Trim();
         string lastName = lastNameInput?.text.Trim();
         string email = emailInput?.text.Trim();
         string password = passwordInput?.text;
 
-        // Validate inputs before attempting sign-up
         if (ValidateInputs(firstName, lastName, email, password))
         {
             StartCoroutine(SignUpUser(firstName, lastName, email, password));
         }
     }
-
     bool ValidateInputs(string firstName, string lastName, string email, string password)
     {
         List<string> missingFields = new();
@@ -68,7 +64,6 @@ public class SignUp : MonoBehaviour
         }
         return true;
     }
-
     IEnumerator SignUpUser(string firstName, string lastName, string email, string password)
     {
         if ( auth == null)
@@ -77,11 +72,9 @@ public class SignUp : MonoBehaviour
             yield break;
         }
 
-        // Create a new user with email and password
         var signUpTask = auth.CreateUserWithEmailAndPasswordAsync(email, password);
         yield return new WaitUntil(() => signUpTask.IsCompleted);
 
-        // Check if the sign up operation failed
         if (signUpTask.IsCanceled || signUpTask.IsFaulted)
         {
             HandleSignUpError(signUpTask.Exception);
@@ -93,7 +86,6 @@ public class SignUp : MonoBehaviour
  
         StartCoroutine(SaveUserToDatabase(newUser.UserId, firstName, lastName, email));             
     }
-
     void HandleSignUpError(AggregateException exception)
     {
 
@@ -114,10 +106,8 @@ public class SignUp : MonoBehaviour
             ShowError("An unknown error occurred.");
         }
     }
-
     IEnumerator SaveUserToDatabase(string userId, string firstName, string lastName, string email)
     {
- 
         Dictionary<string, object> userData = new Dictionary<string, object>
         {
             { "userId", userId },
@@ -125,7 +115,6 @@ public class SignUp : MonoBehaviour
             { "lastName", lastName },
             { "email", email },
             { "accountBalance", 1000 }
-
         };
 
         var dbTask = dbReference.Child("users").Child(userId).SetValueAsync(userData);
@@ -136,12 +125,10 @@ public class SignUp : MonoBehaviour
         else
             GoToLoginScene();
     }
-
     public void GoToLoginScene()
     {
         SceneManager.LoadScene("LoginScene");
     }
-
     void ShowError(string message)
     {
         if (errorText != null)

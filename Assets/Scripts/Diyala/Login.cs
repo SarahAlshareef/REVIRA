@@ -21,9 +21,9 @@ public class Login : MonoBehaviour
 
     void Start()
     {
-        Firebase.FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
+        FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
         {
-            if (task.Result == Firebase.DependencyStatus.Available)
+            if (task.Result == DependencyStatus.Available)
             {
                 auth = FirebaseAuth.DefaultInstance;
             }
@@ -32,10 +32,8 @@ public class Login : MonoBehaviour
         loginButton?.onClick.AddListener(OnLoginButtonClick);
         signUpButton?.onClick.AddListener(() => SceneManager.LoadScene("SignUpScene"));
     }
-
     public void OnLoginButtonClick()
     {
-
         string email = emailInput?.text.Trim();
         string password = passwordInput?.text;
 
@@ -48,7 +46,6 @@ public class Login : MonoBehaviour
             StartCoroutine(LoginUser(email, password));
         }
     }
-
     IEnumerator LoginUser(string email, string password)
     {
         if (auth == null)
@@ -68,7 +65,6 @@ public class Login : MonoBehaviour
         if (auth.CurrentUser != null)
             StartCoroutine(FetchUserData(auth.CurrentUser.UserId));
     }
-
     IEnumerator FetchUserData(string userId)
     {
         var dbTask = FirebaseDatabase.DefaultInstance.RootReference.Child("users").Child(userId).GetValueAsync();
@@ -90,7 +86,6 @@ public class Login : MonoBehaviour
             UserManager.Instance.SetUserData(userId, firstName, lastName, email, accountBalance);
             SceneManager.LoadScene("HomeScene");
     }
-
     void ShowError(string message)
     {
         if (errorText != null)
