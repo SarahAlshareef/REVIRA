@@ -14,12 +14,10 @@ using System.Collections.Generic;
 public class ProductsManager : MonoBehaviour
 {
 
-    // Firebase
     private DatabaseReference dbReference;
     private ProductData product;
     public string productID, storeID;
 
-    // UI Elements
     public GameObject productPopup, discountTag;
     public TMP_Text productName, productPrice, discountedPrice, productDescription;
     public Image productImage;
@@ -83,7 +81,7 @@ public class ProductsManager : MonoBehaviour
                             image = snapshot.Child("image").Value.ToString(),
 
                             // fetch data from Firebase and save them in DiscountData
-                            discount = new DiscountData
+                            discount = new DiscountData()
                             {
                                 exists = bool.Parse(snapshot.Child("discount").Child("exists").Value.ToString()),
                                 percentage = float.Parse(snapshot.Child("discount").Child("percentage").Value.ToString())
