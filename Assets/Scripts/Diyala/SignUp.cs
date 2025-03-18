@@ -7,6 +7,7 @@ using TMPro;
 using Firebase;
 using Firebase.Auth;
 using Firebase.Database;
+using Firebase.Extensions;
 // C#
 using System.Collections;
 using System.Collections.Generic;
@@ -24,28 +25,18 @@ public class SignUp : MonoBehaviour
 
     void Start()
     {
-        // Initialize Firebase Authentication
-        StartCoroutine(InitializeFirebase());
+        Firebase.FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.Result == Firebase.DependencyStatus.Available)
+            {
+                Debug.Log("Firebase is ready to use.");
+                auth = FirebaseAuth.DefaultInstance;
+                dbReference = FirebaseDatabase.DefaultInstance.RootReference;
+            }
+        });
 
         signUpButton?.onClick.AddListener(OnSignUpButtonClick);
         loginButton?.onClick.AddListener(GoToLoginScene);
-    }
-
-    IEnumerator InitializeFirebase()
-    {
-        // Check and fix Firebase dependencies
-        var task = FirebaseApp.CheckAndFixDependenciesAsync();
-        yield return new WaitUntil(() => task.IsCompleted);
-
-        if (task.Exception != null)
-        {
-            ShowError("Firebase setup failed.");
-        }
-        else
-        {
-            auth = FirebaseAuth.DefaultInstance;
-            dbReference = FirebaseDatabase.DefaultInstance.RootReference;
-        }
     }
 
     public void OnSignUpButtonClick()
