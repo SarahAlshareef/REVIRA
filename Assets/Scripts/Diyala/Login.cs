@@ -23,7 +23,7 @@ public class Login : MonoBehaviour
     {
         StartCoroutine(InitializeFirebase());
 
-        loginButton?.onClick.AddListener(() => StartCoroutine(LoginUser()));
+        loginButton?.onClick.AddListener(OnLoginButtonClick);
         signUpButton?.onClick.AddListener(() => SceneManager.LoadScene("SignUpScene"));
     }
 
@@ -88,6 +88,11 @@ public class Login : MonoBehaviour
 
             UserManager.Instance.SetUserData(userId, firstName, lastName, email, accountBalance);
             SceneManager.LoadScene("HomeScene");
+    }
+
+    void OnLoginButtonClick()
+    {
+        StartCoroutine(LoginUser());
     }
 
     void ShowError(string message)
