@@ -31,7 +31,7 @@ public class RetrievePassword : MonoBehaviour
             }
             else
             {
-                ShowFeedback("Error inItializing Firebase.", Color.red);
+                ShowFeedback("Error initializing Firebase.", Color.red);
                 retrieveButton.interactable = false;
             }  
         });
