@@ -9,15 +9,12 @@ public class UIproductInteraction : MonoBehaviour
     public GameObject productPopup; // UI panel for all products
     public Button closeButton; // Close button
 
-    private Camera mainCamera;
-
     // Dictionary to store predefined UI positions for each product
     private static Dictionary<string, Vector3> productPopupPositions = new Dictionary<string, Vector3>();
 
     void Start()
     {
-        mainCamera = Camera.main;
-
+      
         // Ensure productPopup is assigned
         if (productPopup == null)
         {
@@ -107,7 +104,6 @@ public class UIproductInteraction : MonoBehaviour
     {
         if (productPopup != null)
         {
-            Debug.Log("Closing popup...");
             productPopup.SetActive(false); // Hide the popup when clicking the close button
         }
     }

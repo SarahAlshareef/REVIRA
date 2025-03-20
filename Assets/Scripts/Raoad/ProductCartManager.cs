@@ -7,9 +7,7 @@ using TMPro;
 public class ProductCartManager : MonoBehaviour
 {
     private DatabaseReference dbReference;
-    public TMP_Dropdown sizeDropdown;
-    public TMP_Dropdown colorDropdown;
-    public TMP_Dropdown quantityDropdown;
+    public TMP_Dropdown sizeDropdown, colorDropdown, quantityDropdown;
     public Button addToCartButton;
     public TextMeshProUGUI errorText;
 
@@ -64,7 +62,6 @@ public class ProductCartManager : MonoBehaviour
             ShowError("Please select a quantity.");
             return;
         }
-
         ShowError(""); // Clear error if everything is selected correctly
     }
 
@@ -120,14 +117,11 @@ public class ProductCartManager : MonoBehaviour
 
                 dbReference.Child("users").Child(userID).Child("cart").Child(productID).UpdateChildrenAsync(cartItem).ContinueWith(updateTask =>
                 {
-                    if (updateTask.IsCompleted)
-                    {
+                    if (updateTask.IsCompleted)                 
                         ShowError("Product added to cart successfully!", true);
-                    }
-                    else
-                    {
-                        Debug.LogError("Error adding order to Firebase: " + updateTask.Exception);
-                    }
+                    
+                    else                  
+                        Debug.LogError("Error adding order to Firebase: " + updateTask.Exception);                   
                 });
             });
         });
