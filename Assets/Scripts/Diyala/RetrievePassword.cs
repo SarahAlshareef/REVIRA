@@ -5,14 +5,15 @@ using TMPro;
 // Firebase
 using Firebase;
 using Firebase.Auth;
+using Firebase.Extentions;
 // C#
 using System.Collections;
 using System.Collections.Generic;
 
-public class PasswordReset : MonoBehaviour
+public class RetrievePassword : MonoBehaviour
 {
-    public TMP_InputField email;
-    public Button reset;
+    public TMP_InputField emailInput;
+    public Button retrieve;
     public TextMeshProUGUI feedbackText;
 
     private FirebaseAuth auth;
@@ -25,13 +26,18 @@ public class PasswordReset : MonoBehaviour
             {
                 auth = FirebaseAuth.DefaultInstance;
             }
+            else
+            {
+                feedbackText.text = "Error intializing Firebase.";
+                feedbackText.color = Color.red;
+            }  
         });
-
-        reset.onClick.AddListener(() => ResetPassword(email.text));
+        retrieve.onClick.AddListener(() => RetrievePass(emailInput.text));
     }
-    public void ResetPassword(string Email)
+
+    public void RetrievePass(string email)
     {
-        if (string.IsNullOrEmpty(Email))
+        if (string.IsNullOrEmpty(email))
         {
             feedbackText.text = "Please enter a valid email address.";
             feedbackText.color = Color.red;
