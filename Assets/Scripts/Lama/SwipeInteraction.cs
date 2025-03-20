@@ -30,6 +30,8 @@ public class SwipInteraction : MonoBehaviour
         {
             for (int i = 0; i < childCount; i++)
             {
+
+                //pos0=0 . dis=0 
                 if (scroll_pos < pos[i] + (distance / 2) && scroll_pos > pos[i] - (distance / 2))
                 {
                     scrollbar.value = Mathf.Lerp(scrollbar.value, pos[i], 0.1f);
