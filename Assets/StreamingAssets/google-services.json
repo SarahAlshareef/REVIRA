@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "275662929107",
+    "firebase_url": "https://fir-unity-29721-default-rtdb.firebaseio.com",
+    "project_id": "fir-unity-29721",
+    "storage_bucket": "fir-unity-29721.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:275662929107:android:73786cd2261ba7a2c02826",
+        "android_client_info": {
+          "package_name": "com.DefaultCompany.REVIRA"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRgLSCLzuATXV8Kis_CW7UiEgeliv2t1k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
