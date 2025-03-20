@@ -13,7 +13,7 @@ using System.Collections.Generic;
 public class RetrievePassword : MonoBehaviour
 {
     public TMP_InputField emailInput;
-    public Button retrieve;
+    public Button retrieveButton;
     public TextMeshProUGUI feedbackText;
 
     private FirebaseAuth auth;
@@ -25,41 +25,54 @@ public class RetrievePassword : MonoBehaviour
             if (task.Result == DependencyStatus.Available)
             {
                 auth = FirebaseAuth.DefaultInstance;
+                retrieveButton.interactable = true;
             }
             else
             {
-                feedbackText.text = "Error intializing Firebase.";
-                feedbackText.color = Color.red;
+                ShowFeedback("Error inItializing Firebase.", Color.red);
+                retrieveButton.interactable = false;
             }  
         });
-        retrieve.onClick.AddListener(() => RetrievePass(emailInput.text));
+        retrieveButton.onClick.AddListener(() => StartCoroutine(RetrievePass(emailInput.text.Trim())));
     }
 
-    public void RetrievePass(string email)
+    private IEnumerator RetrievePass(string email)
     {
         if (string.IsNullOrEmpty(email))
         {
-            feedbackText.text = "Please enter a valid email address.";
-            feedbackText.color = Color.red;
-            return;
+            ShowFeedback("Please enter a valid email address.",Color.red);
+            yield break;
         }
-        auth.SendPasswordResetEmailAsync(email).ContinueWithOnMainThread(task =>
-        {
-            if (task.IsCanceled)
-            {
-                feedbackText.text = "Operation failed, please try again.";
-                feedbackText.color = Color.red;
-                return;
-            }
-            if (task.IsFaulted)
-            {
-                feedbackText.text = "The email address is not registered, please try again.";
-                feedbackText.color = Color.red;
-                return;
-            }
 
-            feedbackText.text = "A password reset link has been sent to your email successfully.";
-            feedbackText.color = Color.green;
-        });
+        retrieveButton.interactable = false;
+        ShowFeedback("Processing request...", Color.yellow);
+
+
+        var retrieveTask = auth.SendPasswordResetEmailAsync(email);
+
+            yield return new WaitUntil(() => retrieveTask.IsCompleted);
+
+            if (retrieveTask.IsCanceled)
+            {
+                ShowFeedback("Operation failed, please try again.", Color.red);
+                return;
+            }
+            else if (retrieveTask.IsFaulted)
+            {
+                ShowFeedback("The email address is not registered, please try again.", Color.red);
+                return;
+            }
+            else
+            {
+                ShowFeedback("A password reset link sent to your email successfully.", Color.green);
+            }
+            yield return new WaitForSeconds(2f);
+            retrieveButton.interactable = true;
+        }
+    
+    public void ShowFeedback(string message, Color color)
+    {
+        feedbackText.text = message;
+        feedbackText.color = color;
     }
 }
