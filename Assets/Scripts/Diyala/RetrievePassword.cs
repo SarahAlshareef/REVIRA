@@ -8,18 +8,20 @@ using Firebase.Auth;
 using Firebase.Extensions;
 // C#
 using System.Collections;
-using System.Collections.Generic;
 
 public class RetrievePassword : MonoBehaviour
 {
+    public GameObject popupPanel;
     public TMP_InputField emailInput;
-    public Button retrieveButton;
+    public Button retrieveButton, closeButton;
     public TextMeshProUGUI feedbackText;
 
     private FirebaseAuth auth;
 
     void Start()
     {
+        popupPanel.SetActive(false);
+
         FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
         {
             if (task.Result == DependencyStatus.Available)
@@ -33,7 +35,9 @@ public class RetrievePassword : MonoBehaviour
                 retrieveButton.interactable = false;
             }  
         });
+
         retrieveButton.onClick.AddListener(() => StartCoroutine(RetrievePass(emailInput.text.Trim())));
+        closeButton.onClick.AddListener(ClosePopup);
     }
 
     private IEnumerator RetrievePass(string email)
@@ -55,20 +59,28 @@ public class RetrievePassword : MonoBehaviour
             if (retrieveTask.IsCanceled)
             {
                 ShowFeedback("Operation failed, please try again.", Color.red);
-                yield break;
             }
             else if (retrieveTask.IsFaulted)
             {
                 ShowFeedback("The email address is not registered, please try again.", Color.red);
-                yield break;
-        }
+            }
             else
             {
                 ShowFeedback("A password reset link sent to your email successfully.", Color.green);
-            }
-            yield return new WaitForSeconds(2f);
-            retrieveButton.interactable = true;
-        }
+                yield return new WaitForSeconds(2f);
+                ClosePopup();
+            }           
+        retrieveButton.interactable = true;
+    }
+
+    public void OpenPopup()
+    {
+        popupPanel.SetActive(true);
+    }
+    public void ClosePopup()
+    {
+        popupPanel.SetActive(false);
+    }
     
     public void ShowFeedback(string message, Color color)
     {
