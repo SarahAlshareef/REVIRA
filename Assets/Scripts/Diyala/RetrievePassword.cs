@@ -55,13 +55,13 @@ public class RetrievePassword : MonoBehaviour
             if (retrieveTask.IsCanceled)
             {
                 ShowFeedback("Operation failed, please try again.", Color.red);
-                return;
+                yield break;
             }
             else if (retrieveTask.IsFaulted)
             {
                 ShowFeedback("The email address is not registered, please try again.", Color.red);
-                return;
-            }
+                yield break;
+        }
             else
             {
                 ShowFeedback("A password reset link sent to your email successfully.", Color.green);
