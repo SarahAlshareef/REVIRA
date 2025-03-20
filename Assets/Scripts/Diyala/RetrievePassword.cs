@@ -5,7 +5,7 @@ using TMPro;
 // Firebase
 using Firebase;
 using Firebase.Auth;
-using Firebase.Extentions;
+using Firebase.Extensions;
 // C#
 using System.Collections;
 using System.Collections.Generic;
