@@ -80,7 +80,14 @@ public class Payment : MonoBehaviour
                                     currentBalance = int.Parse(balanceTask.Result.Value.ToString());
                                 }
                                 int newBalance = currentBalance + value;
-                                userBalanceReference.SetValueAsync(newBalance);
+                                userBalanceReference.SetValueAsync(newBalance).ContinueWithOnMainThread(updateTask =>
+                                {
+                                    if (updateTask.IsCompleted)
+                                    {
+                                        AccountBalance.text = newBalance.ToString("F2");
+                                        UserManager.Instance.UpdateAccountBalance(newBalance);
+                                    }
+                                });
                             }
                         });
                         return;

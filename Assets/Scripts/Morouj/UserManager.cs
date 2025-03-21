@@ -45,4 +45,8 @@ public class UserManager : MonoBehaviour
     {
         SelectedAddress = selectedAddress;
     }
+    public void UpdateAccountBalance(float newBalance)
+    {
+        AccountBalance = newBalance;
+    }
 }
