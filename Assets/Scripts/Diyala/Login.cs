@@ -67,7 +67,7 @@ public class Login : MonoBehaviour
     }
     IEnumerator FetchUserData(string userId)
     {
-        var dbTask = FirebaseDatabase.DefaultInstance.RootReference.Child("users").Child(userId).GetValueAsync();
+        var dbTask = FirebaseDatabase.DefaultInstance.RootReference.Child("REVIRA").Child("Consumers").Child(userId).GetValueAsync();
         yield return new WaitUntil(() => dbTask.IsCompleted);
 
         if (dbTask.Exception != null || !dbTask.Result.Exists)
