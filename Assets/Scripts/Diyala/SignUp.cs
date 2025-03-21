@@ -112,10 +112,10 @@ public class SignUp : MonoBehaviour
             { "firstName", firstName },
             { "lastName", lastName },
             { "email", email },
-            { "accountBalance", 1000 }
+            { "accountBalance", 0 }
         };
 
-        var dbTask = dbReference.Child("users").Child(userId).SetValueAsync(userData);
+        var dbTask = dbReference.Child("REVIRA").Child("Consumers").Child(userId).SetValueAsync(userData);
         yield return new WaitUntil(() => dbTask.IsCompleted);
 
         if (dbTask.Exception != null)
