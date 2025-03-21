@@ -64,7 +64,7 @@ public class ProductsManager : MonoBehaviour
     public void LoadProductData()
     {
         // Fetch product data from Firebase
-        dbReference.Child("stores").Child(storeID).Child("products").Child(productID)
+        dbReference.Child("REVIRA").Child("stores").Child(storeID).Child("products").Child(productID)
             .GetValueAsync().ContinueWithOnMainThread(task =>
             {
                 if (task.IsCompleted)
