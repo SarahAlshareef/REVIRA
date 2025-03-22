@@ -12,10 +12,13 @@ using Firebase.Extensions;
 
 public class Payment : MonoBehaviour
 {
-    public TextMeshProUGUI AccountBalance, errorText1, errorText2;
+    public TextMeshProUGUI orderTotalAmount, AccountBalance, errorText1, errorText2;
     public TMP_InputField VoucherCodeInput;
-    public Button ApplyVoucherButtton;
+    public Button UseAccountBalanceButton, ApplyVoucherButtton;
     public GameObject ConfirmOrder;
+    public AudioSource coinsSound;
+
+    public float TotalAmount = 100f;
 
     private DatabaseReference dbReference;
     void Start()
@@ -25,8 +28,18 @@ public class Payment : MonoBehaviour
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
         AccountBalance.text = UserManager.Instance.AccountBalance.ToString("F2");
 
+        UseAccountBalanceButton?.onClick.AddListener(OnUseAccountBalanceClick);
         ApplyVoucherButtton?.onClick.AddListener(OnApplyButtonClick);
 
+    }
+    public void OnUseAccountBalanceClick()
+    {
+        float currentBalance = UserManager.Instance.AccountBalance;
+
+        if (currentBalance >= TotalAmount)
+            ConfirmOrder.SetActive(true);
+        else
+            ShowError1("Sorry, your balance is not enough for this order.");
     }
     public void OnApplyButtonClick()
     {
@@ -45,7 +58,7 @@ public class Payment : MonoBehaviour
         {
             if (task.IsCompleted && task.Result.Exists)
             {
-                bool found = false;
+                bool foundVoucher = false;
 
                 foreach (var codeEntry in task.Result.Children)
                 {
@@ -53,7 +66,7 @@ public class Payment : MonoBehaviour
 
                     if (code == enteredCode)
                     {
-                        found = true;
+                        foundVoucher = true;
 
                         bool used = (bool)codeEntry.Child("used").Value;
                         if (used)
@@ -84,7 +97,7 @@ public class Payment : MonoBehaviour
                                 {
                                     if (updateTask.IsCompleted)
                                     {
-                                        AccountBalance.text = newBalance.ToString("F2");
+                                        StartCoroutine(AnimateBalance(UserManager.Instance.AccountBalance, newBalance));
                                         UserManager.Instance.UpdateAccountBalance(newBalance);
                                     }
                                 });
@@ -93,12 +106,43 @@ public class Payment : MonoBehaviour
                         return;
                     }
                 }
-                if (!found)
-                    ShowError2("Voucher Code is incorrect.");
+                if (!foundVoucher)
+                    ShowError2("Voucher Code is unfound.");
             }
             else
                 ShowError2("Failed to retrieve voucher data.");
         });
+    }
+    IEnumerator AnimateBalance(float previousBalance, float newBalance)
+    {
+        float duration = 3f;
+        float stepAmount = 10f;
+
+        float difference = newBalance - previousBalance;
+        if (difference <= 0)
+        {
+            AccountBalance.text = newBalance.ToString("F2");
+            yield break;
+        }
+
+        int steps = Mathf.CeilToInt(difference / stepAmount);
+        float delay = duration / steps;
+
+        float current = previousBalance;
+
+        while (current < newBalance)
+        {
+            current += stepAmount;
+            if (current > newBalance) current = newBalance;
+
+            AccountBalance.text = current.ToString("F2");
+            
+            coinsSound?.Play();
+
+            yield return new WaitForSeconds(delay);
+        }
+
+        AccountBalance.text = newBalance.ToString("F2");
     }
 
     void ShowError1(string message)
