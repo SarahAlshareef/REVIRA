@@ -11,9 +11,6 @@ public class UserManager : MonoBehaviour
     public string Email { get; private set; }
     public float AccountBalance { get; private set; }
 
-    public Dictionary<string, Address> AddressBook { get; private set; } = new Dictionary<string, Address>();
-    public Address SelectedAddress { get; private set; }
-
 
     void Awake()
     {
@@ -36,15 +33,6 @@ public class UserManager : MonoBehaviour
         AccountBalance = accountBalance;
     }
 
-    public void SetAddressBook(Dictionary<string, Address> addressBook)
-    {
-        AddressBook = addressBook;
-    }
-
-    public void SetSelectedAddress(Address selectedAddress)
-    {
-        SelectedAddress = selectedAddress;
-    }
     public void UpdateAccountBalance(float newBalance)
     {
         AccountBalance = newBalance;
