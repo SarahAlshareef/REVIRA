@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Firebase.Database;
+using Firebase.Extensions; // Required for ContinueWithOnMainThread
 using TMPro;
 
 public class AddressBookManager : MonoBehaviour
@@ -34,7 +35,7 @@ public class AddressBookManager : MonoBehaviour
     void LoadAddresses()
     {
         string userId = UserManager.Instance.UserId;
-        dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").GetValueAsync().ContinueWith(task =>
+        dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").GetValueAsync().ContinueWithOnMainThread(task =>
         {
             if (task.IsCompleted && task.Result.Exists)
             {
@@ -112,13 +113,14 @@ public class AddressBookManager : MonoBehaviour
         string userId = UserManager.Instance.UserId;
         string path = $"REVIRA/Consumers/{userId}/AddressBook/Address{newIndex}";
 
-        dbReference.Child(path).SetRawJsonValueAsync(JsonUtility.ToJson(newAddress)).ContinueWith(task =>
+        dbReference.Child(path).SetRawJsonValueAsync(JsonUtility.ToJson(newAddress)).ContinueWithOnMainThread(task =>
         {
             if (task.IsCompleted)
             {
-                newAddressForm.SetActive(false);
-                ClearInputFields();
-                LoadAddresses();
+                Debug.Log("Address Saved!");
+                newAddressForm.SetActive(false); // Now works!
+                ClearInputFields();              // Clears fields
+                LoadAddresses();                 // Refreshes list
             }
         });
     }
@@ -127,7 +129,7 @@ public class AddressBookManager : MonoBehaviour
     {
         string userId = UserManager.Instance.UserId;
         dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").Child(addressKey)
-            .RemoveValueAsync().ContinueWith(task =>
+            .RemoveValueAsync().ContinueWithOnMainThread(task =>
             {
                 if (task.IsCompleted)
                 {
@@ -141,7 +143,7 @@ public class AddressBookManager : MonoBehaviour
         string userId = UserManager.Instance.UserId;
         addressList.Clear();
 
-        dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").GetValueAsync().ContinueWith(task =>
+        dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").GetValueAsync().ContinueWithOnMainThread(task =>
         {
             if (task.IsCompleted)
             {
@@ -153,7 +155,7 @@ public class AddressBookManager : MonoBehaviour
                     remaining.Add(address);
                 }
 
-                dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").RemoveValueAsync().ContinueWith(_ =>
+                dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").RemoveValueAsync().ContinueWithOnMainThread(_ =>
                 {
                     for (int i = 0; i < remaining.Count; i++)
                     {
@@ -169,6 +171,11 @@ public class AddressBookManager : MonoBehaviour
 
     void ClearInputFields()
     {
-        addressNameInput.text = cityInput.text = districtInput.text = streetInput.text = buildingInput.text = phoneNumberInput.text = "";
+        addressNameInput.text = "";
+        cityInput.text = "";
+        districtInput.text = "";
+        streetInput.text = "";
+        buildingInput.text = "";
+        phoneNumberInput.text = "";
     }
 }
