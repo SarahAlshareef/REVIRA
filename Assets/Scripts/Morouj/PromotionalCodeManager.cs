@@ -1,43 +1,50 @@
-using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Firebase.Database;
 using UnityEngine.SceneManagement;
+using System;
 
 public class PromotionalCodeManager : MonoBehaviour
 {
+    [Header("UI Elements")]
     public TMP_InputField promoCodeInput;
     public Button applyButton;
     public Button nextButton;
+    public Button backToStoreButton;
+    public Button exitButton;
     public TextMeshProUGUI errorMessageText;
 
     private DatabaseReference dbRef;
+    private string storeID = "storeID_123";
 
     void Start()
     {
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
+
         applyButton.onClick.AddListener(ValidatePromoCode);
         nextButton.onClick.AddListener(SkipPromoCode);
+        backToStoreButton.onClick.AddListener(() => SceneManager.LoadScene("StoreSelection"));
+        exitButton.onClick.AddListener(() => SceneManager.LoadScene("StoreSelection"));
     }
 
     void SkipPromoCode()
     {
         if (string.IsNullOrEmpty(promoCodeInput.text))
         {
-            SceneManager.LoadScene("Address");
+            GoToNextStep();
         }
     }
 
     void ValidatePromoCode()
     {
         string enteredCode = promoCodeInput.text.ToUpper().Trim();
+
         if (string.IsNullOrEmpty(enteredCode))
         {
             return;
         }
 
-        string storeID = "storeID_123";
         dbRef.Child("REVIRA").Child("stores").Child(storeID).Child("PromotionalCodes").GetValueAsync().ContinueWith(task =>
         {
             if (task.IsCompleted)
@@ -57,71 +64,70 @@ public class PromotionalCodeManager : MonoBehaviour
 
                     if (isActive && now >= startDate && now <= endDate)
                     {
-                        ValidateCart(appliesTo, discount, enteredCode);
+                        ValidateCartCompatibility(appliesTo, discount, enteredCode);
                     }
                     else
                     {
-                        ShowError("This promotional code is expired or inactive.");
+                        ShowMessage("This promotional code is expired or inactive.");
                     }
                 }
                 else
                 {
-                    ShowError("This code is not valid for the products in your cart");
+                    ShowMessage("This code is not valid for the products in your cart");
                 }
             }
         });
     }
 
-    void ValidateCart(string appliesTo, float discount, string promoCode)
+    void ValidateCartCompatibility(string appliesTo, float discount, string enteredCode)
     {
         string userId = UserManager.Instance.UserId;
-        string storeID = "storeID_123";
-
         dbRef.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").GetValueAsync().ContinueWith(cartTask =>
         {
             if (cartTask.IsCompleted)
             {
                 float total = 0f;
-                int validItems = 0;
-                int totalItems = 0;
+                bool isValid = false;
+                int checkedCount = 0;
+                int totalItems = (int)cartTask.Result.ChildrenCount;
 
                 foreach (DataSnapshot item in cartTask.Result.Children)
                 {
                     string productId = item.Key;
+                    int quantity = 0;
                     float price = float.Parse(item.Child("price").Value.ToString());
 
-                    int quantity = 0;
                     foreach (var size in item.Child("sizes").Children)
-                        quantity += int.Parse(size.Value.ToString());
-
-                    total += price * quantity;
-                    totalItems++;
-
-                    dbRef.Child("REVIRA").Child("stores").Child(storeID).Child("products").Child(productId).Child("category").GetValueAsync().ContinueWith(catTask =>
                     {
-                        if (catTask.IsCompleted)
+                        quantity += int.Parse(size.Value.ToString());
+                    }
+
+                    float subtotal = quantity * price;
+                    total += subtotal;
+
+                    dbRef.Child("REVIRA").Child("stores").Child(storeID).Child("products").Child(productId).Child("category").GetValueAsync().ContinueWith(categoryTask =>
+                    {
+                        if (categoryTask.IsCompleted)
                         {
-                            string category = catTask.Result.Value.ToString();
+                            string category = categoryTask.Result.Value.ToString();
 
                             if (appliesTo == "all" || appliesTo == category)
                             {
-                                validItems++;
+                                isValid = true;
                             }
 
-                            if (validItems == totalItems)
-                            {
-                                float discountedTotal = total - (total * (discount / 100f));
+                            checkedCount++;
 
-                                CheckoutManager.UsedPromoCode = promoCode;
-                                CheckoutManager.DiscountPercentage = discount;
-                                CheckoutManager.DiscountedTotal = discountedTotal;
-
-                                errorMessageText.text = "";
-                                SceneManager.LoadScene("Address");
-                            }
-                            else if (validItems < totalItems && validItems + 1 == totalItems)
+                            if (checkedCount == totalItems)
                             {
-                                ShowError("This code is not valid for the products in your cart");
+                                if (isValid)
+                                {
+                                    ApplyDiscount(discount, total, enteredCode);
+                                }
+                                else
+                                {
+                                    ShowMessage("This code is not valid for the products in your cart");
+                                }
                             }
                         }
                     });
@@ -130,8 +136,24 @@ public class PromotionalCodeManager : MonoBehaviour
         });
     }
 
-    void ShowError(string msg)
+    void ApplyDiscount(float discount, float total, string enteredCode)
     {
-        errorMessageText.text = msg;
+        CheckoutManager.UsedPromoCode = enteredCode;
+        CheckoutManager.DiscountPercentage = discount;
+        CheckoutManager.DiscountedTotal = total - (total * (discount / 100f));
+
+        ShowMessage("Promo code applied successfully!");
+        GoToNextStep();
+    }
+
+    void ShowMessage(string message)
+    {
+        errorMessageText.text = message;
+        errorMessageText.color = Color.red; // íãßäß ÊÛííÑå ÍÓÈ ÑÛÈÊß
+    }
+
+    void GoToNextStep()
+    {
+        SceneManager.LoadScene("Address");
     }
 }
