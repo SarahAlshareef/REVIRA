@@ -5,29 +5,28 @@ using UnityEngine.SceneManagement;
 
 public class DeliveryMethodManager : MonoBehaviour
 {
-    [Header("Delivery Options")]
     public Toggle aramexToggle;
     public Toggle smsaToggle;
     public Toggle redboxToggle;
 
-    [Header("Buttons")]
     public Button saveButton;
     public Button nextButton;
+    public Button backButton;
     public Button closeButton;
 
-    [Header("UI")]
     public TextMeshProUGUI messageText;
 
     private bool isSaved = false;
 
     void Start()
     {
-        saveButton.onClick.AddListener(SaveSelection);
-        nextButton.onClick.AddListener(GoToNextScene);
-        closeButton.onClick.AddListener(BackToStore);
+        saveButton.onClick.AddListener(SaveDeliveryMethod);
+        nextButton.onClick.AddListener(GoToNextStep);
+        backButton.onClick.AddListener(GoToPreviousStep);
+        closeButton.onClick.AddListener(ReturnToStore);
     }
 
-    void SaveSelection()
+    void SaveDeliveryMethod()
     {
         if (aramexToggle.isOn)
         {
@@ -49,29 +48,31 @@ public class DeliveryMethodManager : MonoBehaviour
         }
         else
         {
-            messageText.text = "Please select a delivery method before saving.";
-            messageText.color = Color.red;
+            messageText.text = "Please select a delivery method.";
             return;
         }
 
         isSaved = true;
         messageText.text = "Delivery method saved successfully!";
-        messageText.color = Color.green;
     }
 
-    void GoToNextScene()
+    void GoToNextStep()
     {
         if (!isSaved)
         {
-            messageText.text = "Please select and save a delivery method first.";
-            messageText.color = Color.red;
+            messageText.text = "Please save your selection before proceeding.";
             return;
         }
 
         SceneManager.LoadScene("Payment");
     }
 
-    void BackToStore()
+    void GoToPreviousStep()
+    {
+        SceneManager.LoadScene("Address");
+    }
+
+    void ReturnToStore()
     {
         SceneManager.LoadScene("StoreSelection");
     }
