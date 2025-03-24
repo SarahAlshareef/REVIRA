@@ -30,6 +30,8 @@ public class AddressBookManager : MonoBehaviour
 
     public static Address SelectedAddress { get; private set; }
 
+    public TextMeshProUGUI CoinText;
+
     void Start()
     {
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
@@ -41,7 +43,8 @@ public class AddressBookManager : MonoBehaviour
 
         nextButton.onClick.AddListener(() =>
         {
-            SceneManager.LoadScene("NextSceneName"); // Replace with your scene
+            SceneManager.LoadScene("Address 2"); // Replace with your scene
+            CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
         });
     }
 
