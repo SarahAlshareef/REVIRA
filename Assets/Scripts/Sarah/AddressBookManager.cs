@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using Firebase.Database;
 using Firebase.Extensions;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class AddressBookManager : MonoBehaviour
 {
@@ -12,16 +13,20 @@ public class AddressBookManager : MonoBehaviour
     public GameObject addressTogglePrefab;
     public GameObject noAddressMessage;
     public Button addNewAddressButton;
+    public GameObject addNewAddressButtonImage;
     public GameObject newAddressForm;
     public TMP_InputField addressNameInput, cityInput, districtInput, streetInput, buildingInput, phoneNumberInput;
     public TMP_Dropdown countryDropdown;
     public TextMeshProUGUI outsideErrorMessageText;
     public TextMeshProUGUI formErrorMessageText;
     public Button saveButton;
+    public Button nextButton;
 
     private DatabaseReference dbReference;
     private List<Address> addressList = new();
     private const int maxAddresses = 3;
+
+    private List<Toggle> allToggles = new(); // Track all toggles
 
     public static Address SelectedAddress { get; private set; }
 
@@ -32,6 +37,12 @@ public class AddressBookManager : MonoBehaviour
 
         addNewAddressButton.onClick.AddListener(ShowAddAddressForm);
         saveButton.onClick.AddListener(SaveNewAddress);
+        nextButton.gameObject.SetActive(false); // Hidden initially
+
+        nextButton.onClick.AddListener(() =>
+        {
+            SceneManager.LoadScene("NextSceneName"); // Replace with your scene
+        });
     }
 
     IEnumerator WaitForUserIdAndLoad()
@@ -45,12 +56,13 @@ public class AddressBookManager : MonoBehaviour
 
     void LoadAddresses()
     {
+        ClearExistingToggles();
+        allToggles.Clear();
+        addressList.Clear();
+
         string userId = UserManager.Instance.UserId;
         dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").GetValueAsync().ContinueWithOnMainThread(task =>
         {
-            ClearExistingToggles();
-            addressList.Clear();
-
             if (task.IsCompleted && task.Result.Exists)
             {
                 foreach (var addressSnap in task.Result.Children)
@@ -62,16 +74,21 @@ public class AddressBookManager : MonoBehaviour
             }
 
             noAddressMessage.SetActive(addressList.Count == 0);
+            nextButton.gameObject.SetActive(false); // Reset Next button
 
             if (addressList.Count >= maxAddresses)
             {
                 addNewAddressButton.interactable = false;
                 outsideErrorMessageText.text = "You’ve reached the maximum number of addresses. Delete one to add a new one.";
+                if (addNewAddressButtonImage != null)
+                    addNewAddressButtonImage.SetActive(false);
             }
             else
             {
                 addNewAddressButton.interactable = true;
                 outsideErrorMessageText.text = "";
+                if (addNewAddressButtonImage != null)
+                    addNewAddressButtonImage.SetActive(true);
             }
         });
     }
@@ -93,10 +110,30 @@ public class AddressBookManager : MonoBehaviour
         Toggle toggle = toggleGO.GetComponent<Toggle>();
         Button deleteButton = toggleGO.transform.Find("DeleteButton").GetComponent<Button>();
 
+        // Prevent pre-selection
+        toggle.isOn = false;
+
+        // Assign Toggle Group
+        ToggleGroup group = toggleParent.GetComponent<ToggleGroup>();
+        if (group != null)
+            toggle.group = group;
+
+        allToggles.Add(toggle); // Track toggle
+
         toggle.onValueChanged.AddListener(isOn =>
         {
             if (isOn)
+            {
+                // Deselect all others
+                foreach (var other in allToggles)
+                {
+                    if (other != toggle)
+                        other.isOn = false;
+                }
+
                 SelectedAddress = address;
+                nextButton.gameObject.SetActive(true); // Show Next button
+            }
         });
 
         deleteButton.onClick.AddListener(() => DeleteAddress(addressKey));
@@ -125,6 +162,18 @@ public class AddressBookManager : MonoBehaviour
             return;
         }
 
+        if (!phone.StartsWith("05"))
+        {
+            formErrorMessageText.text = "Phone number must start with '05'.";
+            return;
+        }
+
+        if (phone.Length != 10 || !IsAllDigits(phone))
+        {
+            formErrorMessageText.text = "Phone number must be exactly 10 digits.";
+            return;
+        }
+
         Address newAddress = new(name, country, city, district, street, building, phone);
         int newIndex = addressList.Count + 1;
         string userId = UserManager.Instance.UserId;
@@ -139,6 +188,16 @@ public class AddressBookManager : MonoBehaviour
                 LoadAddresses();
             }
         });
+    }
+
+    bool IsAllDigits(string str)
+    {
+        foreach (char c in str)
+        {
+            if (!char.IsDigit(c))
+                return false;
+        }
+        return true;
     }
 
     void DeleteAddress(string addressKey)
