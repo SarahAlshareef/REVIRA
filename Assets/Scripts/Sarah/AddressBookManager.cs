@@ -1,8 +1,9 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Firebase.Database;
-using Firebase.Extensions; // Required for ContinueWithOnMainThread
+using Firebase.Extensions;
 using TMPro;
 
 public class AddressBookManager : MonoBehaviour
@@ -14,7 +15,8 @@ public class AddressBookManager : MonoBehaviour
     public GameObject newAddressForm;
     public TMP_InputField addressNameInput, cityInput, districtInput, streetInput, buildingInput, phoneNumberInput;
     public TMP_Dropdown countryDropdown;
-    public TextMeshProUGUI errorMessageText;
+    public TextMeshProUGUI outsideErrorMessageText; // For max addresses
+    public TextMeshProUGUI formErrorMessageText;    // For empty fields in form
     public Button saveButton;
 
     private DatabaseReference dbReference;
@@ -26,10 +28,19 @@ public class AddressBookManager : MonoBehaviour
     void Start()
     {
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
-        LoadAddresses();
+        StartCoroutine(WaitForUserIdAndLoad());
 
         addNewAddressButton.onClick.AddListener(ShowAddAddressForm);
         saveButton.onClick.AddListener(SaveNewAddress);
+    }
+
+    IEnumerator WaitForUserIdAndLoad()
+    {
+        while (string.IsNullOrEmpty(UserManager.Instance.UserId))
+        {
+            yield return null;
+        }
+        LoadAddresses();
     }
 
     void LoadAddresses()
@@ -44,11 +55,32 @@ public class AddressBookManager : MonoBehaviour
 
                 foreach (var addressSnap in task.Result.Children)
                 {
+                    if (addressSnap.Key == "empty") continue; // Ignore dummy key
+
                     Address address = JsonUtility.FromJson<Address>(addressSnap.GetRawJsonValue());
                     addressList.Add(address);
                     CreateToggle(address, addressSnap.Key);
                 }
                 noAddressMessage.SetActive(addressList.Count == 0);
+
+                // Disable Add button + show outside error message
+                if (addressList.Count >= maxAddresses)
+                {
+                    addNewAddressButton.interactable = false;
+                    outsideErrorMessageText.text = "You’ve reached the maximum number of addresses. Delete one to add a new one.";
+                }
+                else
+                {
+                    addNewAddressButton.interactable = true;
+                    outsideErrorMessageText.text = "";
+                }
+            }
+            else
+            {
+                ClearExistingToggles();
+                noAddressMessage.SetActive(true);
+                addNewAddressButton.interactable = true;
+                outsideErrorMessageText.text = "";
             }
         });
     }
@@ -81,14 +113,8 @@ public class AddressBookManager : MonoBehaviour
 
     void ShowAddAddressForm()
     {
-        if (addressList.Count >= maxAddresses)
-        {
-            errorMessageText.text = "You’ve reached the maximum number of addresses. Delete one to add a new one.";
-            return;
-        }
-
         newAddressForm.SetActive(true);
-        errorMessageText.text = "";
+        formErrorMessageText.text = ""; // Clear form error when opening
     }
 
     void SaveNewAddress()
@@ -104,7 +130,7 @@ public class AddressBookManager : MonoBehaviour
         if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(city) || string.IsNullOrEmpty(district)
             || string.IsNullOrEmpty(street) || string.IsNullOrEmpty(building) || string.IsNullOrEmpty(phone))
         {
-            errorMessageText.text = "Please fill all fields.";
+            formErrorMessageText.text = "Please fill in all fields.";
             return;
         }
 
@@ -113,14 +139,16 @@ public class AddressBookManager : MonoBehaviour
         string userId = UserManager.Instance.UserId;
         string path = $"REVIRA/Consumers/{userId}/AddressBook/Address{newIndex}";
 
+        // Remove dummy "empty" key if exists
+        dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").Child("empty").RemoveValueAsync();
+
         dbReference.Child(path).SetRawJsonValueAsync(JsonUtility.ToJson(newAddress)).ContinueWithOnMainThread(task =>
         {
             if (task.IsCompleted)
             {
-                Debug.Log("Address Saved!");
-                newAddressForm.SetActive(false); // Now works!
-                ClearInputFields();              // Clears fields
-                LoadAddresses();                 // Refreshes list
+                newAddressForm.SetActive(false);
+                ClearInputFields();
+                LoadAddresses();
             }
         });
     }
@@ -133,40 +161,74 @@ public class AddressBookManager : MonoBehaviour
             {
                 if (task.IsCompleted)
                 {
-                    ShiftAddressesAfterDeletion();
+                    CheckAndShiftAddresses();
                 }
             });
     }
 
-    void ShiftAddressesAfterDeletion()
+    void CheckAndShiftAddresses()
     {
         string userId = UserManager.Instance.UserId;
-        addressList.Clear();
 
         dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").GetValueAsync().ContinueWithOnMainThread(task =>
         {
             if (task.IsCompleted)
             {
-                List<Address> remaining = new();
-
-                foreach (var addressSnap in task.Result.Children)
+                int realCount = 0;
+                foreach (var snap in task.Result.Children)
                 {
-                    Address address = JsonUtility.FromJson<Address>(addressSnap.GetRawJsonValue());
-                    remaining.Add(address);
+                    if (snap.Key != "empty")
+                        realCount++;
                 }
 
-                dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").RemoveValueAsync().ContinueWithOnMainThread(_ =>
+                if (task.Result.Exists && realCount > 0)
                 {
-                    for (int i = 0; i < remaining.Count; i++)
-                    {
-                        dbReference.Child("REVIRA").Child("Consumers").Child(userId)
-                            .Child("AddressBook").Child($"Address{i + 1}")
-                            .SetRawJsonValueAsync(JsonUtility.ToJson(remaining[i]));
-                    }
-                    LoadAddresses();
-                });
+                    ShiftAddressesAfterDeletion(task.Result);
+                }
+                else
+                {
+                    dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").Child("empty").SetValueAsync("true");
+
+                    ClearExistingToggles();
+                    addressList.Clear();
+                    noAddressMessage.SetActive(true);
+                    addNewAddressButton.interactable = true;
+                    outsideErrorMessageText.text = "";
+                }
             }
         });
+    }
+
+    void ShiftAddressesAfterDeletion(DataSnapshot snapshot)
+    {
+        string userId = UserManager.Instance.UserId;
+        addressList.Clear();
+
+        List<Address> remaining = new();
+
+        foreach (var addressSnap in snapshot.Children)
+        {
+            if (addressSnap.Key == "empty") continue;
+
+            Address address = JsonUtility.FromJson<Address>(addressSnap.GetRawJsonValue());
+            remaining.Add(address);
+        }
+
+        foreach (var addressSnap in snapshot.Children)
+        {
+            if (addressSnap.Key == "empty") continue;
+            dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").Child(addressSnap.Key).RemoveValueAsync();
+        }
+
+        for (int i = 0; i < remaining.Count; i++)
+        {
+            string newKey = $"Address{i + 1}";
+            dbReference.Child("REVIRA").Child("Consumers").Child(userId)
+                .Child("AddressBook").Child(newKey)
+                .SetRawJsonValueAsync(JsonUtility.ToJson(remaining[i]));
+        }
+
+        LoadAddresses();
     }
 
     void ClearInputFields()
@@ -177,5 +239,6 @@ public class AddressBookManager : MonoBehaviour
         streetInput.text = "";
         buildingInput.text = "";
         phoneNumberInput.text = "";
+        formErrorMessageText.text = "";
     }
 }
