@@ -64,16 +64,16 @@ public class DeliveryMethodManager : MonoBehaviour
             return;
         }
 
-        SceneManager.LoadScene("Payment");
+        SceneManager.LoadScene("final test");
     }
 
     void GoToPreviousStep()
     {
-        SceneManager.LoadScene("Address");
+        SceneManager.LoadScene("Morouj Promotional 1");
     }
 
     void ReturnToStore()
     {
-        SceneManager.LoadScene("StoreSelection");
+        SceneManager.LoadScene("Store");
     }
 }

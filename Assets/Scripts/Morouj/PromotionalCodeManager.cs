@@ -24,8 +24,8 @@ public class PromotionalCodeManager : MonoBehaviour
 
         applyButton.onClick.AddListener(ValidatePromoCode);
         nextButton.onClick.AddListener(SkipPromoCode);
-        backToStoreButton.onClick.AddListener(() => SceneManager.LoadScene("StoreSelection"));
-        exitButton.onClick.AddListener(() => SceneManager.LoadScene("StoreSelection"));
+        backToStoreButton.onClick.AddListener(() => SceneManager.LoadScene("Store"));
+        exitButton.onClick.AddListener(() => SceneManager.LoadScene("Store"));
     }
 
     void SkipPromoCode()
@@ -154,6 +154,6 @@ public class PromotionalCodeManager : MonoBehaviour
 
     void GoToNextStep()
     {
-        SceneManager.LoadScene("Address");
+        SceneManager.LoadScene("Morouj Method 1");
     }
 }
