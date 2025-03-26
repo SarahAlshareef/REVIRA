@@ -74,8 +74,8 @@ public class OrderSummaryManager : MonoBehaviour
                 }
 
                 // Calculate summary values
-                float discount = CheckoutManager.DiscountedTotal > 0 ? subtotal - CheckoutManager.DiscountedTotal : 0f;
-                float delivery = CheckoutManager.DeliveryPrice;
+                float discount = PromotionalManager.DiscountedTotal > 0 ? subtotal - PromotionalManager.DiscountedTotal : 0f;
+                float delivery = DeliveryManager.DeliveryPrice;
                 float total = subtotal - discount + delivery;
 
                 // Update static summary section (separate from scroll view)

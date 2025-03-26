@@ -10,4 +10,7 @@ public static class DeliveryManager
 
     // The delivery duration (e.g. "2 to 5 days")
     public static string DeliveryDuration { get; set; } = "";
+
+    // The official website or tracking URL of the selected company
+    public static string DeliveryWebsite { get; set; } = "";
 }
