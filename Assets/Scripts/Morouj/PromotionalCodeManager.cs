@@ -138,9 +138,9 @@ public class PromotionalCodeManager : MonoBehaviour
 
     void ApplyDiscount(float discount, float total, string enteredCode)
     {
-        CheckoutManager.UsedPromoCode = enteredCode;
-        CheckoutManager.DiscountPercentage = discount;
-        CheckoutManager.DiscountedTotal = total - (total * (discount / 100f));
+        PromotionalManager.UsedPromoCode = enteredCode;
+        PromotionalManager.DiscountPercentage = discount;
+        PromotionalManager.DiscountedTotal = total - (total * (discount / 100f));
 
         ShowMessage("Promo code applied successfully!");
         GoToNextStep();
