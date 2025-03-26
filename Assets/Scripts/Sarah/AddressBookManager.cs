@@ -2,150 +2,122 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using Firebase.Database;
 using Firebase.Extensions;
 using TMPro;
-using UnityEngine.SceneManagement;
+using System.Linq;
 
 public class AddressBookManager : MonoBehaviour
 {
+    [Header("UI References")]
     public Transform toggleParent;
-    public GameObject addressTogglePrefab;
-    public GameObject noAddressMessage;
-    public Button addNewAddressButton;
-    public GameObject addNewAddressButtonImage;
-    public GameObject newAddressForm;
+    public GameObject addressTogglePrefab, noAddressMessage, addNewAddressButtonImage, newAddressForm;
+    public Button addNewAddressButton, saveButton, nextButton;
     public TMP_InputField addressNameInput, cityInput, districtInput, streetInput, buildingInput, phoneNumberInput;
     public TMP_Dropdown countryDropdown;
-    public TextMeshProUGUI outsideErrorMessageText;
-    public TextMeshProUGUI formErrorMessageText;
-    public Button saveButton;
-    public Button nextButton;
+    public TextMeshProUGUI outsideErrorMessageText, formErrorMessageText, CoinText;
 
     private DatabaseReference dbReference;
-    private List<Address> addressList = new();
+    private readonly List<Address> addressList = new();
+    private readonly List<Toggle> allToggles = new();
     private const int maxAddresses = 3;
 
-    private List<Toggle> allToggles = new(); // Track all toggles
-
     public static Address SelectedAddress { get; private set; }
-
-    public TextMeshProUGUI CoinText;
 
     void Start()
     {
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
         StartCoroutine(WaitForUserIdAndLoad());
 
-        addNewAddressButton.onClick.AddListener(ShowAddAddressForm);
-        saveButton.onClick.AddListener(SaveNewAddress);
-        nextButton.gameObject.SetActive(false); // Hidden initially
+        formErrorMessageText.text = ""; // Hide error message at start
 
-        nextButton.onClick.AddListener(() =>
+        addNewAddressButton.onClick.AddListener(() =>
         {
-            SceneManager.LoadScene("Address 2"); // Replace with your scene
+            bool isActive = newAddressForm.activeSelf;
+            newAddressForm.SetActive(!isActive);
+
+            if (!isActive)
+            {
+                formErrorMessageText.text = ""; // Clear error when opening
+            }
+            else
+            {
+                ClearInputs(); // Clear inputs and errors when closing
+            }
+        });
+
+        saveButton.onClick.AddListener(SaveNewAddress);
+        nextButton.onClick.AddListener(() => {
+            SceneManager.LoadScene("Address 2");
             CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
         });
+
+        nextButton.gameObject.SetActive(false);
     }
 
     IEnumerator WaitForUserIdAndLoad()
     {
-        while (string.IsNullOrEmpty(UserManager.Instance.UserId))
-        {
-            yield return null;
-        }
+        while (string.IsNullOrEmpty(UserManager.Instance.UserId)) yield return null;
         LoadAddresses();
     }
 
     void LoadAddresses()
     {
-        ClearExistingToggles();
-        allToggles.Clear();
-        addressList.Clear();
-
+        ClearToggles();
         string userId = UserManager.Instance.UserId;
-        dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").GetValueAsync().ContinueWithOnMainThread(task =>
-        {
+        var addressRef = dbReference.Child("REVIRA/Consumers").Child(userId).Child("AddressBook");
+
+        addressRef.GetValueAsync().ContinueWithOnMainThread(task => {
             if (task.IsCompleted && task.Result.Exists)
             {
-                foreach (var addressSnap in task.Result.Children)
+                foreach (var snap in task.Result.Children)
                 {
-                    Address address = JsonUtility.FromJson<Address>(addressSnap.GetRawJsonValue());
+                    var address = JsonUtility.FromJson<Address>(snap.GetRawJsonValue());
                     addressList.Add(address);
-                    CreateToggle(address, addressSnap.Key);
+                    CreateToggle(address, snap.Key);
                 }
             }
 
-            noAddressMessage.SetActive(addressList.Count == 0);
-            nextButton.gameObject.SetActive(false); // Reset Next button
+            bool hasNoAddresses = addressList.Count == 0;
+            noAddressMessage.SetActive(hasNoAddresses);
+            nextButton.gameObject.SetActive(false);
 
-            if (addressList.Count >= maxAddresses)
-            {
-                addNewAddressButton.interactable = false;
-                outsideErrorMessageText.text = "You’ve reached the maximum number of addresses. Delete one to add a new one.";
-                if (addNewAddressButtonImage != null)
-                    addNewAddressButtonImage.SetActive(false);
-            }
-            else
-            {
-                addNewAddressButton.interactable = true;
-                outsideErrorMessageText.text = "";
-                if (addNewAddressButtonImage != null)
-                    addNewAddressButtonImage.SetActive(true);
-            }
+            bool isMaxed = addressList.Count >= maxAddresses;
+            addNewAddressButton.interactable = !isMaxed;
+            outsideErrorMessageText.text = isMaxed ? "You’ve reached the maximum number of addresses. Delete one to add a new one." : "";
+            if (addNewAddressButtonImage) addNewAddressButtonImage.SetActive(!isMaxed);
         });
     }
 
-    void ClearExistingToggles()
+    void ClearToggles()
     {
-        foreach (Transform child in toggleParent)
-        {
-            Destroy(child.gameObject);
-        }
+        foreach (Transform child in toggleParent) Destroy(child.gameObject);
+        addressList.Clear();
+        allToggles.Clear();
     }
 
-    void CreateToggle(Address address, string addressKey)
+    void CreateToggle(Address address, string key)
     {
-        GameObject toggleGO = Instantiate(addressTogglePrefab, toggleParent);
-        toggleGO.transform.Find("AddressText").GetComponent<TextMeshProUGUI>().text =
+        GameObject go = Instantiate(addressTogglePrefab, toggleParent);
+        go.transform.Find("AddressText").GetComponent<TextMeshProUGUI>().text =
             $"{address.addressName}, {address.city}, {address.district}, {address.street}, {address.building}, {address.phoneNumber}";
 
-        Toggle toggle = toggleGO.GetComponent<Toggle>();
-        Button deleteButton = toggleGO.transform.Find("DeleteButton").GetComponent<Button>();
+        Toggle toggle = go.GetComponent<Toggle>();
+        Button deleteBtn = go.transform.Find("DeleteButton").GetComponent<Button>();
 
-        // Prevent pre-selection
         toggle.isOn = false;
+        toggle.group = toggleParent.GetComponent<ToggleGroup>();
+        allToggles.Add(toggle);
 
-        // Assign Toggle Group
-        ToggleGroup group = toggleParent.GetComponent<ToggleGroup>();
-        if (group != null)
-            toggle.group = group;
-
-        allToggles.Add(toggle); // Track toggle
-
-        toggle.onValueChanged.AddListener(isOn =>
-        {
-            if (isOn)
-            {
-                // Deselect all others
-                foreach (var other in allToggles)
-                {
-                    if (other != toggle)
-                        other.isOn = false;
-                }
-
-                SelectedAddress = address;
-                nextButton.gameObject.SetActive(true); // Show Next button
-            }
+        toggle.onValueChanged.AddListener(isOn => {
+            if (!isOn) return;
+            allToggles.ForEach(t => { if (t != toggle) t.isOn = false; });
+            SelectedAddress = address;
+            nextButton.gameObject.SetActive(true);
         });
 
-        deleteButton.onClick.AddListener(() => DeleteAddress(addressKey));
-    }
-
-    void ShowAddAddressForm()
-    {
-        newAddressForm.SetActive(true);
-        formErrorMessageText.text = "";
+        deleteBtn.onClick.AddListener(() => DeleteAddress(key));
     }
 
     void SaveNewAddress()
@@ -156,10 +128,8 @@ public class AddressBookManager : MonoBehaviour
         string street = streetInput.text.Trim();
         string building = buildingInput.text.Trim();
         string phone = phoneNumberInput.text.Trim();
-        string country = "Saudi Arabia";
 
-        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(city) || string.IsNullOrEmpty(district)
-            || string.IsNullOrEmpty(street) || string.IsNullOrEmpty(building) || string.IsNullOrEmpty(phone))
+        if (new[] { name, city, district, street, building, phone }.Any(string.IsNullOrEmpty))
         {
             formErrorMessageText.text = "Please fill in all fields.";
             return;
@@ -171,93 +141,63 @@ public class AddressBookManager : MonoBehaviour
             return;
         }
 
-        if (phone.Length != 10 || !IsAllDigits(phone))
+        if (phone.Length != 10 || !phone.All(char.IsDigit))
         {
             formErrorMessageText.text = "Phone number must be exactly 10 digits.";
             return;
         }
 
-        Address newAddress = new(name, country, city, district, street, building, phone);
-        int newIndex = addressList.Count + 1;
-        string userId = UserManager.Instance.UserId;
-        string path = $"REVIRA/Consumers/{userId}/AddressBook/Address{newIndex}";
+        Address newAddr = new(name, "Saudi Arabia", city, district, street, building, phone);
+        string path = $"REVIRA/Consumers/{UserManager.Instance.UserId}/AddressBook/Address{addressList.Count + 1}";
 
-        dbReference.Child(path).SetRawJsonValueAsync(JsonUtility.ToJson(newAddress)).ContinueWithOnMainThread(task =>
-        {
+        dbReference.Child(path).SetRawJsonValueAsync(JsonUtility.ToJson(newAddr)).ContinueWithOnMainThread(task => {
             if (task.IsCompleted)
             {
                 newAddressForm.SetActive(false);
-                ClearInputFields();
+                ClearInputs();
                 LoadAddresses();
             }
         });
     }
 
-    bool IsAllDigits(string str)
-    {
-        foreach (char c in str)
-        {
-            if (!char.IsDigit(c))
-                return false;
-        }
-        return true;
-    }
-
-    void DeleteAddress(string addressKey)
+    void DeleteAddress(string key)
     {
         string userId = UserManager.Instance.UserId;
-        dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").Child(addressKey)
-            .RemoveValueAsync().ContinueWithOnMainThread(task =>
+        var baseRef = dbReference.Child("REVIRA/Consumers").Child(userId).Child("AddressBook");
+
+        baseRef.Child(key).RemoveValueAsync().ContinueWithOnMainThread(task => {
+            if (task.IsCompleted) ShiftAddresses(baseRef, userId);
+        });
+    }
+
+    void ShiftAddresses(DatabaseReference baseRef, string userId)
+    {
+        baseRef.GetValueAsync().ContinueWithOnMainThread(task => {
+            if (!task.IsCompleted || !task.Result.Exists)
             {
-                if (task.IsCompleted)
-                {
-                    ShiftAddressesAfterDeletion();
-                }
-            });
-    }
+                LoadAddresses();
+                return;
+            }
 
-    void ShiftAddressesAfterDeletion()
-    {
-        string userId = UserManager.Instance.UserId;
-        dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").GetValueAsync().ContinueWithOnMainThread(task =>
-        {
             List<Address> remaining = new();
+            foreach (var snap in task.Result.Children)
+                remaining.Add(JsonUtility.FromJson<Address>(snap.GetRawJsonValue()));
 
-            if (task.IsCompleted && task.Result.Exists)
-            {
-                foreach (var addressSnap in task.Result.Children)
+            baseRef.RemoveValueAsync().ContinueWithOnMainThread(_ => {
+                for (int i = 0; i < remaining.Count; i++)
                 {
-                    Address address = JsonUtility.FromJson<Address>(addressSnap.GetRawJsonValue());
-                    remaining.Add(address);
+                    string key = $"Address{i + 1}";
+                    baseRef.Child(key).SetRawJsonValueAsync(JsonUtility.ToJson(remaining[i]));
                 }
-
-                dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("AddressBook").RemoveValueAsync().ContinueWithOnMainThread(_ =>
-                {
-                    for (int i = 0; i < remaining.Count; i++)
-                    {
-                        string newKey = $"Address{i + 1}";
-                        dbReference.Child("REVIRA").Child("Consumers").Child(userId)
-                            .Child("AddressBook").Child(newKey)
-                            .SetRawJsonValueAsync(JsonUtility.ToJson(remaining[i]));
-                    }
-                    LoadAddresses();
-                });
-            }
-            else
-            {
                 LoadAddresses();
-            }
+            });
         });
     }
 
-    void ClearInputFields()
+    void ClearInputs()
     {
-        addressNameInput.text = "";
-        cityInput.text = "";
-        districtInput.text = "";
-        streetInput.text = "";
-        buildingInput.text = "";
-        phoneNumberInput.text = "";
+        addressNameInput.text = cityInput.text = districtInput.text =
+            streetInput.text = buildingInput.text = phoneNumberInput.text = "";
         formErrorMessageText.text = "";
     }
 }
