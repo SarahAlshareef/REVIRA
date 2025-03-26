@@ -3,6 +3,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using Firebase.Database;
 using TMPro;
+using UnityEngine.SceneManagement;
+using System.Collections;
 
 public class ProductCartManager : MonoBehaviour
 {
@@ -35,7 +37,7 @@ public class ProductCartManager : MonoBehaviour
         if (errorText != null)
             errorText.text = ""; // Hide error messages initially
 
-        RemoveExpiredCartItems();
+        RemoveExpiredCartItems(); // Remove expired items at start
     }
 
     public void ValidateSelection()
@@ -61,7 +63,7 @@ public class ProductCartManager : MonoBehaviour
             ShowError("Please select a quantity.");
             return;
         }
-        ShowError("");
+        ShowError(""); // Clear error if everything is selected correctly
     }
 
     public void AddToCart()
@@ -117,9 +119,15 @@ public class ProductCartManager : MonoBehaviour
                 dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child(productID).UpdateChildrenAsync(cartItem).ContinueWith(updateTask =>
                 {
                     if (updateTask.IsCompleted)
+                    {
+                        Debug.Log("Product saved in Firebase successfully. Loading CartTest scene...");
                         ShowError("Product added to cart successfully!", true);
+                        SceneManager.LoadScene("CartTest");
+                    }
                     else
+                    {
                         Debug.LogError("Error adding order to Firebase: " + updateTask.Exception);
+                    }
                 });
             });
         });
@@ -127,7 +135,7 @@ public class ProductCartManager : MonoBehaviour
 
     private void ReduceStock(string color, string size, int quantity, System.Action onSuccess)
     {
-        string path = $"REVIRA/stores/{productsManager.storeID}/products/{productsManager.productID}/colors/{color}/sizes/{size}";
+        string path = $"REVIRA/stores/storeID_123/products/{productsManager.productID}/colors/{color}/sizes/{size}";
         dbReference.Child(path).GetValueAsync().ContinueWith(task =>
         {
             if (task.IsCompleted && task.Result.Exists)
@@ -178,7 +186,7 @@ public class ProductCartManager : MonoBehaviour
         {
             string size = sizeEntry.Key;
             int quantity = int.Parse(sizeEntry.Value.ToString());
-            string path = $"REVIRA/stores/{productsManager.storeID}/products/{productID}/colors/{item.Child("color").Value.ToString()}/sizes/{size}";
+            string path = $"REVIRA/stores/storeID_123/products/{productID}/colors/{item.Child("color").Value.ToString()}/sizes/{size}";
             dbReference.Child(path).GetValueAsync().ContinueWith(task =>
             {
                 if (task.IsCompleted && task.Result.Exists)
@@ -195,12 +203,22 @@ public class ProductCartManager : MonoBehaviour
         if (errorText != null)
         {
             errorText.text = message;
-            errorText.color = success ? Color.green : Color.red;
+            if (success)
+            {
+                CancelInvoke("ClearMessage");
+                Invoke("ClearMessage", 3f); // Hide message after 3 seconds
+            }
         }
+    }
+
+    private void ClearMessage()
+    {
+        if (errorText != null)
+            errorText.text = "";
     }
 
     private long GetUnixTimestamp()
     {
         return (long)(System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1))).TotalSeconds;
     }
-}
+} 
