@@ -113,7 +113,7 @@ public class DeliveryMethodManager : MonoBehaviour
 
     void ReturnToStore()
     {
-        SceneManager.LoadScene("StoreSelection");
+        SceneManager.LoadScene("Store");
     }
 }
 
