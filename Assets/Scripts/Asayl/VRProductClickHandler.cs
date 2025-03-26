@@ -7,88 +7,128 @@ using System.Collections;
 public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
 {
     [Header("UI References")]
-    public GameObject productPopup;             // The main popup UI panel
-    public GameObject previewButtonObject;      // The preview button object (with collider)
-    public GameObject closeButtonObject;        // The close button object (with collider)
+    public GameObject productPopup;             // Main popup UI (preview with buttons)
+    public GameObject previewButtonObject;      // Button object for preview
+    public GameObject closeButtonObject;        // Button object for closing preview
+    public GameObject specButtonObject;         // Button object for product specification
 
     [Header("Product Settings")]
-    public GameObject productModel;             // The product prefab to display
+    public GameObject productObject;            // The actual product in the scene (not a clone)
 
     [Header("Animation Settings")]
-    public float moveDuration = 1.0f;           // Time for product to animate to center
+    public float moveDuration = 1.0f;           // Time to animate product to center
+    public float moveSpeed = 1.0f;              // Speed to move product while grabbing
 
-    private GameObject currentProductInstance;  // Active previewed product
+    [Header("References")]
+    public PlayerControlManager controlManager; // Central manager for locking/unlocking movement
+    public Transform controllerTransform;       // Controller transform to track movement
+    public Transform rayOrigin;                 // Controller ray origin (used for raycast)
+
+    private Vector3 originalProductPosition;    // Original shelf position
+    private Quaternion originalProductRotation; // Original shelf rotation
+
     private bool isPreviewing = false;
     private bool isGrabbing = false;
 
-    // Movement/Rotation scripts to disable during preview
-    private OVRPlayerMovement playerMovement;
-    private PlayerRotation playerRotation;
-
-    // For movement limits
-    private Vector3 previewCenter;
-    private Vector3 previewAreaSize = new Vector3(0.5f, 0.5f, 0.5f); // Adjustable area around player
+    private Vector3 previewCenter;              // Center of preview area in front of player
+    private Vector3 previewAreaSize = new Vector3(0.5f, 0.5f, 0.5f);
 
     private float currentScale = 1f;
     public float minScale = 0.5f;
     public float maxScale = 3f;
+
+    private Vector3 lastControllerPosition;
 
     void Start()
     {
         if (productPopup != null)
             productPopup.SetActive(false);
 
-        // Get movement scripts from OVRCameraRig
-        GameObject rig = GameObject.Find("OVRCameraRig");
-        if (rig != null)
+        // Save original position and rotation of the product
+        if (productObject != null)
         {
-            playerMovement = rig.GetComponent<OVRPlayerMovement>();
-            playerRotation = rig.GetComponent<PlayerRotation>();
+            originalProductPosition = productObject.transform.position;
+            originalProductRotation = productObject.transform.rotation;
         }
     }
 
     void Update()
     {
-        // Step 1: Grabbing logic with Trigger or A/X
-        if (isPreviewing && currentProductInstance != null)
+        HandleRaycastClick();
+
+        if (isPreviewing && productObject != null)
         {
-            if (OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger) ||
+            // Grab input to allow manual movement inside limited space
+            if (OVRInput.GetDown(OVRInput.Button.PrimaryHandTrigger) ||
                 OVRInput.GetDown(OVRInput.Button.One) ||
                 OVRInput.GetDown(OVRInput.Button.Three))
             {
                 isGrabbing = true;
+                lastControllerPosition = controllerTransform.position;
             }
-            if (OVRInput.GetUp(OVRInput.Button.PrimaryIndexTrigger) ||
+            if (OVRInput.GetUp(OVRInput.Button.PrimaryHandTrigger) ||
                 OVRInput.GetUp(OVRInput.Button.One) ||
                 OVRInput.GetUp(OVRInput.Button.Three))
             {
                 isGrabbing = false;
             }
 
-            // Step 2: While grabbing, move within defined bounds using Thumbstick
             if (isGrabbing)
             {
-                Vector2 input = OVRInput.Get(OVRInput.Axis2D.SecondaryThumbstick);
-                Vector3 move = new Vector3(input.x, 0, input.y) * Time.deltaTime;
-                Vector3 targetPos = currentProductInstance.transform.position + move;
-
-                // Clamp movement to preview area
-                targetPos = ClampPosition(targetPos);
-                currentProductInstance.transform.position = targetPos;
+                // Move product using controller delta position
+                Vector3 delta = controllerTransform.position - lastControllerPosition;
+                Vector3 targetPos = productObject.transform.position + delta * moveSpeed;
+                productObject.transform.position = ClampPosition(targetPos);
+                lastControllerPosition = controllerTransform.position;
             }
 
-            // Step 3: Allow 360 rotation and zoom
+            // Rotate product with right thumbstick (free 360° rotation)
             float rotateInput = OVRInput.Get(OVRInput.Axis2D.SecondaryThumbstick).x;
-            currentProductInstance.transform.Rotate(Vector3.up, rotateInput * 100f * Time.deltaTime);
+            productObject.transform.Rotate(Vector3.up, rotateInput * 360f * Time.deltaTime);
 
+            // Zoom with left thumbstick
             float zoomInput = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick).y;
             currentScale += zoomInput * Time.deltaTime;
             currentScale = Mathf.Clamp(currentScale, minScale, maxScale);
-            currentProductInstance.transform.localScale = Vector3.one * currentScale;
+            productObject.transform.localScale = Vector3.one * currentScale;
         }
     }
 
-    // Show popup in front of the player (called from XR Interactable)
+    // Detect raycast from controller and handle click on product
+    void HandleRaycastClick()
+    {
+        if (OVRInput.GetDown(OVRInput.Button.One) || OVRInput.GetDown(OVRInput.Button.Three))
+        {
+            Ray ray = new Ray(rayOrigin.position, rayOrigin.forward);
+            if (Physics.Raycast(ray, out RaycastHit hit, 100f))
+            {
+                if (hit.collider.gameObject == gameObject)
+                {
+                    Debug.Log("[Raycast] Product clicked using controller ray");
+                    ShowPopup();
+                }
+            }
+        }
+    }
+
+    // Handles button clicks from UI
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (eventData.pointerPress == previewButtonObject)
+        {
+            StartPreview();
+        }
+        else if (eventData.pointerPress == closeButtonObject)
+        {
+            ClosePreview();
+        }
+        else if (eventData.pointerPress == specButtonObject)
+        {
+            ReturnProductToShelf();
+        }
+    }
+
+    // Show UI popup and lock movement
     public void ShowPopup()
     {
         Vector3 pos = Camera.main.transform.position + Camera.main.transform.forward * 1.5f;
@@ -96,35 +136,23 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
         productPopup.transform.rotation = Quaternion.LookRotation(Camera.main.transform.forward);
         productPopup.SetActive(true);
 
-        DisablePlayerControls();
+        controlManager.LockControls();
     }
 
-    // This function is called manually via OnPointerClick from the preview button object
-    public void StartPreviewFromUIButton()
-    {
-        StartPreview();
-    }
-
-    // Start preview mode with animated movement
+    // Start preview by animating product to player view
     void StartPreview()
     {
-        // Move popup to the side
-        Vector3 side = Camera.main.transform.position + Camera.main.transform.right * 1.2f;
-        productPopup.transform.position = side;
+        productPopup.transform.position = Camera.main.transform.position + Camera.main.transform.right * 1.2f;
         productPopup.transform.rotation = Quaternion.LookRotation(Camera.main.transform.forward);
 
-        // Set center of preview area
         previewCenter = Camera.main.transform.position + Camera.main.transform.forward * 2f;
 
-        // Instantiate product at shelf (current position), animate to front of player
-        currentProductInstance = Instantiate(productModel, transform.position, Quaternion.identity);
-        currentProductInstance.transform.localScale = Vector3.one;
-        StartCoroutine(MoveProductToCenter(currentProductInstance, previewCenter));
+        StartCoroutine(MoveProductToCenter(productObject, previewCenter));
 
         isPreviewing = true;
     }
 
-    // Smooth animation from shelf to front of player
+    // Move product to preview center
     IEnumerator MoveProductToCenter(GameObject obj, Vector3 targetPosition)
     {
         float elapsed = 0f;
@@ -145,7 +173,7 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
         obj.transform.rotation = targetRot;
     }
 
-    // Clamp movement to stay within preview area bounds
+    // Limit movement inside preview area
     Vector3 ClampPosition(Vector3 pos)
     {
         Vector3 min = previewCenter - previewAreaSize;
@@ -157,40 +185,23 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
         );
     }
 
-    // Disable walking and rotating scripts
-    void DisablePlayerControls()
-    {
-        if (playerMovement != null) playerMovement.enabled = false;
-        if (playerRotation != null) playerRotation.enabled = false;
-    }
-
-    // Re-enable walking and rotation
+    // Close preview and reset everything
     public void ClosePreview()
     {
-        if (currentProductInstance != null)
-            Destroy(currentProductInstance);
-
-        if (productPopup != null)
-            productPopup.SetActive(false);
-
-        if (playerMovement != null) playerMovement.enabled = true;
-        if (playerRotation != null) playerRotation.enabled = true;
-
+        productPopup.SetActive(false);
+        ReturnProductToShelf();
+        controlManager.UnlockControls();
         isPreviewing = false;
         isGrabbing = false;
     }
 
-    // Handle preview button clicks using Pointer Events
-    public void OnPointerClick(PointerEventData eventData)
+    // Return product to original shelf position without animation
+    void ReturnProductToShelf()
     {
-        if (eventData.pointerPress == previewButtonObject)
+        if (productObject != null)
         {
-            StartPreview();
-        }
-        else if (eventData.pointerPress == closeButtonObject)
-        {
-            ClosePreview();
+            productObject.transform.position = originalProductPosition;
+            productObject.transform.rotation = originalProductRotation;
         }
     }
 }
-
