@@ -24,6 +24,8 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
     public Transform controllerTransform;       // Controller transform to track movement
     public Transform rayOrigin;                 // Controller ray origin (used for raycast)
 
+    private Transform vrCamera;                 // CenterEyeAnchor camera reference
+
     private Vector3 originalProductPosition;    // Original shelf position
     private Quaternion originalProductRotation; // Original shelf rotation
 
@@ -50,15 +52,23 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
             originalProductPosition = productObject.transform.position;
             originalProductRotation = productObject.transform.rotation;
         }
+
+        // Get reference to the VR camera inside OVR Camera Rig
+        GameObject cam = GameObject.Find("CenterEyeAnchor");
+        if (cam != null)
+        {
+            vrCamera = cam.transform;
+        }
+        else
+        {
+            Debug.LogError("[VRProductClickHandler] CenterEyeAnchor not found! Make sure you are using OVR Camera Rig.");
+        }
     }
 
     void Update()
     {
-        HandleRaycastClick();
-
         if (isPreviewing && productObject != null)
         {
-            // Grab input to allow manual movement inside limited space
             if (OVRInput.GetDown(OVRInput.Button.PrimaryHandTrigger) ||
                 OVRInput.GetDown(OVRInput.Button.One) ||
                 OVRInput.GetDown(OVRInput.Button.Three))
@@ -75,18 +85,15 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
 
             if (isGrabbing)
             {
-                // Move product using controller delta position
                 Vector3 delta = controllerTransform.position - lastControllerPosition;
                 Vector3 targetPos = productObject.transform.position + delta * moveSpeed;
                 productObject.transform.position = ClampPosition(targetPos);
                 lastControllerPosition = controllerTransform.position;
             }
 
-            // Rotate product with right thumbstick (free 360° rotation)
             float rotateInput = OVRInput.Get(OVRInput.Axis2D.SecondaryThumbstick).x;
             productObject.transform.Rotate(Vector3.up, rotateInput * 360f * Time.deltaTime);
 
-            // Zoom with left thumbstick
             float zoomInput = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick).y;
             currentScale += zoomInput * Time.deltaTime;
             currentScale = Mathf.Clamp(currentScale, minScale, maxScale);
@@ -94,24 +101,6 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
         }
     }
 
-    // Detect raycast from controller and handle click on product
-    void HandleRaycastClick()
-    {
-        if (OVRInput.GetDown(OVRInput.Button.One) || OVRInput.GetDown(OVRInput.Button.Three))
-        {
-            Ray ray = new Ray(rayOrigin.position, rayOrigin.forward);
-            if (Physics.Raycast(ray, out RaycastHit hit, 100f))
-            {
-                if (hit.collider.gameObject == gameObject)
-                {
-                    Debug.Log("[Raycast] Product clicked using controller ray");
-                    ShowPopup();
-                }
-            }
-        }
-    }
-
-    // Handles button clicks from UI
     public void OnPointerClick(PointerEventData eventData)
     {
         if (eventData.pointerPress == previewButtonObject)
@@ -128,37 +117,42 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
         }
     }
 
-    // Show UI popup and lock movement
     public void ShowPopup()
     {
-        Vector3 pos = Camera.main.transform.position + Camera.main.transform.forward * 1.5f;
+        if (vrCamera == null)
+        {
+            Debug.LogWarning("VR Camera not found. Can't place popup correctly.");
+            return;
+        }
+
+        Vector3 pos = vrCamera.position + vrCamera.forward * 1.5f;
         productPopup.transform.position = pos;
-        productPopup.transform.rotation = Quaternion.LookRotation(Camera.main.transform.forward);
+        productPopup.transform.rotation = Quaternion.LookRotation(vrCamera.forward);
         productPopup.SetActive(true);
 
         controlManager.LockControls();
     }
 
-    // Start preview by animating product to player view
     void StartPreview()
     {
-        productPopup.transform.position = Camera.main.transform.position + Camera.main.transform.right * 1.2f;
-        productPopup.transform.rotation = Quaternion.LookRotation(Camera.main.transform.forward);
+        if (vrCamera == null) return;
 
-        previewCenter = Camera.main.transform.position + Camera.main.transform.forward * 2f;
+        productPopup.transform.position = vrCamera.position + vrCamera.right * 1.2f;
+        productPopup.transform.rotation = Quaternion.LookRotation(vrCamera.forward);
+
+        previewCenter = vrCamera.position + vrCamera.forward * 2f;
 
         StartCoroutine(MoveProductToCenter(productObject, previewCenter));
 
         isPreviewing = true;
     }
 
-    // Move product to preview center
     IEnumerator MoveProductToCenter(GameObject obj, Vector3 targetPosition)
     {
         float elapsed = 0f;
         Vector3 startPos = obj.transform.position;
         Quaternion startRot = obj.transform.rotation;
-        Quaternion targetRot = Quaternion.LookRotation(Camera.main.transform.forward);
+        Quaternion targetRot = Quaternion.LookRotation(vrCamera.forward);
 
         while (elapsed < moveDuration)
         {
@@ -173,7 +167,6 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
         obj.transform.rotation = targetRot;
     }
 
-    // Limit movement inside preview area
     Vector3 ClampPosition(Vector3 pos)
     {
         Vector3 min = previewCenter - previewAreaSize;
@@ -185,7 +178,6 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
         );
     }
 
-    // Close preview and reset everything
     public void ClosePreview()
     {
         productPopup.SetActive(false);
@@ -195,7 +187,6 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
         isGrabbing = false;
     }
 
-    // Return product to original shelf position without animation
     void ReturnProductToShelf()
     {
         if (productObject != null)
@@ -205,3 +196,4 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
         }
     }
 }
+
