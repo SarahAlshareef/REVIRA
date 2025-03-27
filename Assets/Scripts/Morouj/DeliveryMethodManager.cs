@@ -32,7 +32,21 @@ public class DeliveryMethodManager : MonoBehaviour
         backButton.onClick.AddListener(GoToPreviousStep);
         closeButton.onClick.AddListener(ReturnToStore);
 
+        // Watch for toggle changes after save
+        aramexToggle.onValueChanged.AddListener(delegate { OnDeliveryOptionChanged(); });
+        smsaToggle.onValueChanged.AddListener(delegate { OnDeliveryOptionChanged(); });
+        redboxToggle.onValueChanged.AddListener(delegate { OnDeliveryOptionChanged(); });
+
         LoadDeliveryOptions();
+    }
+
+    void OnDeliveryOptionChanged()
+    {
+        if (isSaved)
+        {
+            isSaved = false;
+            messageText.text = "You changed your selection. Please save again.";
+        }
     }
 
     // get delivery data from Firebase
