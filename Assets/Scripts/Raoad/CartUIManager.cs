@@ -1,150 +1,138 @@
-// Unity
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.Networking;
-using UnityEngine.SceneManagement;
-
-// Firebase
+using TMPro;
 using Firebase.Database;
 using Firebase.Extensions;
 
-// TMP
-using TMPro;
-
-// C#
-using System;
-using System.Collections;
-using System.Collections.Generic;
-
 public class CartUIManager : MonoBehaviour
 {
-    [Header("UI References")]
+    public static CartUIManager Instance;
+
     public GameObject scrollViewContent;
-    public GameObject cartItemPanelTemplate; // Only one template kept in the scene
-    public GameObject scrollViewParent; // The ScrollView itself to hide when empty
+    public GameObject cartItemPanel;
     public TextMeshProUGUI totalText;
+    public GameObject scrollView;
 
     private DatabaseReference dbReference;
-    private string userID;
+    private string userId;
+    private float totalPrice = 0f;
 
-    private float totalAmount = 0f;
+    void Awake()
+    {
+        if (Instance == null)
+            Instance = this;
+    }
 
     void Start()
     {
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
-        userID = FindObjectOfType<UserManager>().UserId;
-
-        if (!string.IsNullOrEmpty(userID))
-        {
-            FetchCartData();
-        }
+        userId = UserManager.Instance.UserId;
+        LoadCartItems();
     }
 
-    public void FetchCartData()
+    public void LoadCartItems()
     {
-        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").GetValueAsync().ContinueWithOnMainThread(task =>
+        foreach (Transform child in scrollViewContent.transform)
+        {
+            if (child != cartItemPanel.transform)
+                Destroy(child.gameObject);
+        }
+
+        cartItemPanel.SetActive(false);
+        totalPrice = 0f;
+
+        dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").GetValueAsync().ContinueWithOnMainThread(task =>
         {
             if (task.IsCompleted && task.Result.Exists)
             {
-                ClearScrollView();
-                totalAmount = 0f;
-                scrollViewParent.SetActive(true);
+                scrollView.SetActive(true);
 
-                foreach (DataSnapshot product in task.Result.Children)
+                foreach (DataSnapshot productSnapshot in task.Result.Children)
                 {
-                    GameObject panel = Instantiate(cartItemPanelTemplate, scrollViewContent.transform);
-                    panel.SetActive(true);
+                    string productId = productSnapshot.Key;
+                    string productName = productSnapshot.Child("productName").Value.ToString();
+                    string color = productSnapshot.Child("color").Value.ToString();
+                    float price = float.Parse(productSnapshot.Child("price").Value.ToString());
+                    string imageUrl = "";
 
-                    string productID = product.Key;
-                    string productName = product.Child("productName").Value.ToString();
-                    string color = product.Child("color").Value.ToString();
-                    float price = float.Parse(product.Child("price").Value.ToString());
-                    long timestamp = long.Parse(product.Child("timestamp").Value.ToString());
-                    long expiresAt = long.Parse(product.Child("expiresAt").Value.ToString());
-
-                    string size = "";
+                    string selectedSize = "";
                     int quantity = 0;
-                    foreach (var sizeEntry in product.Child("sizes").Children)
+
+                    foreach (var sizeEntry in productSnapshot.Child("sizes").Children)
                     {
-                        size = sizeEntry.Key;
+                        selectedSize = sizeEntry.Key;
                         quantity = int.Parse(sizeEntry.Value.ToString());
+                        break;
                     }
 
-                    float subtotal = price * quantity;
-                    totalAmount += subtotal;
+                    dbReference.Child("REVIRA").Child("stores").Child("storeID_123").Child("products").Child(productId).GetValueAsync().ContinueWithOnMainThread(productTask =>
+                    {
+                        if (productTask.IsCompleted && productTask.Result.Exists)
+                        {
+                            imageUrl = productTask.Result.Child("image").Value.ToString();
 
-                    panel.transform.Find("Product name").GetComponent<TextMeshProUGUI>().text = productName;
-                    panel.transform.Find("Text (price)").GetComponent<TextMeshProUGUI>().text = price.ToString("F2");
-                    panel.transform.Find("Dropdown (Color)").GetComponent<TMP_Dropdown>().value = 0;
-                    panel.transform.Find("Dropdown (Size)").GetComponent<TMP_Dropdown>().value = 0;
-                    panel.transform.Find("Dropdown (Quantity)").GetComponent<TMP_Dropdown>().value = quantity - 1;
+                            float discount = 0f;
+                            bool hasDiscount = false;
 
-                    TMP_Dropdown colorDropdown = panel.transform.Find("Dropdown (Color)").GetComponent<TMP_Dropdown>();
-                    TMP_Dropdown sizeDropdown = panel.transform.Find("Dropdown (Size)").GetComponent<TMP_Dropdown>();
-                    TMP_Dropdown quantityDropdown = panel.transform.Find("Dropdown (Quantity)").GetComponent<TMP_Dropdown>();
+                            if (productTask.Result.Child("discount").Child("exists").Value.ToString() == "True")
+                            {
+                                hasDiscount = true;
+                                discount = float.Parse(productTask.Result.Child("discount").Child("percentage").Value.ToString());
+                            }
 
-                    colorDropdown.onValueChanged.AddListener((val) => UpdateCartField(productID, "color", colorDropdown.options[val].text));
-                    sizeDropdown.onValueChanged.AddListener((val) => UpdateCartSize(productID, size, sizeDropdown.options[val].text, quantity));
-                    quantityDropdown.onValueChanged.AddListener((val) => UpdateCartQuantity(productID, size, val + 1));
+                            Dictionary<string, Dictionary<string, int>> allColorsAndSizes = new Dictionary<string, Dictionary<string, int>>();
+                            var colorsSnapshot = productTask.Result.Child("colors");
 
-                    Button removeBtn = panel.transform.Find("Button (Remove)").GetComponent<Button>();
-                    removeBtn.onClick.AddListener(() => RemoveCartItem(productID, size, quantity));
+                            foreach (var colorEntry in colorsSnapshot.Children)
+                            {
+                                string colorName = colorEntry.Key;
+                                Dictionary<string, int> sizesDict = new Dictionary<string, int>();
+
+                                foreach (var sizeEntry in colorEntry.Child("sizes").Children)
+                                {
+                                    string size = sizeEntry.Key;
+                                    int stock = int.Parse(sizeEntry.Value.ToString());
+                                    sizesDict[size] = stock;
+                                }
+
+                                allColorsAndSizes[colorName] = sizesDict;
+                            }
+
+                            float finalPrice = hasDiscount ? price - (price * discount / 100f) : price;
+                            totalPrice += finalPrice * quantity;
+
+                            GameObject newItem = Instantiate(cartItemPanel, scrollViewContent.transform);
+                            newItem.SetActive(true);
+
+                            CartItem itemScript = newItem.GetComponent<CartItem>();
+                            itemScript.SetUpItem(productId, productName, imageUrl, color, selectedSize, quantity, price, hasDiscount, discount, allColorsAndSizes);
+
+                            RefreshTotalUI();
+                            CheckScrollVisibility();
+                        }
+                    });
                 }
-                totalText.text = "Total : " + totalAmount.ToString("F2");
             }
             else
             {
-                scrollViewParent.SetActive(false);
+                scrollView.SetActive(false);
             }
         });
     }
 
-    void UpdateCartField(string productID, string field, string value)
+    public void RefreshTotalUI()
     {
-        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child(productID).Child(field).SetValueAsync(value);
+        totalText.text = "Total: " + totalPrice.ToString("F2") + " SAR";
     }
 
-    void UpdateCartSize(string productID, string oldSize, string newSize, int quantity)
+    public void CheckScrollVisibility()
     {
-        var sizeRef = dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child(productID).Child("sizes");
-        sizeRef.Child(oldSize).RemoveValueAsync();
-        sizeRef.Child(newSize).SetValueAsync(quantity);
+        scrollView.SetActive(scrollViewContent.transform.childCount > 0);
     }
 
-    void UpdateCartQuantity(string productID, string size, int newQuantity)
+    public void ResetTotal()
     {
-        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child(productID).Child("sizes").Child(size).SetValueAsync(newQuantity);
-        FetchCartData(); // Recalculate total
-    }
-
-    void RemoveCartItem(string productID, string size, int quantity)
-    {
-        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child(productID).RemoveValueAsync();
-
-        // Restore stock
-        string storeID = "storeID_123"; // You can change it if needed
-        dbReference.Child("REVIRA").Child("stores").Child(storeID).Child("products").Child(productID)
-            .Child("colors").Child("" /* you can track color */).Child("sizes").Child(size).GetValueAsync()
-            .ContinueWithOnMainThread(task =>
-            {
-                if (task.IsCompleted && task.Result.Exists)
-                {
-                    int stock = int.Parse(task.Result.Value.ToString());
-                    int updatedStock = stock + quantity;
-                    dbReference.Child("REVIRA").Child("stores").Child(storeID).Child("products").Child(productID)
-                        .Child("colors").Child("" /* same here */).Child("sizes").Child(size).SetValueAsync(updatedStock);
-                }
-            });
-
-        FetchCartData();
-    }
-
-    void ClearScrollView()
-    {
-        foreach (Transform child in scrollViewContent.transform)
-        {
-            if (child != cartItemPanelTemplate.transform)
-                Destroy(child.gameObject);
-        }
+        totalPrice = 0f;
     }
 }
