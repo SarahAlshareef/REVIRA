@@ -4,7 +4,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections;
 
-public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
+public class VRProductClickHandler : MonoBehaviour
 {
     [Header("UI References")]
     public GameObject productPopup;             // Main popup UI (preview with buttons)
@@ -41,6 +41,10 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
 
     private Vector3 lastControllerPosition;
 
+    // Static reference to track the active handler
+    public static VRProductClickHandler currentActiveHandler;
+
+
     void Start()
     {
         if (productPopup != null)
@@ -58,10 +62,6 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
         if (cam != null)
         {
             vrCamera = cam.transform;
-        }
-        else
-        {
-            Debug.LogError("[VRProductClickHandler] CenterEyeAnchor not found! Make sure you are using OVR Camera Rig.");
         }
     }
 
@@ -101,29 +101,11 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
         }
     }
 
-    public void OnPointerClick(PointerEventData eventData)
-    {
-        if (eventData.pointerPress == previewButtonObject)
-        {
-            StartPreview();
-        }
-        else if (eventData.pointerPress == closeButtonObject)
-        {
-            ClosePreview();
-        }
-        else if (eventData.pointerPress == specButtonObject)
-        {
-            ReturnProductToShelf();
-        }
-    }
-
     public void ShowPopup()
     {
-        if (vrCamera == null)
-        {
-            Debug.LogWarning("VR Camera not found. Can't place popup correctly.");
-            return;
-        }
+        if (vrCamera == null) return;
+
+        currentActiveHandler = this;
 
         Vector3 pos = vrCamera.position + vrCamera.forward * 1.5f;
         productPopup.transform.position = pos;
@@ -133,21 +115,47 @@ public class VRProductClickHandler : MonoBehaviour, IPointerClickHandler
         controlManager.LockControls();
     }
 
-    void StartPreview()
+    public void OnPreviewButtonPressed()
     {
-        if (vrCamera == null) return;
-
-        productPopup.transform.position = vrCamera.position + vrCamera.right * 1.2f;
-        productPopup.transform.rotation = Quaternion.LookRotation(vrCamera.forward);
-
-        previewCenter = vrCamera.position + vrCamera.forward * 2f;
-
-        StartCoroutine(MoveProductToCenter(productObject, previewCenter));
-
-        isPreviewing = true;
+        if (currentActiveHandler != null)
+        {
+            currentActiveHandler.StartPreview();
+        }
     }
 
-    IEnumerator MoveProductToCenter(GameObject obj, Vector3 targetPosition)
+    public void OnSpecButtonPressed()
+    {
+        if (currentActiveHandler != null)
+        {
+            currentActiveHandler.ReturnProductToShelf();
+        }
+    }
+
+    void StartPreview()
+    {  
+            if (vrCamera == null) return;
+
+            // Move UI to side of the player
+            productPopup.transform.position = vrCamera.position + vrCamera.right * 1.2f;
+            productPopup.transform.rotation = Quaternion.LookRotation(vrCamera.forward);
+
+            // Set the preview position
+            previewCenter = vrCamera.position + vrCamera.forward * 2f;
+
+            // Move product to center in front of the player
+            StartCoroutine(MoveProductToCenter(productObject, previewCenter));
+
+            // Lock movement
+            controlManager.LockControls();
+
+            // Reset zoom scale
+            currentScale = 1f;
+
+            // Enable preview mode
+            isPreviewing = true;
+    }
+
+        IEnumerator MoveProductToCenter(GameObject obj, Vector3 targetPosition)
     {
         float elapsed = 0f;
         Vector3 startPos = obj.transform.position;
