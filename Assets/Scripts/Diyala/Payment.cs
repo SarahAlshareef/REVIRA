@@ -14,8 +14,8 @@ public class Payment : MonoBehaviour
 {
     public TextMeshProUGUI orderTotalAmount, AccountBalance, errorText1, errorText2;
     public TMP_InputField VoucherCodeInput;
-    public Button UseAccountBalanceButton, ApplyVoucherButtton;
-    public GameObject ConfirmOrder;
+    public Button UseAccountBalanceButton, UseVoucherButtton, ApplyVoucherButtton;
+    public GameObject VoucherSection, ConfirmOrder;
     public AudioSource coinsSound;
 
     public float TotalAmount = 100f;
@@ -23,11 +23,13 @@ public class Payment : MonoBehaviour
     private DatabaseReference dbReference;
     void Start()
     {
+        VoucherSection.SetActive(false);
         ConfirmOrder.SetActive(false);
 
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
         AccountBalance.text = UserManager.Instance.AccountBalance.ToString("F2");
 
+        UseVoucherButtton?.onClick.AddListener(ShowVoucherSection);
         UseAccountBalanceButton?.onClick.AddListener(OnUseAccountBalanceClick);
         ApplyVoucherButtton?.onClick.AddListener(OnApplyButtonClick);
 
@@ -41,6 +43,12 @@ public class Payment : MonoBehaviour
         else
             ShowError1("Sorry, your balance is not enough for this order.");
     }
+
+    public void ShowVoucherSection()
+    {
+        VoucherSection.SetActive(true);
+    }
+
     public void OnApplyButtonClick()
     {
         string enteredCode = VoucherCodeInput.text.Trim();
@@ -99,6 +107,7 @@ public class Payment : MonoBehaviour
                                     {
                                         StartCoroutine(AnimateBalance(UserManager.Instance.AccountBalance, newBalance));
                                         UserManager.Instance.UpdateAccountBalance(newBalance);
+                                        VoucherSection.SetActive(false);
                                     }
                                 });
                             }
