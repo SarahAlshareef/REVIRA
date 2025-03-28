@@ -33,9 +33,4 @@ public class HomeController : MonoBehaviour, IPointerClickHandler
         SceneManager.LoadScene("StoreSelection");
         //SceneManager.LoadScene("Address 1");
     }
-
-    public void temprorary()
-    {
-        SceneManager.LoadScene("Payment");
-    }
 }
