@@ -75,9 +75,12 @@ public class ProductCartManager : MonoBehaviour
 
     public void AddToCart()
     {
-        if (isAdding || recentlyAdded)
+        if (isAdding)
         {
-            ShowError("Product already added successfully!");
+            return;
+        }
+        if (recentlyAdded) {
+            SceneManager.LoadScene("CartTest");
             return;
         }
 
@@ -127,15 +130,15 @@ public class ProductCartManager : MonoBehaviour
                 int newQuantity = existingQuantity + quantity;
 
                 Dictionary<string, object> cartItem = new Dictionary<string, object>
-                {
-                    { "productID", productID },
-                    { "productName", productName },
-                    { "color", selectedColor },
-                    { "sizes/" + selectedSize, newQuantity },
-                    { "price", productPrice },
-                    { "timestamp", GetUnixTimestamp() },
-                    { "expiresAt", expirationTime }
-                };
+            {
+                { "productID", productID },
+                { "productName", productName },
+                { "color", selectedColor },
+                { "sizes/" + selectedSize, newQuantity },
+                { "price", productPrice },
+                { "timestamp", GetUnixTimestamp() },
+                { "expiresAt", expirationTime }
+            };
 
                 dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child(productID).UpdateChildrenAsync(cartItem).ContinueWith(updateTask =>
                 {
@@ -145,6 +148,8 @@ public class ProductCartManager : MonoBehaviour
                     {
                         recentlyAdded = true;
                         ShowError("Product added to cart successfully!");
+
+                        // Move to cart scene after success
                         SceneManager.LoadScene("CartTest");
                     }
                     else
