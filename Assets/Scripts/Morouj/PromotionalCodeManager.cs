@@ -1,40 +1,51 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using Firebase.Database;
 using UnityEngine.SceneManagement;
+using Firebase.Database;
 using System;
 
 public class PromotionalCodeManager : MonoBehaviour
 {
-    [Header("UI Elements")]
     public TMP_InputField promoCodeInput;
     public Button applyButton;
     public Button nextButton;
     public Button backToStoreButton;
     public Button exitButton;
-    public TextMeshProUGUI errorMessageText;
+    public TextMeshProUGUI messageText;
 
     private DatabaseReference dbRef;
     private string storeID = "storeID_123";
+    private string lastAppliedCode = "";
+    private bool isApplied = false;
+
+    // Â–Â «·„ €Ì—«  ”‰” Œœ„Â« ·⁄—÷ «·—”«·… œ«Œ· Update
+    private string pendingMessage = "";
+    private bool hasNewMessage = false;
+    private bool isSuccessMessage = false;
 
     void Start()
     {
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
 
         applyButton.onClick.AddListener(ValidatePromoCode);
-        nextButton.onClick.AddListener(SkipPromoCode);
+        nextButton.onClick.AddListener(() => SceneManager.LoadScene("Morouj Method 1"));
         backToStoreButton.onClick.AddListener(() => SceneManager.LoadScene("Store"));
         exitButton.onClick.AddListener(() => SceneManager.LoadScene("Store"));
+
+        
     }
 
-    void SkipPromoCode()
+    void Update()
     {
-        if (string.IsNullOrEmpty(promoCodeInput.text))
+        if (hasNewMessage)
         {
-            GoToNextStep();
+            messageText.text = pendingMessage;
+            messageText.color = isSuccessMessage ? Color.green : Color.red;
+            hasNewMessage = false;
         }
     }
+
 
     void ValidatePromoCode()
     {
@@ -42,6 +53,13 @@ public class PromotionalCodeManager : MonoBehaviour
 
         if (string.IsNullOrEmpty(enteredCode))
         {
+            ShowMessage("Please enter a promo code.", false);
+            return;
+        }
+
+        if (enteredCode == lastAppliedCode)
+        {
+            ShowMessage("Promo code already applied.", true);
             return;
         }
 
@@ -49,7 +67,7 @@ public class PromotionalCodeManager : MonoBehaviour
         {
             if (task.IsCompleted)
             {
-                DataSnapshot snapshot = task.Result;
+                var snapshot = task.Result;
 
                 if (snapshot.HasChild(enteredCode))
                 {
@@ -64,24 +82,25 @@ public class PromotionalCodeManager : MonoBehaviour
 
                     if (isActive && now >= startDate && now <= endDate)
                     {
-                        ValidateCartCompatibility(appliesTo, discount, enteredCode);
+                        CheckCart(enteredCode, appliesTo, discount);
                     }
                     else
                     {
-                        ShowMessage("This promotional code is expired or inactive.");
+                        ShowMessage("This promotional code is expired or inactive.", false);
                     }
                 }
                 else
                 {
-                    ShowMessage("This code is not valid for the products in your cart");
+                    ShowMessage("This code is not valid for the products in your cart.", false);
                 }
             }
         });
     }
 
-    void ValidateCartCompatibility(string appliesTo, float discount, string enteredCode)
+    void CheckCart(string enteredCode, string appliesTo, float discount)
     {
         string userId = UserManager.Instance.UserId;
+
         dbRef.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").GetValueAsync().ContinueWith(cartTask =>
         {
             if (cartTask.IsCompleted)
@@ -91,7 +110,7 @@ public class PromotionalCodeManager : MonoBehaviour
                 int checkedCount = 0;
                 int totalItems = (int)cartTask.Result.ChildrenCount;
 
-                foreach (DataSnapshot item in cartTask.Result.Children)
+                foreach (var item in cartTask.Result.Children)
                 {
                     string productId = item.Key;
                     int quantity = 0;
@@ -110,7 +129,6 @@ public class PromotionalCodeManager : MonoBehaviour
                         if (categoryTask.IsCompleted)
                         {
                             string category = categoryTask.Result.Value.ToString();
-
                             if (appliesTo == "all" || appliesTo == category)
                             {
                                 isValid = true;
@@ -122,11 +140,11 @@ public class PromotionalCodeManager : MonoBehaviour
                             {
                                 if (isValid)
                                 {
-                                    ApplyDiscount(discount, total, enteredCode);
+                                    ApplyDiscount(discount, total, enteredCode, appliesTo);
                                 }
                                 else
                                 {
-                                    ShowMessage("This code is not valid for the products in your cart");
+                                    ShowMessage("This code is not valid for the products in your cart.", false);
                                 }
                             }
                         }
@@ -136,24 +154,25 @@ public class PromotionalCodeManager : MonoBehaviour
         });
     }
 
-    void ApplyDiscount(float discount, float total, string enteredCode)
+    void ApplyDiscount(float discount, float total, string enteredCode, string appliesTo)
     {
         PromotionalManager.UsedPromoCode = enteredCode;
         PromotionalManager.DiscountPercentage = discount;
-        PromotionalManager.DiscountedTotal = total - (total * (discount / 100f));
+        PromotionalManager.DiscountedTotal = total - (total * discount / 100f);
+        lastAppliedCode = enteredCode;
+        isApplied = true;
 
-        ShowMessage("Promo code applied successfully!");
-        GoToNextStep();
+        string message = appliesTo == "all"
+            ? "Promo code applied successfully to all items!"
+            : $"Promo code applied successfully to {appliesTo} items!";
+
+        ShowMessage(message, true);
     }
 
-    void ShowMessage(string message)
+    void ShowMessage(string message, bool success)
     {
-        errorMessageText.text = message;
-        errorMessageText.color = Color.red; // Ì„ﬂ‰ﬂ  €ÌÌ—Â Õ”» —€» ﬂ
-    }
-
-    void GoToNextStep()
-    {
-        SceneManager.LoadScene("Morouj Method 1");
+        pendingMessage = message;
+        isSuccessMessage = success;
+        hasNewMessage = true;
     }
 }
