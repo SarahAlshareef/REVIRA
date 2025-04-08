@@ -75,12 +75,10 @@ public class ProductCartManager : MonoBehaviour
 
     public void AddToCart()
     {
-        if (isAdding)
+        if (isAdding || recentlyAdded)
         {
-            return;
-        }
-        if (recentlyAdded) {
-            SceneManager.LoadScene("CartTest");
+            ShowError("Product already added successfully!");
+            Debug.Log("Already added");
             return;
         }
 
@@ -124,32 +122,32 @@ public class ProductCartManager : MonoBehaviour
 
         ReduceStock(selectedColor, selectedSize, quantity, () =>
         {
-            dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child(productID).Child("sizes").Child(selectedSize).GetValueAsync().ContinueWith(task =>
+            dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).Child("sizes").Child(selectedSize).GetValueAsync().ContinueWith(task =>
             {
                 int existingQuantity = task.IsCompleted && task.Result.Exists ? int.Parse(task.Result.Value.ToString()) : 0;
                 int newQuantity = existingQuantity + quantity;
 
                 Dictionary<string, object> cartItem = new Dictionary<string, object>
-            {
-                { "productID", productID },
-                { "productName", productName },
-                { "color", selectedColor },
-                { "sizes/" + selectedSize, newQuantity },
-                { "price", productPrice },
-                { "timestamp", GetUnixTimestamp() },
-                { "expiresAt", expirationTime }
-            };
+                {
+                    { "productID", productID },
+                    { "productName", productName },
+                    { "color", selectedColor },
+                    { "sizes/" + selectedSize, newQuantity },
+                    { "price", productPrice },
+                    { "timestamp", GetUnixTimestamp() },
+                    { "expiresAt", expirationTime }
+                };
 
-                dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child(productID).UpdateChildrenAsync(cartItem).ContinueWith(updateTask =>
+                dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).UpdateChildrenAsync(cartItem).ContinueWith(updateTask =>
                 {
                     isAdding = false;
 
                     if (updateTask.IsCompleted)
                     {
+                        UpdateCartSummary(userID);
                         recentlyAdded = true;
                         ShowError("Product added to cart successfully!");
-
-                        // Move to cart scene after success
+                        Debug.Log("Cart item added successfully");
                         SceneManager.LoadScene("CartTest");
                     }
                     else
@@ -158,6 +156,37 @@ public class ProductCartManager : MonoBehaviour
                     }
                 });
             });
+        });
+    }
+
+    private void UpdateCartSummary(string userId)
+    {
+        dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").Child("cartItems").GetValueAsync().ContinueWith(task =>
+        {
+            if (task.IsCompleted && task.Result.Exists)
+            {
+                float totalPrice = 0f;
+                int totalItems = 0;
+
+                foreach (var item in task.Result.Children)
+                {
+                    float price = float.Parse(item.Child("price").Value.ToString());
+                    foreach (var size in item.Child("sizes").Children)
+                    {
+                        int qty = int.Parse(size.Value.ToString());
+                        totalPrice += price * qty;
+                        totalItems += qty;
+                    }
+                }
+
+                Dictionary<string, object> cartTotalData = new Dictionary<string, object>
+                {
+                    { "totalPrice", totalPrice },
+                    { "totalItems", totalItems }
+                };
+
+                dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").Child("cartTotal").SetValueAsync(cartTotalData);
+            }
         });
     }
 
@@ -190,7 +219,7 @@ public class ProductCartManager : MonoBehaviour
     private void RemoveExpiredCartItems()
     {
         string userID = userManager.UserId;
-        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").GetValueAsync().ContinueWith(task =>
+        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").GetValueAsync().ContinueWith(task =>
         {
             if (task.IsCompleted && task.Result.Exists)
             {
@@ -200,7 +229,7 @@ public class ProductCartManager : MonoBehaviour
                     if (item.Child("expiresAt").Value != null && long.Parse(item.Child("expiresAt").Value.ToString()) < currentTimestamp)
                     {
                         string productID = item.Key;
-                        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child(productID).RemoveValueAsync();
+                        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).RemoveValueAsync();
                         RestoreStock(productID, item);
                     }
                 }

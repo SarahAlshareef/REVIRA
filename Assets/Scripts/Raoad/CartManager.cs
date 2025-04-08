@@ -1,4 +1,4 @@
-// CartManager.cs - Unified script combining CartItem, CartUIManager, and CartUtilities functionality
+
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -68,7 +68,7 @@ public class CartManager : MonoBehaviour
         cartItemPanel.SetActive(false);
         totalPrice = 0f;
 
-        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").GetValueAsync().ContinueWithOnMainThread(task =>
+        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").GetValueAsync().ContinueWithOnMainThread(task =>
         {
             if (task.IsCompleted && task.Result.Exists)
             {
@@ -240,8 +240,15 @@ public class CartManager : MonoBehaviour
             { "expiresAt", GetExpiryTimestamp() }
         };
 
-        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child(productID)
-            .UpdateChildrenAsync(updateData);
+        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID)
+            .UpdateChildrenAsync(updateData).ContinueWithOnMainThread(task =>
+            {
+                if (task.IsCompleted)
+                {
+                    Debug.Log("Cart item updated successfully.");
+                    UpdateCartTotalInFirebase();
+                }
+            });
     }
 
     private void OnRemoveItem()
@@ -254,11 +261,47 @@ public class CartManager : MonoBehaviour
                 int currentStock = int.Parse(task.Result.Value.ToString());
                 int updatedStock = currentStock + selectedQuantity;
                 dbReference.Child(stockPath).SetValueAsync(updatedStock);
-                dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child(productID).RemoveValueAsync();
+                dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).RemoveValueAsync().ContinueWithOnMainThread(removeTask =>
+                {
+                    Debug.Log("Item removed from cart.");
+                    UpdateCartTotalInFirebase();
+                });
 
                 Destroy(gameObject);
                 RefreshTotalUI();
                 CheckScrollVisibility();
+            }
+        });
+    }
+
+    private void UpdateCartTotalInFirebase()
+    {
+        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").GetValueAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCompleted)
+            {
+                float total = 0f;
+                int items = 0;
+
+                foreach (var item in task.Result.Children)
+                {
+                    float price = float.Parse(item.Child("price").Value.ToString());
+                    foreach (var size in item.Child("sizes").Children)
+                    {
+                        int qty = int.Parse(size.Value.ToString());
+                        total += price * qty;
+                        items += qty;
+                    }
+                }
+
+                Dictionary<string, object> summary = new Dictionary<string, object>
+                {
+                    { "totalPrice", total },
+                    { "totalItems", items }
+                };
+
+                dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartTotal").SetValueAsync(summary);
+                Debug.Log("Cart total updated in Firebase.");
             }
         });
     }
