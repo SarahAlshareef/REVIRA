@@ -23,19 +23,33 @@ public class SignUp2 : MonoBehaviour
 
     void Start()
     {
-        // ÊÚØíá App Check ÞÈá ÇáÊåíÆÉ
+        Debug.Log(">>> Firebase initialization STARTED.");
+        Debug.Log(">>> Current platform: " + Application.platform);
+        Firebase.FirebaseApp.LogLevel = Firebase.LogLevel.Debug;
+
+        // Disable App Check for development in Editor/Windows
         FirebaseAppCheck.SetAppCheckProviderFactory(null);
 
         FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
         {
-            if (task.Result == DependencyStatus.Available)
+            if (task.Exception != null)
             {
+                Debug.LogError(">>> Firebase dependency check failed: " + task.Exception);
+                ShowError("Firebase dependency check failed.");
+                return;
+            }
+
+            var status = task.Result;
+            if (status == DependencyStatus.Available)
+            {
+                Debug.Log(">>> Firebase successfully initialized on " + Application.platform);
                 auth = FirebaseAuth.DefaultInstance;
                 dbReference = FirebaseDatabase.DefaultInstance.RootReference;
                 firebaseReady = true;
             }
             else
             {
+                Debug.LogError(">>> Firebase not available: " + status);
                 ShowError("Firebase failed to initialize.");
             }
         });
@@ -135,9 +149,14 @@ public class SignUp2 : MonoBehaviour
         yield return new WaitUntil(() => dbTask.IsCompleted);
 
         if (dbTask.Exception != null)
+        {
             Debug.LogError("Failed to save user data: " + dbTask.Exception);
+            ShowError("Failed to save user data.");
+        }
         else
+        {
             GoToLoginScene();
+        }
     }
 
     public void GoToLoginScene()
