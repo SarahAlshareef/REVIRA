@@ -84,7 +84,7 @@ public class LoginPayment : MonoBehaviour
         float accountBalance = float.Parse(snapshot.Child("accountBalance").Value.ToString());
 
         UserManager.Instance.SetUserData(userId, firstName, lastName, email, accountBalance);
-        SceneManager.LoadScene("PaymentDiyala");
+        SceneManager.LoadScene("Payment");
     }
     void ShowError(string message)
     {
