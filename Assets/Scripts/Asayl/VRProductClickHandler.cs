@@ -2,6 +2,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using Oculus.Interaction;
 
 public class VRProductClickHandler : MonoBehaviour
 {
@@ -16,29 +17,28 @@ public class VRProductClickHandler : MonoBehaviour
 
     [Header("Animation Settings")]
     public float moveDuration = 2.0f;           // Time to animate product to center
-    public float moveSpeed = 1.5f;              // Speed to move product while grabbing
+    public float moveSpeed = 1.0f;              // Speed to move product while grabbing
 
     [Header("References")]
     public PlayerControlManager controlManager; // Central manager for locking/unlocking movement
-    public Transform controllerTransform;       // Controller transform to track movement
     public Transform rayOrigin;                 // Controller ray origin (used for raycast)
 
     private Transform vrCamera;                 // CenterEyeAnchor camera reference
-
     private Vector3 originalProductPosition;    // Original shelf position
     private Quaternion originalProductRotation; // Original shelf rotation
     private Vector3 originalScale;             // // Original shelf scale
 
     private bool isPreviewing = false;
-    private bool isGrabbing = false;
 
     private Vector3 previewCenter;              // Center of preview area in front of player
 
-    private float currentScale = 1f;
+    private float currentScale;
     public float minScale = 0.5f;
     public float maxScale = 1.5f;
 
     private Vector3 lastControllerPosition;
+    private Transform activeController;
+
 
     // Static reference to track the active handler
     public static VRProductClickHandler currentActiveHandler;
@@ -49,12 +49,12 @@ public class VRProductClickHandler : MonoBehaviour
         if (productPopup != null)
             productPopup.SetActive(false);
 
-        // Save original position and rotation of the product
         if (productObject != null)
         {
             originalProductPosition = productObject.transform.position;
             originalProductRotation = productObject.transform.rotation;
             originalScale = productObject.transform.localScale;
+            currentScale = 1f * (1f / originalScale.x); // normalize to actual object scale
         }
 
         // Get reference to the VR camera inside OVR Camera Rig
@@ -64,56 +64,44 @@ public class VRProductClickHandler : MonoBehaviour
             vrCamera = cam.transform;
         }
     }
-
     void Update()
     {
         if (isPreviewing && productObject != null)
         {
-            if ((OVRInput.GetDown(OVRInput.Button.PrimaryHandTrigger) ||
-                 OVRInput.GetDown(OVRInput.Button.SecondaryHandTrigger)) && !isGrabbing)
-            {
-                StartGrabbing();
-            }
-            // Detect grab release
-            if (OVRInput.GetUp(OVRInput.Button.PrimaryHandTrigger) ||
-                OVRInput.GetUp(OVRInput.Button.SecondaryHandTrigger))
-            {
-                isGrabbing = false;
-            }
-
-            if (isGrabbing)
-            {
-                Vector3 delta = controllerTransform.position - lastControllerPosition;
-                Vector3 targetPos = productObject.transform.position + delta * moveSpeed;
-                productObject.transform.position = targetPos; 
-                lastControllerPosition = controllerTransform.position;
-            }
-
-            // Rotate 360° (left / right and up/ down)
             Vector2 rotateInput = OVRInput.Get(OVRInput.Axis2D.SecondaryThumbstick);
             productObject.transform.Rotate(vrCamera.up, rotateInput.x * 360f * Time.deltaTime, Space.World);
             productObject.transform.Rotate(vrCamera.right, -rotateInput.y * 360f * Time.deltaTime, Space.World);
 
-
-            // Zoom in/out
             float zoomInput = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick).y;
             currentScale += zoomInput * Time.deltaTime;
             currentScale = Mathf.Clamp(currentScale, minScale, maxScale);
-            productObject.transform.localScale = Vector3.one * currentScale;
+            productObject.transform.localScale = originalScale * currentScale;
         }
     }
-
     public void ShowPopup()
     {
         if (vrCamera == null) return;
 
         currentActiveHandler = this;
-
-        Vector3 pos = vrCamera.position + vrCamera.forward * 1.5f;
-        productPopup.transform.position = pos;
-        productPopup.transform.rotation = Quaternion.LookRotation(vrCamera.forward);
+        Vector3 offset = vrCamera.forward * 2f;
+        productPopup.transform.position = vrCamera.position + offset;
+        productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
         productPopup.SetActive(true);
 
+
+        if (previewButtonObject != null)
+        {
+            Button previewBtn = previewButtonObject.GetComponent<Button>();
+            previewBtn.onClick.RemoveAllListeners();
+            previewBtn.onClick.AddListener(OnPreviewButtonPressed);
+        }
+
+        if (specButtonObject != null)
+        {
+            Button specBtn = specButtonObject.GetComponent<Button>();
+            specBtn.onClick.RemoveAllListeners();
+            specBtn.onClick.AddListener(OnSpecButtonPressed);
+        }
         controlManager.LockControls();
     }
 
@@ -121,49 +109,30 @@ public class VRProductClickHandler : MonoBehaviour
     public void OnPreviewButtonPressed()
     {
         if (currentActiveHandler != null)
-        {
             currentActiveHandler.StartPreview();
-        }
     }
 
     public void OnSpecButtonPressed()
     {
-        if (currentActiveHandler != null)
-        {
+        if (currentActiveHandler != null)        
             currentActiveHandler.ReturnProductToShelf();
-        }
+            isPreviewing = false;
     }
 
     void StartPreview()
-    {  
-            if (vrCamera == null) return;
+    {
+        if (vrCamera == null) return;
 
-        // Move UI to right and slightly closer to player
+        // Move UI to the right of player
         Vector3 offset = vrCamera.right * 0.8f + vrCamera.forward * 0.3f;
         productPopup.transform.position = vrCamera.position + offset;
-
-        // Rotate UI to face the player's view direction
         productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
 
-        // Set the preview position
-        previewCenter = vrCamera.position + vrCamera.forward * 2f;
-
-        // Move product to center in front of the player
+        // Set preview position
+        previewCenter = vrCamera.position + vrCamera.forward * 1.2f;
         StartCoroutine(MoveProductToCenter(productObject, previewCenter));
-           
-        controlManager.LockControls();
 
-        currentScale = originalScale.x * 1.1f; // Slightly bigger than original
-        productObject.transform.localScale = Vector3.one * currentScale;
-  
         isPreviewing = true;
-        StartGrabbing(); 
-    }
-
-    void StartGrabbing()
-    {
-        isGrabbing = true;
-        lastControllerPosition = controllerTransform.position;
     }
 
     IEnumerator MoveProductToCenter(GameObject obj, Vector3 targetPosition)
@@ -183,16 +152,17 @@ public class VRProductClickHandler : MonoBehaviour
         }
 
         obj.transform.position = targetPosition;
-        obj.transform.rotation = Quaternion.LookRotation(targetPosition - vrCamera.position);
+        obj.transform.rotation = targetRot;
+        Debug.Log("Product moved to preview center: " + targetPosition);
     }
 
     public void ClosePreview()
     {
-        productPopup.SetActive(false);
+        if (productPopup != null)
+            productPopup.SetActive(false);
         ReturnProductToShelf();
         controlManager.UnlockControls();
         isPreviewing = false;
-        isGrabbing = false;
     }
 
     void ReturnProductToShelf()
