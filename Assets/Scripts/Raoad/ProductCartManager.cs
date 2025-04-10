@@ -75,10 +75,17 @@ public class ProductCartManager : MonoBehaviour
 
     public void AddToCart()
     {
-        if (isAdding || recentlyAdded)
+        if (isAdding)
+        {
+            ShowError("Please wait...");
+            return;
+        }
+
+        if (recentlyAdded)
         {
             ShowError("Product already added successfully!");
-            Debug.Log("Already added");
+            Debug.Log("Redirecting to CartTest scene...");
+            SceneManager.LoadScene("CartTest");
             return;
         }
 
@@ -279,3 +286,4 @@ public class ProductCartManager : MonoBehaviour
         return (long)(System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1))).TotalSeconds;
     }
 }
+
