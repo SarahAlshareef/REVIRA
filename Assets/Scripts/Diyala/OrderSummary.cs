@@ -27,7 +27,7 @@ public class OrderSummary : MonoBehaviour
     void Start()
     {
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
-        userId = FirebaseDatabase.DefaultInstance.CurrentUser.UserId;
+        userId = UserManager.Instance.UserId;
 
         LoadCartFromFirebase();
     }
