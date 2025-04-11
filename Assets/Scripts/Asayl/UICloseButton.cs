@@ -1,14 +1,21 @@
 using UnityEngine;
 
-public class UIClosetButton : MonoBehaviour
+public class UICloseButton : MonoBehaviour
 {
-    // This method will be called when the close button is selected (clicked)
+    public GameObject popupToClose;
+
     public void CloseCurrentPopup()
     {
+        if (popupToClose != null)
+        {
+            popupToClose.SetActive(false);
+        }
+
+     
         if (VRProductClickHandler.currentActiveHandler != null)
         {
-            VRProductClickHandler handler = VRProductClickHandler.currentActiveHandler;
-            handler.ClosePreview();
+            VRProductClickHandler.currentActiveHandler.ClosePreview(); 
         }
     }
+
 }

@@ -158,11 +158,38 @@ public class VRProductClickHandler : MonoBehaviour
 
     public void ClosePreview()
     {
+        Debug.Log(">> ClosePreview() Called");
+
         if (productPopup != null)
+        {
+            Debug.Log(">> Closing popup");
             productPopup.SetActive(false);
-        ReturnProductToShelf();
-        controlManager.UnlockControls();
+        }
+
+        if (productObject != null)
+        {
+            Debug.Log(">> Returning product to shelf");
+            productObject.transform.position = originalProductPosition;
+            productObject.transform.rotation = originalProductRotation;
+            productObject.transform.localScale = originalScale;
+        }
+        else
+        {
+            Debug.LogWarning(">> productObject is NULL");
+        }
+
+        if (controlManager != null)
+        {
+            Debug.Log(">> Unlocking controls");
+            controlManager.UnlockControls();
+        }
+        else
+        {
+            Debug.LogWarning(">> controlManager is NULL");
+        }
+
         isPreviewing = false;
+        Debug.Log(">> isPreviewing set to false");
     }
 
     void ReturnProductToShelf()
