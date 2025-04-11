@@ -4,11 +4,9 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 // Firebase
-using Firebase.Auth;
 using Firebase.Database;
 // C#
 using System.Collections;
-using System.Collections.Generic;
 using Firebase.Extensions;
 
 public class Payment : MonoBehaviour
@@ -144,14 +142,14 @@ public class Payment : MonoBehaviour
 
         float current = previousBalance;
 
+        coinsSound?.Play();
+
         while (current < newBalance)
         {
             current += stepAmount;
             if (current > newBalance) current = newBalance;
 
             AccountBalance.text = current.ToString("F2");
-            
-            coinsSound?.Play();
 
             yield return new WaitForSeconds(delay);
         }
