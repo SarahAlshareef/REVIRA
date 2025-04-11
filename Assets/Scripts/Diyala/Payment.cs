@@ -1,6 +1,7 @@
 // Unity
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using TMPro;
 // Firebase
 using Firebase.Auth;
@@ -156,6 +157,11 @@ public class Payment : MonoBehaviour
         }
 
         AccountBalance.text = newBalance.ToString("F2");
+    }
+
+    public void GoToPreviousScene()
+    {
+        SceneManager.LoadScene("Method");
     }
 
     void ShowError1(string message)
