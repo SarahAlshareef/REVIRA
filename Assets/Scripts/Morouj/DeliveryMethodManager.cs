@@ -117,12 +117,12 @@ public class DeliveryMethodManager : MonoBehaviour
             return;
         }
 
-        SceneManager.LoadScene("final test");  //  Payment pag
+        SceneManager.LoadScene("Payment");  //  Payment pag
     }
 
     void GoToPreviousStep()
     {
-        SceneManager.LoadScene("Morouj Promotional 1"); //  Address pag
+        SceneManager.LoadScene("Address"); //  Address pag
     }
 
     void ReturnToStore()

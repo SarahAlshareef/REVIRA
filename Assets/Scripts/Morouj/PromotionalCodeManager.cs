@@ -29,7 +29,7 @@ public class PromotionalCodeManager : MonoBehaviour
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
 
         applyButton.onClick.AddListener(ValidatePromoCode);
-        nextButton.onClick.AddListener(() => SceneManager.LoadScene("Morouj Method 1"));
+        nextButton.onClick.AddListener(() => SceneManager.LoadScene("Address"));
         backToStoreButton.onClick.AddListener(() => SceneManager.LoadScene("Store"));
         exitButton.onClick.AddListener(() => SceneManager.LoadScene("Store"));
 
