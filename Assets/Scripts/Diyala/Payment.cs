@@ -12,15 +12,16 @@ using Firebase.Extensions;
 
 public class Payment : MonoBehaviour
 {
-    public TextMeshProUGUI orderTotalAmount, AccountBalance, errorText1, errorText2;
+    public TextMeshProUGUI AccountBalance, errorText1, errorText2;
     public TMP_InputField VoucherCodeInput;
     public Button UseAccountBalanceButton, UseVoucherButtton, ApplyVoucherButtton;
     public GameObject VoucherSection, ConfirmOrder;
     public AudioSource coinsSound;
 
-    public float TotalAmount = 100f;
+    public float TotalAmount;
 
     private DatabaseReference dbReference;
+
     void Start()
     {
         VoucherSection.SetActive(false);
@@ -28,6 +29,9 @@ public class Payment : MonoBehaviour
 
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
         AccountBalance.text = UserManager.Instance.AccountBalance.ToString("F2");
+
+        //TotalAmount = OrderSummary.FinalTotal; 
+        TotalAmount = 0;    
 
         UseVoucherButtton?.onClick.AddListener(ShowVoucherSection);
         UseAccountBalanceButton?.onClick.AddListener(OnUseAccountBalanceClick);
