@@ -16,10 +16,9 @@ public class PromotionalCodeManager : MonoBehaviour
 
     private DatabaseReference dbRef;
     private string storeID = "storeID_123";
-    private string lastAppliedCode = "";
     private bool isApplied = false;
 
-    // åÐå ÇáãÊÛíÑÇÊ ÓäÓÊÎÏãåÇ áÚÑÖ ÇáÑÓÇáÉ ÏÇÎá Update
+    // ãÊÛíÑÇÊ áÚÑÖ ÇáÑÓÇáÉ ÏÇÎá Update
     private string pendingMessage = "";
     private bool hasNewMessage = false;
     private bool isSuccessMessage = false;
@@ -32,8 +31,6 @@ public class PromotionalCodeManager : MonoBehaviour
         nextButton.onClick.AddListener(() => SceneManager.LoadScene("Address"));
         backToStoreButton.onClick.AddListener(() => SceneManager.LoadScene("Store"));
         exitButton.onClick.AddListener(() => SceneManager.LoadScene("Store"));
-
-        
     }
 
     void Update()
@@ -46,7 +43,6 @@ public class PromotionalCodeManager : MonoBehaviour
         }
     }
 
-
     void ValidatePromoCode()
     {
         string enteredCode = promoCodeInput.text.ToUpper().Trim();
@@ -54,12 +50,6 @@ public class PromotionalCodeManager : MonoBehaviour
         if (string.IsNullOrEmpty(enteredCode))
         {
             ShowMessage("Please enter a promo code.", false);
-            return;
-        }
-
-        if (enteredCode == lastAppliedCode)
-        {
-            ShowMessage("Promo code already applied.", true);
             return;
         }
 
@@ -91,7 +81,7 @@ public class PromotionalCodeManager : MonoBehaviour
                 }
                 else
                 {
-                    ShowMessage("This code is not valid for the products in your cart.", false);
+                    ShowMessage("This code is not existed.", false);
                 }
             }
         });
@@ -159,7 +149,6 @@ public class PromotionalCodeManager : MonoBehaviour
         PromotionalManager.UsedPromoCode = enteredCode;
         PromotionalManager.DiscountPercentage = discount;
         PromotionalManager.DiscountedTotal = total - (total * discount / 100f);
-        lastAppliedCode = enteredCode;
         isApplied = true;
 
         string message = appliesTo == "all"
