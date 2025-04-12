@@ -34,6 +34,8 @@ public class OrderSummaryManager : MonoBehaviour
     private float total = 0f;
 
     public static float FinalTotal { get; private set; }
+    public static OrderSummaryManager Instance { get; private set; }
+
 
     void Start()
     {
