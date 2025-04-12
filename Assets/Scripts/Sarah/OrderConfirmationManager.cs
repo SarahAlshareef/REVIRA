@@ -1,15 +1,17 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Firebase.Database;
 using Firebase.Extensions;
-using System;
-using System.Collections;
-using System.Collections.Generic;
 
 public class ConfirmOrderManager : MonoBehaviour
 {
+    public GameObject confirmationPopup;
     public GameObject successPopup;
+    public Button confirmButton;
+    public Button cancelButton;
 
     private DatabaseReference dbRef;
     private string userId;
@@ -18,100 +20,93 @@ public class ConfirmOrderManager : MonoBehaviour
     {
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
         userId = UserManager.Instance.UserId;
+
+        confirmButton.onClick.AddListener(OnConfirmOrder);
+        cancelButton.onClick.AddListener(() => confirmationPopup.SetActive(false));
     }
 
-    public void ConfirmOrder()
+    void OnConfirmOrder()
     {
-        StartCoroutine(ProcessOrder());
-    }
-
-    IEnumerator ProcessOrder()
-    {
-        string ordersPath = $"REVIRA/Consumers/{userId}/orders";
-
-        // Step 1: Get last order ID count
-        var orderCountTask = dbRef.Child(ordersPath).GetValueAsync();
-        yield return new WaitUntil(() => orderCountTask.IsCompleted);
-
-        int orderIndex = 1;
-        if (orderCountTask.Result.Exists)
-            orderIndex = (int)orderCountTask.Result.ChildrenCount + 1;
-
-        string orderId = "Order" + orderIndex;
-        long timestamp = CartUtilities.GetCurrentTimestamp();
-        string dateTime = DateTime.Now.ToString("yyyy-MM-dd hh:mm tt");
-
-        // Step 2: Build Order Data
-        Dictionary<string, object> orderData = new()
+        dbRef.Child("REVIRA/Consumers/" + userId + "/orders").GetValueAsync().ContinueWithOnMainThread(orderTask =>
         {
-            {"orderId", orderId},
-            {"timestamp", timestamp},
-            {"orderDate", dateTime},
-            {"cartTotal", OrderSummaryManager.Instance != null ? OrderSummaryManager.Instance.subtotalText.text : "0.00"},
-            {"discountedTotal", PromotionalManager.DiscountedTotal},
-            {"deliveryPrice", DeliveryManager.DeliveryPrice},
-            {"finalPrice", OrderSummaryManager.FinalTotal},
-            {"usedPromoCode", PromotionalManager.UsedPromoCode},
-            {"discountPercentage", PromotionalManager.DiscountPercentage},
-            {"paymentMethod", "Account Balance"},
-            {"orderStatus", "Pending"},
-            {"deliveryCompany", DeliveryManager.DeliveryCompany},
-            {"deliveryDuration", DeliveryManager.DeliveryDuration},
-        };
-
-        // Step 3: Add delivery address
-        Address address = AddressBookManager.SelectedAddress;
-        Dictionary<string, object> addressDict = new()
-        {
-            {"addressName", address.addressName},
-            {"country", address.country},
-            {"city", address.city},
-            {"district", address.district},
-            {"street", address.street},
-            {"building", address.building},
-            {"phoneNumber", address.phoneNumber},
-        };
-        orderData.Add("deliveryAddress", addressDict);
-
-        // Step 4: Fetch Cart Items
-        var cartTask = dbRef.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").Child("cartItems").GetValueAsync();
-        yield return new WaitUntil(() => cartTask.IsCompleted);
-
-        Dictionary<string, object> itemList = new();
-        foreach (var item in cartTask.Result.Children)
-        {
-            string productId = item.Key;
-            string productName = item.Child("productName").Value.ToString();
-            float price = float.Parse(item.Child("price").Value.ToString());
-            string color = item.Child("color").Value.ToString();
-
-            Dictionary<string, object> sizesDict = new();
-            foreach (var size in item.Child("sizes").Children)
-                sizesDict[size.Key] = int.Parse(size.Value.ToString());
-
-            Dictionary<string, object> productDetails = new()
+            if (orderTask.IsCompleted)
             {
-                {"productName", productName},
-                {"price", price},
-                {"color", color},
-                {"sizes", sizesDict},
-            };
-            itemList[productId] = productDetails;
-        }
-        orderData.Add("items", itemList);
+                var snapshot = orderTask.Result;
+                int nextOrderNumber = 1;
+                if (snapshot.Exists)
+                    nextOrderNumber = (int)snapshot.ChildrenCount + 1;
 
-        // Step 5: Store Order in Firebase
-        dbRef.Child(ordersPath).Child(orderId).SetValueAsync(orderData);
+                string orderId = "Order" + nextOrderNumber;
+                string orderPath = $"REVIRA/Consumers/{userId}/orders/{orderId}";
 
-        // Step 6: Deduct Balance
-        float newBalance = UserManager.Instance.AccountBalance - OrderSummaryManager.FinalTotal;
-        dbRef.Child("REVIRA").Child("Consumers").Child(userId).Child("accountBalance").SetValueAsync(newBalance);
-        UserManager.Instance.UpdateAccountBalance(newBalance);
+                float finalPrice = OrderSummaryManager.FinalTotal;
+                float cartTotal = float.Parse(GameObject.Find("OrderSummaryManager").GetComponent<OrderSummaryManager>().subtotalText.text);
+                float discountedTotal = PromotionalManager.DiscountedTotal > 0 ? PromotionalManager.DiscountedTotal : cartTotal;
+                float deliveryPrice = DeliveryManager.DeliveryPrice;
 
-        // Step 7: Clear cart
-        dbRef.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").RemoveValueAsync();
+                string orderDate = DateTime.Now.ToString("yyyy-MM-dd hh:mm tt");
+                long timestamp = DateTimeOffset.Now.ToUnixTimeSeconds();
 
-        // Step 8: Show popup
-        successPopup.SetActive(true);
+                var orderData = new Dictionary<string, object>
+                {
+                    {"orderId", orderId},
+                    {"timestamp", timestamp},
+                    {"orderDate", orderDate},
+                    {"cartTotal", cartTotal},
+                    {"discountedTotal", discountedTotal},
+                    {"deliveryPrice", deliveryPrice},
+                    {"finalPrice", finalPrice},
+                    {"usedPromoCode", PromotionalManager.UsedPromoCode},
+                    {"discountPercentage", PromotionalManager.DiscountPercentage},
+                    {"paymentMethod", "Account Balance"},
+                    {"orderStatus", "Pending"},
+                    {"deliveryCompany", DeliveryManager.DeliveryCompany},
+                    {"deliveryDuration", DeliveryManager.DeliveryDuration},
+                    {"deliveryAddress", JsonUtility.ToJson(AddressBookManager.SelectedAddress)}
+                };
+
+                dbRef.Child("REVIRA/Consumers/" + userId + "/cart/cartItems").GetValueAsync().ContinueWithOnMainThread(cartTask =>
+                {
+                    if (cartTask.IsCompleted && cartTask.Result.Exists)
+                    {
+                        Dictionary<string, object> items = new();
+
+                        foreach (var item in cartTask.Result.Children)
+                        {
+                            items[item.Key] = item.Value;
+                        }
+
+                        orderData["items"] = items;
+
+                        dbRef.Child(orderPath).SetValueAsync(orderData).ContinueWithOnMainThread(setTask =>
+                        {
+                            if (setTask.IsCompleted)
+                            {
+                                float newBalance = UserManager.Instance.AccountBalance - finalPrice;
+                                dbRef.Child("REVIRA/Consumers/" + userId + "/accountBalance").SetValueAsync(newBalance);
+                                UserManager.Instance.UpdateAccountBalance(newBalance);
+
+                                dbRef.Child("REVIRA/Consumers/" + userId + "/cart/cartItems").RemoveValueAsync();
+
+                                confirmationPopup.SetActive(false);
+                                successPopup.SetActive(true);
+                            }
+                            else
+                            {
+                                Debug.LogError("Failed to save order: " + setTask.Exception);
+                            }
+                        });
+                    }
+                    else
+                    {
+                        Debug.LogError("Failed to load cart items: " + cartTask.Exception);
+                    }
+                });
+            }
+            else
+            {
+                Debug.LogError("Failed to get existing orders: " + orderTask.Exception);
+            }
+        });
     }
 }
