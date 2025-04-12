@@ -65,7 +65,6 @@ public class ConfirmOrderManager : MonoBehaviour
                     {"deliveryCompany", DeliveryManager.DeliveryCompany},
                     {"deliveryDuration", DeliveryManager.DeliveryDuration},
 
-                    // Split delivery address fields
                     { "addressName", selectedAddress.addressName },
                     { "country", selectedAddress.country },
                     { "city", selectedAddress.city },
@@ -97,6 +96,7 @@ public class ConfirmOrderManager : MonoBehaviour
                                 UserManager.Instance.UpdateAccountBalance(newBalance);
 
                                 dbRef.Child("REVIRA/Consumers/" + userId + "/cart/cartItems").RemoveValueAsync();
+                                dbRef.Child("REVIRA/Consumers/" + userId + "/cart/cartTotal").RemoveValueAsync();
 
                                 confirmationPopup.SetActive(false);
                                 successPopup.SetActive(true);
