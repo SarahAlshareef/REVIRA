@@ -18,7 +18,6 @@ public class PromotionalCodeManager : MonoBehaviour
     private string storeID = "storeID_123";
     private bool isApplied = false;
 
-    // ãÊÛíÑÇÊ áÚÑÖ ÇáÑÓÇáÉ ÏÇÎá Update
     private string pendingMessage = "";
     private bool hasNewMessage = false;
     private bool isSuccessMessage = false;
@@ -95,10 +94,12 @@ public class PromotionalCodeManager : MonoBehaviour
         {
             if (cartTask.IsCompleted)
             {
-                float total = 0f;
-                bool isValid = false;
+                float discountedTotal = 0f;
+                bool hasValidProduct = false;
                 int checkedCount = 0;
                 int totalItems = (int)cartTask.Result.ChildrenCount;
+
+                PromotionalManager.ProductDiscounts.Clear();
 
                 foreach (var item in cartTask.Result.Children)
                 {
@@ -112,25 +113,38 @@ public class PromotionalCodeManager : MonoBehaviour
                     }
 
                     float subtotal = quantity * price;
-                    total += subtotal;
 
                     dbRef.Child("REVIRA").Child("stores").Child(storeID).Child("products").Child(productId).Child("category").GetValueAsync().ContinueWith(categoryTask =>
                     {
                         if (categoryTask.IsCompleted)
                         {
                             string category = categoryTask.Result.Value.ToString();
+                            float discountAmount = 0f;
+
                             if (appliesTo == "all" || appliesTo == category)
                             {
-                                isValid = true;
+                                discountAmount = subtotal * (discount / 100f);
+                                hasValidProduct = true;
                             }
 
+                            float finalPrice = subtotal - discountAmount;
+
+                            PromotionalManager.ProductDiscounts[productId] = new DiscountInfo
+                            {
+                                originalPrice = subtotal,
+                                discountPercentage = (appliesTo == "all" || appliesTo == category) ? discount : 0f,
+                                discountAmount = discountAmount,
+                                finalPrice = finalPrice
+                            };
+
+                            discountedTotal += finalPrice;
                             checkedCount++;
 
                             if (checkedCount == totalItems)
                             {
-                                if (isValid)
+                                if (hasValidProduct)
                                 {
-                                    ApplyDiscount(discount, total, enteredCode, appliesTo);
+                                    ApplyDiscount(discountedTotal, enteredCode, discount, appliesTo);
                                 }
                                 else
                                 {
@@ -144,11 +158,11 @@ public class PromotionalCodeManager : MonoBehaviour
         });
     }
 
-    void ApplyDiscount(float discount, float total, string enteredCode, string appliesTo)
+    void ApplyDiscount(float discountedTotal, string enteredCode, float discountPercentage, string appliesTo)
     {
         PromotionalManager.UsedPromoCode = enteredCode;
-        PromotionalManager.DiscountPercentage = discount;
-        PromotionalManager.DiscountedTotal = total - (total * discount / 100f);
+        PromotionalManager.DiscountPercentage = discountPercentage;
+        PromotionalManager.DiscountedTotal = discountedTotal;
         isApplied = true;
 
         string message = appliesTo == "all"
