@@ -29,7 +29,7 @@ public class OrderSummaryManager : MonoBehaviour
     private DatabaseReference dbRef;
     private string userId;
     private float subtotal = 0f;
-    private float discount = 0f;
+    private float promoDiscountAmount = 0f;
     private float delivery = 0f;
     private float total = 0f;
 
@@ -39,7 +39,9 @@ public class OrderSummaryManager : MonoBehaviour
     {
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
         userId = UserManager.Instance.UserId;
-        confirmButton.onClick.AddListener(() => confirmPopup.SetActive(true));
+        if (confirmButton != null && confirmPopup != null)
+            confirmButton.onClick.AddListener(() => confirmPopup.SetActive(true));
+
         LoadOrderData();
     }
 
@@ -57,40 +59,60 @@ public class OrderSummaryManager : MonoBehaviour
 
                     foreach (var item in cartTask.Result.Children)
                     {
+                        string productId = item.Key;
                         string productName = item.Child("productName").Value.ToString();
-                        float price = float.Parse(item.Child("price").Value.ToString());
-                        int quantity = 0;
+                        float originalPrice = float.Parse(item.Child("price").Value.ToString());
+                        string color = item.Child("color").Value.ToString();
 
+                        int quantity = 0;
                         foreach (var size in item.Child("sizes").Children)
                             quantity += int.Parse(size.Value.ToString());
 
-                        float itemTotal = price * quantity;
-                        subtotal += itemTotal;
+                        float priceToUse = originalPrice;
 
-                        GameObject productGO = Instantiate(productPrefab, productListParent);
-                        productGO.transform.Find("nameText").GetComponent<TextMeshProUGUI>().text = productName;
-                        productGO.transform.Find("quantityText").GetComponent<TextMeshProUGUI>().text = quantity + "x";
-                        productGO.transform.Find("priceText").GetComponent<TextMeshProUGUI>().text = itemTotal.ToString("F2");
+                        // Fetch product discount from Firebase
+                        dbRef.Child("REVIRA/stores/storeID_123/products").Child(productId).GetValueAsync().ContinueWithOnMainThread(productTask =>
+                        {
+                            if (productTask.IsCompleted && productTask.Result.Exists)
+                            {
+                                var productSnapshot = productTask.Result;
+                                bool hasDiscount = productSnapshot.Child("discount").Child("exists").Value.ToString() == "True";
+                                float discountPercentage = hasDiscount ? float.Parse(productSnapshot.Child("discount").Child("percentage").Value.ToString()) : 0f;
+
+                                if (hasDiscount)
+                                {
+                                    priceToUse = originalPrice - (originalPrice * discountPercentage / 100f);
+                                }
+
+                                float itemTotal = priceToUse * quantity;
+                                subtotal += itemTotal;
+
+                                GameObject productGO = Instantiate(productPrefab, productListParent);
+                                productGO.transform.Find("nameText")?.GetComponent<TextMeshProUGUI>().SetText(productName);
+                                productGO.transform.Find("quantityText")?.GetComponent<TextMeshProUGUI>().SetText(quantity + "x");
+                                productGO.transform.Find("priceText")?.GetComponent<TextMeshProUGUI>().SetText(itemTotal.ToString("F2"));
+
+                                // Only after last item, update summary
+                                if (productListParent.childCount == cartTask.Result.ChildrenCount)
+                                    FetchPromoAndDelivery();
+                            }
+                        });
                     }
-
-                    FetchPromoAndDelivery();
                 }
             });
     }
 
     void FetchPromoAndDelivery()
     {
-        discount = PromotionalManager.DiscountPercentage;
-
         float promoTotal = PromotionalManager.DiscountedTotal;
-        float discountedAmount = (promoTotal > 0) ? subtotal - promoTotal : 0f;
+        promoDiscountAmount = (promoTotal > 0) ? subtotal - promoTotal : 0f;
 
         delivery = DeliveryManager.DeliveryPrice;
         total = (promoTotal > 0 ? promoTotal : subtotal) + delivery;
 
         FinalTotal = total;
 
-        UpdateSummaryUI(discountedAmount);
+        UpdateSummaryUI(promoDiscountAmount);
     }
 
     void UpdateSummaryUI(float discountedAmount)
