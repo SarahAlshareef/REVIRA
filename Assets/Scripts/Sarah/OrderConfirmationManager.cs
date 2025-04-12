@@ -27,7 +27,7 @@ public class ConfirmOrderManager : MonoBehaviour
 
     void OnConfirmOrder()
     {
-        dbRef.Child("REVIRA/Consumers/" + userId + "/orders").GetValueAsync().ContinueWithOnMainThread(orderTask =>
+        dbRef.Child("REVIRA/Consumers/" + userId + "/OrderHistory").GetValueAsync().ContinueWithOnMainThread(orderTask =>
         {
             if (orderTask.IsCompleted)
             {
@@ -37,7 +37,7 @@ public class ConfirmOrderManager : MonoBehaviour
                     nextOrderNumber = (int)snapshot.ChildrenCount + 1;
 
                 string orderId = "Order" + nextOrderNumber;
-                string orderPath = $"REVIRA/Consumers/{userId}/orders/{orderId}";
+                string orderPath = $"REVIRA/Consumers/{userId}/OrderHistory/{orderId}";
 
                 float finalPrice = OrderSummaryManager.FinalTotal;
                 float cartTotal = float.Parse(GameObject.Find("OrderSummaryManager").GetComponent<OrderSummaryManager>().subtotalText.text);
@@ -46,6 +46,8 @@ public class ConfirmOrderManager : MonoBehaviour
 
                 string orderDate = DateTime.Now.ToString("yyyy-MM-dd hh:mm tt");
                 long timestamp = DateTimeOffset.Now.ToUnixTimeSeconds();
+
+                var selectedAddress = AddressBookManager.SelectedAddress;
 
                 var orderData = new Dictionary<string, object>
                 {
@@ -62,7 +64,15 @@ public class ConfirmOrderManager : MonoBehaviour
                     {"orderStatus", "Pending"},
                     {"deliveryCompany", DeliveryManager.DeliveryCompany},
                     {"deliveryDuration", DeliveryManager.DeliveryDuration},
-                    {"deliveryAddress", JsonUtility.ToJson(AddressBookManager.SelectedAddress)}
+
+                    // Split delivery address fields
+                    { "addressName", selectedAddress.addressName },
+                    { "country", selectedAddress.country },
+                    { "city", selectedAddress.city },
+                    { "district", selectedAddress.district },
+                    { "street", selectedAddress.street },
+                    { "building", selectedAddress.building },
+                    { "phoneNumber", selectedAddress.phoneNumber }
                 };
 
                 dbRef.Child("REVIRA/Consumers/" + userId + "/cart/cartItems").GetValueAsync().ContinueWithOnMainThread(cartTask =>
@@ -105,7 +115,7 @@ public class ConfirmOrderManager : MonoBehaviour
             }
             else
             {
-                Debug.LogError("Failed to get existing orders: " + orderTask.Exception);
+                Debug.LogError("Failed to get order history: " + orderTask.Exception);
             }
         });
     }
