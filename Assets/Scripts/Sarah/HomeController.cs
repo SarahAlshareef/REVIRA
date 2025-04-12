@@ -32,5 +32,6 @@ public class HomeController : MonoBehaviour, IPointerClickHandler
     {
         //SceneManager.LoadScene("StoreSelection");
         SceneManager.LoadScene("Promotional");
+        //SceneManager.LoadScene("Raoad");
     }
 }

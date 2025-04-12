@@ -29,11 +29,14 @@ public class OrderSummaryManager : MonoBehaviour
     private DatabaseReference dbRef;
     private string userId;
     private float subtotal = 0f;
-    private float promoDiscountAmount = 0f;
     private float delivery = 0f;
+    private float promoDiscountAmount = 0f;
     private float total = 0f;
 
     public static float FinalTotal { get; private set; }
+
+    private int productProcessedCount = 0;
+    private int totalProductsExpected = 0;
 
     void Start()
     {
@@ -56,69 +59,67 @@ public class OrderSummaryManager : MonoBehaviour
                         Destroy(child.gameObject);
 
                     subtotal = 0f;
+                    productProcessedCount = 0;
+                    totalProductsExpected = (int)cartTask.Result.ChildrenCount;
 
                     foreach (var item in cartTask.Result.Children)
                     {
                         string productId = item.Key;
                         string productName = item.Child("productName").Value.ToString();
-                        float originalPrice = float.Parse(item.Child("price").Value.ToString());
-                        string color = item.Child("color").Value.ToString();
+                        float basePrice = float.Parse(item.Child("price").Value.ToString());
 
                         int quantity = 0;
                         foreach (var size in item.Child("sizes").Children)
                             quantity += int.Parse(size.Value.ToString());
 
-                        float priceToUse = originalPrice;
-
-                        // Fetch product discount from Firebase
-                        dbRef.Child("REVIRA/stores/storeID_123/products").Child(productId).GetValueAsync().ContinueWithOnMainThread(productTask =>
-                        {
-                            if (productTask.IsCompleted && productTask.Result.Exists)
+                        dbRef.Child("REVIRA/stores/storeID_123/products").Child(productId)
+                            .GetValueAsync().ContinueWithOnMainThread(productTask =>
                             {
-                                var productSnapshot = productTask.Result;
-                                bool hasDiscount = productSnapshot.Child("discount").Child("exists").Value.ToString() == "True";
-                                float discountPercentage = hasDiscount ? float.Parse(productSnapshot.Child("discount").Child("percentage").Value.ToString()) : 0f;
+                                float finalPrice = basePrice;
 
-                                if (hasDiscount)
+                                if (productTask.IsCompleted && productTask.Result.Exists)
                                 {
-                                    priceToUse = originalPrice - (originalPrice * discountPercentage / 100f);
+                                    var productSnapshot = productTask.Result;
+                                    bool hasDiscount = productSnapshot.Child("discount").Child("exists").Value.ToString() == "True";
+                                    float discountPercent = hasDiscount ? float.Parse(productSnapshot.Child("discount").Child("percentage").Value.ToString()) : 0f;
+
+                                    if (hasDiscount)
+                                        finalPrice *= (1 - discountPercent / 100f);
                                 }
 
-                                float itemTotal = priceToUse * quantity;
+                                float itemTotal = finalPrice * quantity;
                                 subtotal += itemTotal;
 
-                                GameObject productGO = Instantiate(productPrefab, productListParent);
-                                productGO.transform.Find("nameText")?.GetComponent<TextMeshProUGUI>().SetText(productName);
-                                productGO.transform.Find("quantityText")?.GetComponent<TextMeshProUGUI>().SetText(quantity + "x");
-                                productGO.transform.Find("priceText")?.GetComponent<TextMeshProUGUI>().SetText(itemTotal.ToString("F2"));
+                                GameObject row = Instantiate(productPrefab, productListParent);
+                                row.transform.Find("nameText")?.GetComponent<TextMeshProUGUI>().SetText(productName);
+                                row.transform.Find("quantityText")?.GetComponent<TextMeshProUGUI>().SetText(quantity + "x");
+                                row.transform.Find("priceText")?.GetComponent<TextMeshProUGUI>().SetText(itemTotal.ToString("F2"));
 
-                                // Only after last item, update summary
-                                if (productListParent.childCount == cartTask.Result.ChildrenCount)
-                                    FetchPromoAndDelivery();
-                            }
-                        });
+                                productProcessedCount++;
+                                if (productProcessedCount == totalProductsExpected)
+                                    CalculatePromoAndDelivery();
+                            });
                     }
                 }
             });
     }
 
-    void FetchPromoAndDelivery()
+    void CalculatePromoAndDelivery()
     {
-        float promoTotal = PromotionalManager.DiscountedTotal;
-        promoDiscountAmount = (promoTotal > 0) ? subtotal - promoTotal : 0f;
+        float promoPercent = PromotionalManager.DiscountPercentage;
+        promoDiscountAmount = (promoPercent > 0) ? subtotal * promoPercent / 100f : 0f;
 
         delivery = DeliveryManager.DeliveryPrice;
-        total = (promoTotal > 0 ? promoTotal : subtotal) + delivery;
-
+        total = subtotal - promoDiscountAmount + delivery;
         FinalTotal = total;
 
-        UpdateSummaryUI(promoDiscountAmount);
+        UpdateSummaryUI();
     }
 
-    void UpdateSummaryUI(float discountedAmount)
+    void UpdateSummaryUI()
     {
         subtotalText.text = subtotal.ToString("F2");
-        discountText.text = discountedAmount > 0 ? "-" + discountedAmount.ToString("F2") : "-0.00";
+        discountText.text = promoDiscountAmount > 0 ? "-" + promoDiscountAmount.ToString("F2") : "-0.00";
         deliveryChargesText.text = delivery.ToString("F2");
         totalText.text = total.ToString("F2");
 
