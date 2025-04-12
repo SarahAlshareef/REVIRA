@@ -33,11 +33,19 @@ public class OrderSummaryManager : MonoBehaviour
     private float delivery = 0f;
     private float total = 0f;
 
+    public float TotalAmount => total;
+    public static float LastConfirmedTotal { get; private set; }
+
     void Start()
     {
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
         userId = UserManager.Instance.UserId;
-        confirmButton.onClick.AddListener(() => confirmPopup.SetActive(true));
+
+        confirmButton.onClick.AddListener(() =>
+        {
+            LastConfirmedTotal = total;
+            confirmPopup.SetActive(true);
+        });
 
         LoadOrderData();
     }
@@ -51,6 +59,8 @@ public class OrderSummaryManager : MonoBehaviour
                 {
                     foreach (Transform child in productListParent)
                         Destroy(child.gameObject);
+
+                    subtotal = 0f;
 
                     foreach (var item in cartTask.Result.Children)
                     {
