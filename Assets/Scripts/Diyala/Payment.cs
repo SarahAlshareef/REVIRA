@@ -17,7 +17,7 @@ public class Payment : MonoBehaviour
     public GameObject VoucherSection, ConfirmOrder;
     public AudioSource coinsSound;
 
-    public float TotalAmount;
+    public float TotalAmount = OrderSummaryManager.FinalTotal;
 
     private DatabaseReference dbReference;
 
@@ -27,10 +27,7 @@ public class Payment : MonoBehaviour
         ConfirmOrder.SetActive(false);
 
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
-        AccountBalance.text = UserManager.Instance.AccountBalance.ToString("F2");
-
-        //TotalAmount = OrderSummary.FinalTotal; 
-        TotalAmount = 0;    
+        AccountBalance.text = UserManager.Instance.AccountBalance.ToString("F2");    
 
         UseVoucherButtton?.onClick.AddListener(ShowVoucherSection);
         UseAccountBalanceButton?.onClick.AddListener(OnUseAccountBalanceClick);
@@ -44,7 +41,7 @@ public class Payment : MonoBehaviour
         if (currentBalance >= TotalAmount)
             ConfirmOrder.SetActive(true);
         else
-            ShowError1("Sorry, your balance is not enough for this order.");
+            ShowError(errorText1, "Sorry, your balance is not enough for this order.");
     }
 
     public void ShowVoucherSection()
@@ -58,7 +55,7 @@ public class Payment : MonoBehaviour
 
         if (string.IsNullOrEmpty(enteredCode))
         {
-            ShowError2("Please enter a voucher code.");
+            ShowError(errorText2, "Please enter a voucher code.");
             return;
         }
         ApplyVoucher(enteredCode);
@@ -82,7 +79,7 @@ public class Payment : MonoBehaviour
                         bool used = (bool)codeEntry.Child("used").Value;
                         if (used)
                         {
-                            ShowError2("This Code is used.");
+                            ShowError(errorText2, "This Voucher Code is used.");
                             return;
                         }
                         int value = int.Parse(codeEntry.Child("Value (SAR)").Value.ToString());
@@ -90,7 +87,6 @@ public class Payment : MonoBehaviour
 
                         string userId = UserManager.Instance.UserId;
 
-                        //dbReference.Child("REVIRA").Child("Voucher Code").Child(voucherKey).Child("used").SetValueAsync(true);
 
                         var userBalanceReference = dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("accountBalance");
 
@@ -111,6 +107,8 @@ public class Payment : MonoBehaviour
                                         StartCoroutine(AnimateBalance(UserManager.Instance.AccountBalance, newBalance));
                                         UserManager.Instance.UpdateAccountBalance(newBalance);
                                         VoucherSection.SetActive(false);
+
+                                        //dbReference.Child("REVIRA").Child("Voucher Code").Child(voucherKey).Child("used").SetValueAsync(true);
                                     }
                                 });
                             }
@@ -119,10 +117,10 @@ public class Payment : MonoBehaviour
                     }
                 }
                 if (!foundVoucher)
-                    ShowError2("Voucher Code is unfound.");
+                    ShowError(errorText2, "Voucher Code is unfound.");
             }
             else
-                ShowError2("Failed to retrieve voucher data.");
+                ShowError(errorText2, "Failed to retrieve Voucher Code data.");
         });
     }
     IEnumerator AnimateBalance(float previousBalance, float newBalance)
@@ -162,20 +160,12 @@ public class Payment : MonoBehaviour
         SceneManager.LoadScene("Method");
     }
 
-    void ShowError1(string message)
+    void ShowError(TextMeshProUGUI errorText, string message)
     {
-        if (errorText1 != null)
+        if (errorText != null)
         {
-            errorText1.text = message;
-            errorText1.color = Color.red;
-        }
-    }
-    void ShowError2(string message)
-    {
-        if (errorText2 != null)
-        {
-            errorText2.text = message;
-            errorText2.color = Color.red;
+            errorText.text = message;
+            errorText.color = Color.red;
         }
     }
 }
