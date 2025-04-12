@@ -46,6 +46,7 @@ public class DeliveryMethodManager : MonoBehaviour
         {
             isSaved = false;
             messageText.text = "You changed your selection. Please save again.";
+            messageText.color = Color.red;
         }
     }
 
@@ -94,11 +95,13 @@ public class DeliveryMethodManager : MonoBehaviour
         else
         {
             messageText.text = "Please select a delivery method.";
+            messageText.color = Color.red;
             return;
         }
 
         isSaved = true;
         messageText.text = "Delivery method saved successfully!";
+        messageText.color = Color.green; // «·—”«·…  ŸÂ— »·Ê‰ √Œ÷— »⁄œ «·Õ›Ÿ
     }
 
     void ApplySelection(string companyName)
@@ -114,15 +117,16 @@ public class DeliveryMethodManager : MonoBehaviour
         if (!isSaved)
         {
             messageText.text = "Please save your selection before proceeding.";
+            messageText.color = Color.red;
             return;
         }
 
-        SceneManager.LoadScene("Payment");  //  Payment pag
+        SceneManager.LoadScene("Payment");  //  Payment page
     }
 
     void GoToPreviousStep()
     {
-        SceneManager.LoadScene("Address"); //  Address pag
+        SceneManager.LoadScene("Address"); //  Address page
     }
 
     void ReturnToStore()
