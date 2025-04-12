@@ -13,7 +13,7 @@ public class AddressBookManager : MonoBehaviour
     [Header("UI References")]
     public Transform toggleParent;
     public GameObject addressTogglePrefab, noAddressMessage, addNewAddressButtonImage, newAddressForm;
-    public Button addNewAddressButton, saveButton, nextButton;
+    public Button addNewAddressButton, saveButton, nextButton, backButton;
     public TMP_InputField addressNameInput, cityInput, districtInput, streetInput, buildingInput, phoneNumberInput;
     public TMP_Dropdown countryDropdown;
     public TextMeshProUGUI outsideErrorMessageText, formErrorMessageText, CoinText;
@@ -48,9 +48,14 @@ public class AddressBookManager : MonoBehaviour
         });
 
         saveButton.onClick.AddListener(SaveNewAddress);
+
         nextButton.onClick.AddListener(() => {
-            SceneManager.LoadScene("Address 2");
+            SceneManager.LoadScene("Method");
             CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
+        });
+
+        backButton.onClick.AddListener(() => {
+            SceneManager.LoadScene("Promotional"); // Change to your desired previous scene name
         });
 
         nextButton.gameObject.SetActive(false);
