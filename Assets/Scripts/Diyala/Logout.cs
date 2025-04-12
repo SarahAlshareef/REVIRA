@@ -25,7 +25,7 @@ public class Logout : MonoBehaviour
 
     private void ConfirmLogout()
     {
-        UserManager.Instance.SetUserData("", "", "", "", 0);
+        UserManager.Instance.SetUserData("", "", "", "", 0, "", "");
         FirebaseAuth.DefaultInstance.SignOut();
    
         popupPanel.SetActive(false);

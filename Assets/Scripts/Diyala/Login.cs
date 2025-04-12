@@ -76,16 +76,20 @@ public class Login : MonoBehaviour
             yield break;
         }
 
-            DataSnapshot snapshot = dbTask.Result;
+        DataSnapshot snapshot = dbTask.Result;
 
-            string firstName = snapshot.Child("firstName").Value.ToString();
-            string lastName = snapshot.Child("lastName").Value.ToString();
-            string email = snapshot.Child("email").Value.ToString();
-            float accountBalance = float.Parse(snapshot.Child("accountBalance").Value.ToString());
+        string firstName = snapshot.Child("firstName").Value?.ToString() ?? "Not Added";
+        string lastName = snapshot.Child("lastName").Value?.ToString() ?? "Not Added";
+        string email = snapshot.Child("email").Value?.ToString() ?? "Not Added";
+        float accountBalance = float.Parse(snapshot.Child("accountBalance").Value?.ToString() ?? "0");
 
-            UserManager.Instance.SetUserData(userId, firstName, lastName, email, accountBalance);
-            SceneManager.LoadScene("HomeScene");
+        string gender = snapshot.Child("gender").Exists ? snapshot.Child("gender").Value.ToString() : "Not Added";
+        string phone = snapshot.Child("phoneNumber").Exists ? snapshot.Child("phoneNumber").Value.ToString() : "Not Added";
+
+        UserManager.Instance.SetUserData(userId, firstName, lastName, email, accountBalance, gender, phone);
+        SceneManager.LoadScene("HomeScene");
     }
+
     void ShowError(string message)
     {
         if (errorText != null)
