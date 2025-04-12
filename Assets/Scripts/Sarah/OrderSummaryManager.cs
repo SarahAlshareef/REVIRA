@@ -33,20 +33,13 @@ public class OrderSummaryManager : MonoBehaviour
     private float delivery = 0f;
     private float total = 0f;
 
-    public float TotalAmount => total;
-    public static float LastConfirmedTotal { get; private set; }
+    public static float FinalTotal { get; private set; }
 
     void Start()
     {
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
         userId = UserManager.Instance.UserId;
-
-        confirmButton.onClick.AddListener(() =>
-        {
-            LastConfirmedTotal = total;
-            confirmPopup.SetActive(true);
-        });
-
+        confirmButton.onClick.AddListener(() => confirmPopup.SetActive(true));
         LoadOrderData();
     }
 
@@ -77,7 +70,7 @@ public class OrderSummaryManager : MonoBehaviour
                         GameObject productGO = Instantiate(productPrefab, productListParent);
                         productGO.transform.Find("nameText").GetComponent<TextMeshProUGUI>().text = productName;
                         productGO.transform.Find("quantityText").GetComponent<TextMeshProUGUI>().text = quantity + "x";
-                        productGO.transform.Find("priceText").GetComponent<TextMeshProUGUI>().text = price.ToString("F2");
+                        productGO.transform.Find("priceText").GetComponent<TextMeshProUGUI>().text = itemTotal.ToString("F2");
                     }
 
                     FetchPromoAndDelivery();
@@ -88,10 +81,14 @@ public class OrderSummaryManager : MonoBehaviour
     void FetchPromoAndDelivery()
     {
         discount = PromotionalManager.DiscountPercentage;
-        float discountedAmount = subtotal * (discount / 100f);
+
+        float promoTotal = PromotionalManager.DiscountedTotal;
+        float discountedAmount = (promoTotal > 0) ? subtotal - promoTotal : 0f;
 
         delivery = DeliveryManager.DeliveryPrice;
-        total = (subtotal - discountedAmount) + delivery;
+        total = (promoTotal > 0 ? promoTotal : subtotal) + delivery;
+
+        FinalTotal = total;
 
         UpdateSummaryUI(discountedAmount);
     }
@@ -99,7 +96,7 @@ public class OrderSummaryManager : MonoBehaviour
     void UpdateSummaryUI(float discountedAmount)
     {
         subtotalText.text = subtotal.ToString("F2");
-        discountText.text = "-" + discountedAmount.ToString("F2");
+        discountText.text = discountedAmount > 0 ? "-" + discountedAmount.ToString("F2") : "-0.00";
         deliveryChargesText.text = delivery.ToString("F2");
         totalText.text = total.ToString("F2");
 
