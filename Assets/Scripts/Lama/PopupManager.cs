@@ -9,7 +9,7 @@ public class ExitStorePopup : MonoBehaviour
     public Button cancelButton;              // “— ≈€·«ﬁ «·»Ê» √»
     public Button confirmExitButton;         // “— "Exit Store" œ«Œ· «·»Ê» √»
 
-    public string targetSceneName = "MainMenu";  // «”„ «·„‘Âœ «··Ì  —ÊÕÌ‰ ·Â
+    public string targetSceneName = "StoreSelection";  // «”„ «·„‘Âœ «··Ì  —ÊÕÌ‰ ·Â
 
     void Start()
     {
