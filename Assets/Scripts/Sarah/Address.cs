@@ -9,6 +9,8 @@ public class Address
     public string building;
     public string phoneNumber;
 
+    public Address() { }
+
     public Address(string addressName, string country, string city, string district, string street, string building, string phoneNumber)
     {
         this.addressName = addressName;
