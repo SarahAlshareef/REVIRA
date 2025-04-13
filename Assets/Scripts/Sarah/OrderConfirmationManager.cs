@@ -65,10 +65,6 @@ public class ConfirmOrderManager : MonoBehaviour
                     {"deliveryCompany", DeliveryManager.DeliveryCompany},
                     {"deliveryDuration", DeliveryManager.DeliveryDuration},
 
-                    // User identity
-                    { "firstName", UserManager.Instance.FirstName },
-                    { "lastName", UserManager.Instance.LastName },
-
                     // Address
                     { "addressName", selectedAddress.addressName },
                     { "country", selectedAddress.country },
