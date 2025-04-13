@@ -33,12 +33,15 @@ public class OrderSummaryManager : MonoBehaviour
     private float delivery = 0f;
     private float total = 0f;
 
+    private int productsToProcess = 0;
+    private int productsProcessed = 0;
+
     public static float FinalTotal { get; private set; }
     public static OrderSummaryManager Instance { get; private set; }
 
-
     void Start()
     {
+        Instance = this;
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
         userId = UserManager.Instance.UserId;
         if (confirmButton != null && confirmPopup != null)
@@ -58,6 +61,8 @@ public class OrderSummaryManager : MonoBehaviour
                         Destroy(child.gameObject);
 
                     subtotal = 0f;
+                    productsToProcess = (int)cartTask.Result.ChildrenCount;
+                    productsProcessed = 0;
 
                     foreach (var item in cartTask.Result.Children)
                     {
@@ -70,36 +75,40 @@ public class OrderSummaryManager : MonoBehaviour
                         foreach (var size in item.Child("sizes").Children)
                             quantity += int.Parse(size.Value.ToString());
 
-                        float priceToUse = originalPrice;
-
-                        // Fetch product discount from Firebase
                         dbRef.Child("REVIRA/stores/storeID_123/products").Child(productId).GetValueAsync().ContinueWithOnMainThread(productTask =>
                         {
+                            float finalPrice = originalPrice;
                             if (productTask.IsCompleted && productTask.Result.Exists)
                             {
                                 var productSnapshot = productTask.Result;
                                 bool hasDiscount = productSnapshot.Child("discount").Child("exists").Value.ToString() == "True";
-                                float discountPercentage = hasDiscount ? float.Parse(productSnapshot.Child("discount").Child("percentage").Value.ToString()) : 0f;
-
                                 if (hasDiscount)
                                 {
-                                    priceToUse = originalPrice - (originalPrice * discountPercentage / 100f);
+                                    float discountPercentage = float.Parse(productSnapshot.Child("discount").Child("percentage").Value.ToString());
+                                    finalPrice = originalPrice - (originalPrice * discountPercentage / 100f);
                                 }
-
-                                float itemTotal = priceToUse * quantity;
-                                subtotal += itemTotal;
-
-                                GameObject productGO = Instantiate(productPrefab, productListParent);
-                                productGO.transform.Find("nameText")?.GetComponent<TextMeshProUGUI>().SetText(productName);
-                                productGO.transform.Find("quantityText")?.GetComponent<TextMeshProUGUI>().SetText(quantity + "x");
-                                productGO.transform.Find("priceText")?.GetComponent<TextMeshProUGUI>().SetText(itemTotal.ToString("F2"));
-
-                                // Only after last item, update summary
-                                if (productListParent.childCount == cartTask.Result.ChildrenCount)
-                                    FetchPromoAndDelivery();
                             }
+
+                            float itemTotal = finalPrice * quantity;
+                            subtotal += itemTotal;
+
+                            GameObject productGO = Instantiate(productPrefab, productListParent);
+                            productGO.transform.Find("nameText")?.GetComponent<TextMeshProUGUI>().SetText(productName);
+                            productGO.transform.Find("quantityText")?.GetComponent<TextMeshProUGUI>().SetText(quantity + "x");
+                            productGO.transform.Find("priceText")?.GetComponent<TextMeshProUGUI>().SetText(itemTotal.ToString("F2"));
+
+                            productsProcessed++;
+                            if (productsProcessed == productsToProcess)
+                                FetchPromoAndDelivery();
                         });
                     }
+                }
+                else
+                {
+                    subtotalText.text = "0.00";
+                    discountText.text = "-0.00";
+                    deliveryChargesText.text = "0.00";
+                    totalText.text = "0.00";
                 }
             });
     }
@@ -111,7 +120,6 @@ public class OrderSummaryManager : MonoBehaviour
 
         delivery = DeliveryManager.DeliveryPrice;
         total = (promoTotal > 0 ? promoTotal : subtotal) + delivery;
-
         FinalTotal = total;
 
         UpdateSummaryUI(promoDiscountAmount);
