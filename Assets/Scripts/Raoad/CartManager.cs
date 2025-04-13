@@ -1,5 +1,4 @@
 
-
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -44,8 +43,12 @@ public class CartManager : MonoBehaviour
 
     void Start()
     {
+        Debug.Log("start method is called");
+
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
         userID = UserManager.Instance.UserId;
+
+        Debug.Log("Current User ID: " + userID);
 
         if (removeButton != null)
             removeButton.onClick.AddListener(OnRemoveItem);
@@ -68,19 +71,24 @@ public class CartManager : MonoBehaviour
         cartItemPanel.SetActive(false);
         totalPrice = 0f;
 
-        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").GetValueAsync().ContinueWithOnMainThread(task =>
+        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").GetValueAsync().ContinueWith(task =>
         {
             if (task.IsCompleted && task.Result.Exists)
             {
+                Debug.Log("Cart data loaded successfully. Total items: " + task.Result.ChildrenCount);
+                Debug.Log("Cart found ! item count: " + task.Result.ChildrenCount);
                 scrollView.SetActive(true);
 
                 foreach (DataSnapshot productSnapshot in task.Result.Children)
                 {
-                    productID = productSnapshot.Key;
-                    string productName = productSnapshot.Child("productName").Value.ToString();
-                    selectedColor = productSnapshot.Child("color").Value.ToString();
-                    basePrice = float.Parse(productSnapshot.Child("price").Value.ToString());
+                    string productID = productSnapshot.Key;
+                    Debug.Log("Processing cart item: " + productID);
 
+                    string selectedColor = productSnapshot.Child("color").Value.ToString();
+                    float basePrice = float.Parse(productSnapshot.Child("price").Value.ToString());
+
+                    string selectedSize = "";
+                    int selectedQuantity = 1;
                     foreach (var sizeEntry in productSnapshot.Child("sizes").Children)
                     {
                         selectedSize = sizeEntry.Key;
@@ -88,15 +96,19 @@ public class CartManager : MonoBehaviour
                         break;
                     }
 
-                    dbReference.Child("REVIRA/stores").Child(storeID).Child("products").Child(productID).GetValueAsync().ContinueWithOnMainThread(productTask =>
+                    dbReference.Child("REVIRA/stores").Child("storeID_123").Child("products").Child(productID).GetValueAsync().ContinueWith(productTask =>
                     {
                         if (productTask.IsCompleted && productTask.Result.Exists)
                         {
-                            string imageUrl = productTask.Result.Child("image").Value.ToString();
-                            hasDiscount = productTask.Result.Child("discount").Child("exists").Value.ToString() == "True";
-                            discountPercentage = hasDiscount ? float.Parse(productTask.Result.Child("discount").Child("percentage").Value.ToString()) : 0f;
+                            Debug.Log("Loaded product details from store for: " + productID);
 
-                            allColorsAndSizes = new Dictionary<string, Dictionary<string, int>>();
+                            string imageUrl = productTask.Result.Child("image").Value.ToString();
+                            string productName = productTask.Result.Child("name").Value.ToString();
+
+                            bool hasDiscount = productTask.Result.Child("discount").Child("exists").Value.ToString() == "true";
+                            float discountPercentage = hasDiscount ? float.Parse(productTask.Result.Child("discount").Child("percentage").Value.ToString()) : 0f;
+
+                            Dictionary<string, Dictionary<string, int>> allColorsAndSizes = new Dictionary<string, Dictionary<string, int>>();
                             foreach (var colorNode in productTask.Result.Child("colors").Children)
                             {
                                 Dictionary<string, int> sizes = new Dictionary<string, int>();
@@ -115,18 +127,37 @@ public class CartManager : MonoBehaviour
 
                             CartManager item = newItem.GetComponent<CartManager>();
                             item.Initialize(productID, productName, imageUrl, selectedColor, selectedSize, selectedQuantity, basePrice, hasDiscount, discountPercentage, allColorsAndSizes);
-
-                            UpdateTotalText();
-                            CheckScrollVisibility();
                         }
+                        else
+                        {
+                            Debug.LogWarning("Product not found in store: " + productID);
+                        }
+
+                        UpdateTotalText();
+                        CheckScrollVisibility();
                     });
                 }
             }
-            else scrollView.SetActive(false);
+            else
+            {
+                Debug.LogWarning("Cart is empty or failed to load.");
+                scrollView.SetActive(false);
+            }
         });
     }
-
-    public void Initialize(string id, string name, string imageUrl, string color, string size, int quantity, float price, bool discountExists, float discount, Dictionary<string, Dictionary<string, int>> colorsAndSizes)
+    public void Initialize(
+    string id,
+    string name,
+    string imageUrl,
+    string color,
+    string size,
+    int quantity,
+    float price,
+    bool discountExists,
+    float discount,
+    Dictionary<string,
+     Dictionary<string, 
+    int>> colorsAndSizes)
     {
         productID = id;
         productNameText.text = name;
@@ -145,7 +176,6 @@ public class CartManager : MonoBehaviour
         PopulateSizeDropdown();
         PopulateQuantityDropdown();
     }
-
     private IEnumerator<UnityWebRequestAsyncOperation> LoadImage(string url)
     {
         UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
@@ -162,6 +192,7 @@ public class CartManager : MonoBehaviour
     {
         float finalPrice = hasDiscount ? basePrice - (basePrice * discountPercentage / 100f) : basePrice;
         priceText.text = finalPrice.ToString("F2");
+
         if (hasDiscount)
         {
             originalPriceText.text = basePrice.ToString("F2");
@@ -240,15 +271,7 @@ public class CartManager : MonoBehaviour
             { "expiresAt", GetExpiryTimestamp() }
         };
 
-        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID)
-            .UpdateChildrenAsync(updateData).ContinueWithOnMainThread(task =>
-            {
-                if (task.IsCompleted)
-                {
-                    Debug.Log("Cart item updated successfully.");
-                    UpdateCartTotalInFirebase();
-                }
-            });
+        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).UpdateChildrenAsync(updateData);
     }
 
     private void OnRemoveItem()
@@ -258,50 +281,16 @@ public class CartManager : MonoBehaviour
         {
             if (task.IsCompleted && task.Result.Exists)
             {
+
                 int currentStock = int.Parse(task.Result.Value.ToString());
                 int updatedStock = currentStock + selectedQuantity;
+
                 dbReference.Child(stockPath).SetValueAsync(updatedStock);
-                dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).RemoveValueAsync().ContinueWithOnMainThread(removeTask =>
-                {
-                    Debug.Log("Item removed from cart.");
-                    UpdateCartTotalInFirebase();
-                });
+                dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).RemoveValueAsync();
 
                 Destroy(gameObject);
                 RefreshTotalUI();
                 CheckScrollVisibility();
-            }
-        });
-    }
-
-    private void UpdateCartTotalInFirebase()
-    {
-        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").GetValueAsync().ContinueWithOnMainThread(task =>
-        {
-            if (task.IsCompleted)
-            {
-                float total = 0f;
-                int items = 0;
-
-                foreach (var item in task.Result.Children)
-                {
-                    float price = float.Parse(item.Child("price").Value.ToString());
-                    foreach (var size in item.Child("sizes").Children)
-                    {
-                        int qty = int.Parse(size.Value.ToString());
-                        total += price * qty;
-                        items += qty;
-                    }
-                }
-
-                Dictionary<string, object> summary = new Dictionary<string, object>
-                {
-                    { "totalPrice", total },
-                    { "totalItems", items }
-                };
-
-                dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartTotal").SetValueAsync(summary);
-                Debug.Log("Cart total updated in Firebase.");
             }
         });
     }
@@ -331,3 +320,5 @@ public class CartManager : MonoBehaviour
         scrollView.SetActive(scrollViewContent.transform.childCount > 1);
     }
 }
+
+
