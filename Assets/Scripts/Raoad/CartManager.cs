@@ -59,6 +59,10 @@ public class CartManager : MonoBehaviour
 
         LoadCartItems();
     }
+     void Update()
+    {
+        Debug.Log("Update is running...");
+    }
 
     public void LoadCartItems()
     {
