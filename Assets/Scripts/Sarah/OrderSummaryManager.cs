@@ -44,6 +44,7 @@ public class OrderSummaryManager : MonoBehaviour
         Instance = this;
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
         userId = UserManager.Instance.UserId;
+
         if (confirmButton != null && confirmPopup != null)
             confirmButton.onClick.AddListener(() => confirmPopup.SetActive(true));
 
@@ -69,7 +70,6 @@ public class OrderSummaryManager : MonoBehaviour
                         string productId = item.Key;
                         string productName = item.Child("productName").Value.ToString();
                         float originalPrice = float.Parse(item.Child("price").Value.ToString());
-                        string color = item.Child("color").Value.ToString();
 
                         int quantity = 0;
                         foreach (var size in item.Child("sizes").Children)
@@ -78,6 +78,7 @@ public class OrderSummaryManager : MonoBehaviour
                         dbRef.Child("REVIRA/stores/storeID_123/products").Child(productId).GetValueAsync().ContinueWithOnMainThread(productTask =>
                         {
                             float finalPrice = originalPrice;
+
                             if (productTask.IsCompleted && productTask.Result.Exists)
                             {
                                 var productSnapshot = productTask.Result;
@@ -116,12 +117,12 @@ public class OrderSummaryManager : MonoBehaviour
     void FetchPromoAndDelivery()
     {
         float promoTotal = PromotionalManager.DiscountedTotal;
-        promoDiscountAmount = (promoTotal > 0) ? subtotal - promoTotal : 0f;
+        promoDiscountAmount = PromotionalManager.UsedPromoCode != "" ? subtotal - promoTotal : 0f;
 
         delivery = DeliveryManager.DeliveryPrice;
         total = (promoTotal > 0 ? promoTotal : subtotal) + delivery;
-        FinalTotal = total;
 
+        FinalTotal = total;
         UpdateSummaryUI(promoDiscountAmount);
     }
 

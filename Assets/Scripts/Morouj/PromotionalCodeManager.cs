@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
 using Firebase.Database;
+using Firebase.Extensions;
 using System;
 
 public class PromotionalCodeManager : MonoBehaviour
@@ -45,6 +46,7 @@ public class PromotionalCodeManager : MonoBehaviour
     void ValidatePromoCode()
     {
         string enteredCode = promoCodeInput.text.ToUpper().Trim();
+        Debug.Log("Entered promo code: " + enteredCode);
 
         if (string.IsNullOrEmpty(enteredCode))
         {
@@ -52,9 +54,10 @@ public class PromotionalCodeManager : MonoBehaviour
             return;
         }
 
-        dbRef.Child("REVIRA").Child("stores").Child(storeID).Child("PromotionalCodes").GetValueAsync().ContinueWith(task =>
+        dbRef.Child("REVIRA").Child("stores").Child(storeID).Child("PromotionalCodes")
+        .GetValueAsync().ContinueWithOnMainThread(task =>
         {
-            if (task.IsCompleted)
+            if (task.IsCompleted && task.Result.Exists)
             {
                 var snapshot = task.Result;
 
@@ -83,16 +86,22 @@ public class PromotionalCodeManager : MonoBehaviour
                     ShowMessage("This code is not existed.", false);
                 }
             }
+            else
+            {
+                Debug.LogError("Failed to fetch promo codes: " + task.Exception);
+                ShowMessage("Failed to validate the code. Try again.", false);
+            }
         });
     }
 
-    void CheckCart(string enteredCode, string appliesTo, float discount)
+    void CheckCart(string enteredCode, string appliesTo, float promoPercentage)
     {
         string userId = UserManager.Instance.UserId;
 
-        dbRef.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").GetValueAsync().ContinueWith(cartTask =>
+        dbRef.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").Child("cartItems")
+        .GetValueAsync().ContinueWithOnMainThread(cartTask =>
         {
-            if (cartTask.IsCompleted)
+            if (cartTask.IsCompleted && cartTask.Result.Exists)
             {
                 float discountedTotal = 0f;
                 bool hasValidProduct = false;
@@ -104,56 +113,70 @@ public class PromotionalCodeManager : MonoBehaviour
                 foreach (var item in cartTask.Result.Children)
                 {
                     string productId = item.Key;
+                    float originalPrice = float.Parse(item.Child("price").Value.ToString());
                     int quantity = 0;
-                    float price = float.Parse(item.Child("price").Value.ToString());
-
                     foreach (var size in item.Child("sizes").Children)
-                    {
                         quantity += int.Parse(size.Value.ToString());
-                    }
 
-                    float subtotal = quantity * price;
-
-                    dbRef.Child("REVIRA").Child("stores").Child(storeID).Child("products").Child(productId).Child("category").GetValueAsync().ContinueWith(categoryTask =>
+                    dbRef.Child("REVIRA").Child("stores").Child(storeID).Child("products").Child(productId)
+                    .GetValueAsync().ContinueWithOnMainThread(productTask =>
                     {
-                        if (categoryTask.IsCompleted)
+                        if (productTask.IsCompleted && productTask.Result.Exists)
                         {
-                            string category = categoryTask.Result.Value.ToString();
-                            float discountAmount = 0f;
+                            var productData = productTask.Result;
+                            float productDiscountPercent = 0f;
+                            float discountedPrice = originalPrice;
+
+                            // Apply product-level discount
+                            if (productData.Child("discount").Child("exists").Value.ToString() == "True")
+                            {
+                                productDiscountPercent = float.Parse(productData.Child("discount").Child("percentage").Value.ToString());
+                                discountedPrice = originalPrice - (originalPrice * productDiscountPercent / 100f);
+                            }
+
+                            // Get category and apply promo if eligible
+                            string category = productData.Child("category").Value.ToString();
+                            float promoDiscountAmount = 0f;
 
                             if (appliesTo == "all" || appliesTo == category)
                             {
-                                discountAmount = subtotal * (discount / 100f);
+                                promoDiscountAmount = discountedPrice * (promoPercentage / 100f);
                                 hasValidProduct = true;
                             }
 
-                            float finalPrice = subtotal - discountAmount;
+                            float finalUnitPrice = discountedPrice - promoDiscountAmount;
+                            float finalTotal = finalUnitPrice * quantity;
+                            float originalSubtotal = originalPrice * quantity;
 
                             PromotionalManager.ProductDiscounts[productId] = new DiscountInfo
                             {
-                                originalPrice = subtotal,
-                                discountPercentage = (appliesTo == "all" || appliesTo == category) ? discount : 0f,
-                                discountAmount = discountAmount,
-                                finalPrice = finalPrice
+                                originalPrice = originalSubtotal,
+                                discountPercentage = promoDiscountAmount > 0 ? promoPercentage : 0f,
+                                discountAmount = promoDiscountAmount * quantity,
+                                finalPrice = finalTotal
                             };
 
-                            discountedTotal += finalPrice;
-                            checkedCount++;
+                            discountedTotal += finalTotal;
+                        }
 
-                            if (checkedCount == totalItems)
+                        checkedCount++;
+                        if (checkedCount == totalItems)
+                        {
+                            if (hasValidProduct)
                             {
-                                if (hasValidProduct)
-                                {
-                                    ApplyDiscount(discountedTotal, enteredCode, discount, appliesTo);
-                                }
-                                else
-                                {
-                                    ShowMessage("This code is not valid for the products in your cart.", false);
-                                }
+                                ApplyDiscount(discountedTotal, enteredCode, promoPercentage, appliesTo);
+                            }
+                            else
+                            {
+                                ShowMessage("This code is not valid for the products in your cart.", false);
                             }
                         }
                     });
                 }
+            }
+            else
+            {
+                ShowMessage("No items in cart to apply promo code.", false);
             }
         });
     }
@@ -174,6 +197,7 @@ public class PromotionalCodeManager : MonoBehaviour
 
     void ShowMessage(string message, bool success)
     {
+        Debug.Log("ShowMessage: " + message);
         pendingMessage = message;
         isSuccessMessage = success;
         hasNewMessage = true;
