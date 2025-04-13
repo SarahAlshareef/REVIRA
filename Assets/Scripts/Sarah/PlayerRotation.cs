@@ -1,31 +1,41 @@
 using UnityEngine;
-using UnityEngine.UI; // Needed for UI elements
+using UnityEngine.UI;
 using TMPro;
 using UnityEngine.EventSystems;
 
-public class PlayerRotation : MonoBehaviour, IPointerClickHandler
+public class PlayerRotation : MonoBehaviour
 {
+    [Header("Rotation Settings")]
     public float smoothRotationSpeed = 50.0f;
     public float snapAngle = 30.0f;
     public float snapThreshold = 0.8f;
     public float snapCooldown = 0.3f;
-
     public bool useSnapRotation = true;
-
     private float lastSnapTime = 0f;
 
-    // UI Button reference (drag & drop in Inspector)
-    public Button toggleButton;
-    public TextMeshProUGUI toggleButtonText;
+    [Header("UI Elements")]
+    public GameObject rotationPopupPanel;
+    public Button snapButton;
+    public Button smoothButton;
+    public TextMeshProUGUI statusText;
+    public Button reopenPopupButton;
 
     void Start()
     {
-        // Add listener to button
-        if (toggleButton != null)
-        {
-            toggleButton.onClick.AddListener(ToggleRotationMode);
-            UpdateButtonText();
-        }
+        if (rotationPopupPanel != null)
+            rotationPopupPanel.SetActive(true);
+
+        
+        if (snapButton != null)
+            snapButton.onClick.AddListener(SetSnapRotation);
+
+        if (smoothButton != null)
+            smoothButton.onClick.AddListener(SetSmoothRotation);
+
+        if (reopenPopupButton != null)
+            reopenPopupButton.onClick.AddListener(ShowPopup);
+
+        UpdateStatusText();
     }
 
     void Update()
@@ -64,24 +74,37 @@ public class PlayerRotation : MonoBehaviour, IPointerClickHandler
         }
     }
 
-    // Toggle Function for Button
-    public void ToggleRotationMode()
+    void SetSnapRotation()
     {
-        useSnapRotation = !useSnapRotation;
-        UpdateButtonText();
+        useSnapRotation = true;
+        UpdateStatusText();
+        HidePopup();
     }
 
-    // Update Button Text
-    private void UpdateButtonText()
+    void SetSmoothRotation()
     {
-        if (toggleButtonText != null)
+        useSnapRotation = false;
+        UpdateStatusText();
+        HidePopup();
+    }
+
+    void UpdateStatusText()
+    {
+        if (statusText != null)
         {
-            toggleButtonText.text = useSnapRotation ? "Snap: ON" : "Snap: OFF";
+            statusText.text = useSnapRotation ? "Snap Rotation is currently active" : "Smooth Rotation is currently active";
         }
     }
 
-    public void OnPointerClick(PointerEventData eventData)
+    void HidePopup()
     {
-        ToggleRotationMode();
+        if (rotationPopupPanel != null)
+            rotationPopupPanel.SetActive(false);
+    }
+
+    void ShowPopup()
+    {
+        if (rotationPopupPanel != null)
+            rotationPopupPanel.SetActive(true);
     }
 }
