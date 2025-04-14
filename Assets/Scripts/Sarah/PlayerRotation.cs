@@ -17,15 +17,20 @@ public class PlayerRotation : MonoBehaviour
     public GameObject rotationPopupPanel;
     public Button snapButton;
     public Button smoothButton;
+    public Button closeButton;
     public TextMeshProUGUI statusText;
     public Button reopenPopupButton;
 
     void Start()
     {
-        if (rotationPopupPanel != null)
+        if (rotationPopupPanel != null) { 
             rotationPopupPanel.SetActive(true);
 
-        
+            Transform cam = Camera.main.transform;
+            rotationPopupPanel.transform.position = cam.position + cam.forward * 2f + cam.up * -0.3f;
+            rotationPopupPanel.transform.rotation = Quaternion.LookRotation(cam.forward);
+        }
+
         if (snapButton != null)
             snapButton.onClick.AddListener(SetSnapRotation);
 
@@ -35,8 +40,11 @@ public class PlayerRotation : MonoBehaviour
         if (reopenPopupButton != null)
             reopenPopupButton.onClick.AddListener(ShowPopup);
 
+        if (closeButton != null)
+            closeButton.onClick.AddListener(HidePopup);
+
         UpdateStatusText();
-    }
+}
 
     void Update()
     {
@@ -78,14 +86,12 @@ public class PlayerRotation : MonoBehaviour
     {
         useSnapRotation = true;
         UpdateStatusText();
-        HidePopup();
     }
 
     void SetSmoothRotation()
     {
         useSnapRotation = false;
         UpdateStatusText();
-        HidePopup();
     }
 
     void UpdateStatusText()
