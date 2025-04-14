@@ -2,12 +2,18 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-//Firebase
+using UnityEngine.SceneManagement;
+// Firebase
 using Firebase.Database;
 using Firebase.Extensions;
+// C#
+using System.Collections.Generic;
 
 public class PersonalInformation : MonoBehaviour
 {
+    [Header("Back to previous scene")]
+    public Button closeProfileButton;
+
     [Header("Panels")]
     public GameObject viewInformation;
     public GameObject updateInformation;
@@ -39,24 +45,31 @@ public class PersonalInformation : MonoBehaviour
     {
         userId = UserManager.Instance.UserId;
 
-        ShowViewPanel();
-        LoadViewData();
-        LoadUpdateData();
+        viewInformation.SetActive(false);
+        updateInformation.SetActive(false);
 
         updateInfoButton?.onClick.AddListener(ShowUpdatePanel);
         saveButton?.onClick.AddListener(SaveChanges);
         discardButton?.onClick.AddListener(LoadUpdateData);
         backButton?.onClick.AddListener(ShowViewPanel);
+
+        closeProfileButton?.onClick.AddListener(CloseProfile);
+    }
+    public void ShowProfile()
+    {
+        ShowViewPanel();
     }
     void ShowViewPanel()
     {
         viewInformation.SetActive(true);
         updateInformation.SetActive(false);
+        LoadViewData();
     }
     void ShowUpdatePanel()
     {
         viewInformation.SetActive(false);
         updateInformation.SetActive(true);
+        LoadUpdateData();
     }
     void LoadViewData()
     {
@@ -81,7 +94,7 @@ public class PersonalInformation : MonoBehaviour
         emailInput.text = UserManager.Instance.Email;
         phoneInput.text = UserManager.Instance.PhoneNumber;
 
-        string UserGender = UserManager.Instance.Gender.ToLower();
+        string UserGender = (UserManager.Instance.Gender ?? "").ToLower();
         maleToggle.isOn = UserGender == "male";
         femaleToggle.isOn = UserGender == "female";
     }
@@ -97,18 +110,22 @@ public class PersonalInformation : MonoBehaviour
         if ( string.IsNullOrEmpty(newFirstName) || string.IsNullOrEmpty(newLastName) || string.IsNullOrEmpty(newEmail) || 
             string.IsNullOrEmpty(newPhone) || string.IsNullOrEmpty(newGender))
         {
-            ShowMessage("Please fill in all fields.", Color.red);
+            ShowMessage("Please complete all fields before saving.", Color.red);
             return;
         }
 
         DatabaseReference userRef = FirebaseDatabase.DefaultInstance.RootReference.Child("REVIRA").Child("Consumers").Child(userId);
 
-        userRef.Child("firstName").SetValueAsync(newFirstName);
-        userRef.Child("lastName").SetValueAsync(newLastName);
-        userRef.Child("email").SetValueAsync(newEmail);
-        userRef.Child("phoneNumber").SetValueAsync(newPhone);
+        var updates = new Dictionary<string, object>
+    {
+        { "firstName", newFirstName },
+        { "lastName", newLastName },
+        { "email", newEmail },
+        { "phoneNumber", newPhone },
+        { "gender", newGender }
+    };
 
-        userRef.Child("gender").SetValueAsync(newGender).ContinueWithOnMainThread(task =>
+        userRef.UpdateChildrenAsync(updates).ContinueWithOnMainThread(task =>
         {
             if (task.IsCompleted)
             {
@@ -118,11 +135,28 @@ public class PersonalInformation : MonoBehaviour
                 UserManager.Instance.UpdatePhoneNumber(newPhone);
                 UserManager.Instance.UpdateGender(newGender);
 
-                LoadViewData();
+                LoadViewData(); 
                 ShowMessage("Your information has been updated successfully.", Color.green);
+            }
+            else
+            {
+                ShowMessage("Failed to update information. Please try again.", Color.red);
             }
         });
     }
+
+    public void CloseProfile()
+    {
+        if (!string.IsNullOrEmpty(SceneTracker.Instance.PreviousSceneName))
+        {
+            SceneManager.LoadScene(SceneTracker.Instance.PreviousSceneName);
+        }
+        else
+        {
+            Debug.LogWarning("No previous scene stored.");
+        }
+    }
+
     void ShowMessage(string message, Color color)
     {
         if (messageText != null)
