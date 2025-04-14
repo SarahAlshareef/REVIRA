@@ -11,8 +11,9 @@ using System.Collections.Generic;
 
 public class PersonalInformation : MonoBehaviour
 {
-    [Header("Back to previous scene")]
+    [Header("General")]
     public Button closeProfileButton;
+    public TextMeshProUGUI welcomeText;
 
     [Header("Panels")]
     public GameObject viewInformation;
@@ -25,7 +26,6 @@ public class PersonalInformation : MonoBehaviour
     public TextMeshProUGUI lastNameText;
     public TextMeshProUGUI emailText;
     public TextMeshProUGUI phoneText;
-    public TextMeshProUGUI welcomeText;
 
     [Header("Update Information Panel")]
     public TMP_InputField firstNameInput;
@@ -44,6 +44,7 @@ public class PersonalInformation : MonoBehaviour
     void Start()
     {
         userId = UserManager.Instance.UserId;
+        welcomeText.text = $"Hi, {UserManager.Instance.FirstName} {UserManager.Instance.LastName}";
 
         viewInformation.SetActive(false);
         updateInformation.SetActive(false);
@@ -84,8 +85,6 @@ public class PersonalInformation : MonoBehaviour
         lastNameText.text = lastName;
         emailText.text = email;
         phoneText.text = phone;
-
-        welcomeText.text = $"Hi, {firstName} {lastName}";
     }
     void LoadUpdateData()
     {
@@ -97,6 +96,18 @@ public class PersonalInformation : MonoBehaviour
         string UserGender = (UserManager.Instance.Gender ?? "").ToLower();
         maleToggle.isOn = UserGender == "male";
         femaleToggle.isOn = UserGender == "female";
+
+        maleToggle.onValueChanged.RemoveAllListeners();
+        femaleToggle.onValueChanged.RemoveAllListeners();
+
+        maleToggle.onValueChanged.AddListener((isOn) =>
+        {
+        if (isOn) femaleToggle.isOn = false;
+        });
+        femaleToggle.onValueChanged.AddListener((isOn) =>
+        {
+        if (isOn) maleToggle.isOn = false;
+        });
     }
 
     void SaveChanges()
