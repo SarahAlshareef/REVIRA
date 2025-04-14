@@ -44,14 +44,23 @@ public class ResetPassword : MonoBehaviour
 
     void OpenResetPanel()
     {
-        resetPanel.SetActive(true);
-        Greeting.SetActive(false);
+        bool isActive = resetPanel.activeSelf;
 
-        emailText.text = UserManager.Instance.Email;
-        currentPasswordInput.text = "";
-        newPasswordInput.text = "";
-        confirmPasswordInput.text = "";
-        messageText.text = "";
+        if (isActive)
+        {
+            CloseResetPanel();
+        }
+        else
+        {
+            resetPanel.SetActive(true);
+            Greeting.SetActive(false);
+
+            emailText.text = UserManager.Instance.Email;
+            currentPasswordInput.text = "";
+            newPasswordInput.text = "";
+            confirmPasswordInput.text = "";
+            messageText.text = "";
+        }
     }
 
     void CloseResetPanel()
