@@ -61,10 +61,12 @@ public class PersonalInformation : MonoBehaviour
     }
     public void ShowProfile()
     {
-        bool isActive = viewInformation.activeSelf || updateInformation.activeSelf;
-
-        if (isActive) {
+        if (viewInformation.activeSelf)
+        {
             viewInformation.SetActive(false);
+        }
+        else if (updateInformation.activeSelf)
+        {
             updateInformation.SetActive(false);
         }
         else

@@ -16,7 +16,6 @@ public class ResetPassword : MonoBehaviour
     public GameObject Greeting;
 
     [Header("Buttons")]
-    public Button openResetPanelButton;
     public Button resetPasswordButton;
     public Button cancelButton;
 
@@ -37,16 +36,13 @@ public class ResetPassword : MonoBehaviour
 
         resetPanel.SetActive(false);
 
-        openResetPanelButton?.onClick.AddListener(OpenResetPanel);
         resetPasswordButton?.onClick.AddListener(HandlePasswordReset);
         cancelButton?.onClick.AddListener(CloseResetPanel);
     }
 
-    void OpenResetPanel()
+    public void OpenResetPanel()
     {
-        bool isActive = resetPanel.activeSelf;
-
-        if (isActive)
+        if (resetPanel.activeSelf)
         {
             CloseResetPanel();
         }
