@@ -42,12 +42,6 @@ public class ResetPassword : MonoBehaviour
 
     public void OpenResetPanel()
     {
-        if (resetPanel.activeSelf)
-        {
-            CloseResetPanel();
-        }
-        else
-        {
             resetPanel.SetActive(true);
             Greeting.SetActive(false);
 
@@ -56,10 +50,9 @@ public class ResetPassword : MonoBehaviour
             newPasswordInput.text = "";
             confirmPasswordInput.text = "";
             messageText.text = "";
-        }
     }
 
-    void CloseResetPanel()
+    public void CloseResetPanel()
     {
         resetPanel.SetActive(false);
         Greeting.SetActive(true);

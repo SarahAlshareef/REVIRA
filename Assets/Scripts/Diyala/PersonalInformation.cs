@@ -60,19 +60,13 @@ public class PersonalInformation : MonoBehaviour
         closeProfileButton?.onClick.AddListener(CloseProfile);
     }
     public void ShowProfile()
+    {     
+        ShowViewPanel();        
+    }
+    public void CloseProfilePanel()
     {
-        if (viewInformation.activeSelf)
-        {
-            viewInformation.SetActive(false);
-        }
-        else if (updateInformation.activeSelf)
-        {
-            updateInformation.SetActive(false);
-        }
-        else
-        {
-            ShowViewPanel();
-        }
+        viewInformation.SetActive(false);
+        updateInformation.SetActive(false);
     }
     void ShowViewPanel()
     {
