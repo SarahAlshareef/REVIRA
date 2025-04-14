@@ -13,7 +13,7 @@ public class OpenProfile : MonoBehaviour
     {
         ProfileButton?.onClick.AddListener(OpenProfileScene);
     }
-    void OpenProfileScene()
+    public void OpenProfileScene()
     {
         SceneTracker.Instance.SetPreviousScene(SceneManager.GetActiveScene().name);
         SceneManager.LoadScene("ViewProfile");
