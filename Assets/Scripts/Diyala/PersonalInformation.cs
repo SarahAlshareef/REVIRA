@@ -46,6 +46,9 @@ public class PersonalInformation : MonoBehaviour
         userId = UserManager.Instance.UserId;
         welcomeText.text = $"Hi, {UserManager.Instance.FirstName} {UserManager.Instance.LastName}";
 
+        phoneInput.onValidateInput += ValidateDigitInput;
+        phoneInput.characterLimit = 10;
+
         viewInformation.SetActive(false);
         updateInformation.SetActive(false);
 
@@ -108,6 +111,10 @@ public class PersonalInformation : MonoBehaviour
         {
         if (isOn) maleToggle.isOn = false;
         });
+    }
+    char ValidateDigitInput(string text, int charIndex, char addedChar)
+    {
+        return char.IsDigit(addedChar) ? addedChar : '0';
     }
 
     void SaveChanges()
