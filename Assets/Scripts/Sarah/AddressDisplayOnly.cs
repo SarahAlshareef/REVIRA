@@ -2,12 +2,11 @@ using UnityEngine;
 using TMPro;
 using Firebase.Database;
 using Firebase.Extensions;
-using System.Collections.Generic;
 
 public class AddressDisplayOnly : MonoBehaviour
 {
     public Transform addressParent;
-    public GameObject addressBarPrefab;
+    public GameObject addressBarPrefab; // Prefab that includes "AddressText" TMP
 
     private DatabaseReference dbRef;
     private string userId;
@@ -21,21 +20,22 @@ public class AddressDisplayOnly : MonoBehaviour
 
     void LoadAddresses()
     {
-        dbRef.Child("REVIRA/Consumers/" + userId + "/Addresses").GetValueAsync().ContinueWithOnMainThread(task =>
+        dbRef.Child("REVIRA/Consumers/" + userId + "/AddressBook").GetValueAsync().ContinueWithOnMainThread(task =>
         {
-            if (task.IsCompleted)
+            if (task.IsCompleted && task.Result.Exists)
             {
                 foreach (Transform child in addressParent)
                     Destroy(child.gameObject);
 
-                DataSnapshot snapshot = task.Result;
-                foreach (DataSnapshot child in snapshot.Children)
+                foreach (DataSnapshot snap in task.Result.Children)
                 {
-                    Address address = JsonUtility.FromJson<Address>(child.GetRawJsonValue());
+                    Address address = JsonUtility.FromJson<Address>(snap.GetRawJsonValue());
+
                     GameObject bar = Instantiate(addressBarPrefab, addressParent);
-                    bar.transform.Find("AddressName").GetComponent<TextMeshProUGUI>().text = address.addressName;
-                    bar.transform.Find("City").GetComponent<TextMeshProUGUI>().text = address.city;
-                    // Add more fields if needed
+
+                    string fullAddress = $"{address.addressName}, {address.city}, {address.district}, {address.street}, {address.building}, {address.phoneNumber}";
+
+                    bar.transform.Find("AddressText").GetComponent<TextMeshProUGUI>().text = fullAddress;
                 }
             }
         });
