@@ -12,13 +12,15 @@ public class AddressUpdateManager : MonoBehaviour
     [Header("UI References")]
     public Transform addressListParent;
     public GameObject addressBarPrefab, noAddressMessage, addNewAddressForm;
-    public Button addNewAddressButton, discardButton, saveButton;
+    public Button addNewAddressButton, discardButton, saveButton, confirmAddButton;
     public TMP_InputField addressNameInput, cityInput, districtInput, streetInput, buildingInput, phoneNumberInput;
     public TMP_Dropdown countryDropdown;
     public TextMeshProUGUI errorMessageText, confirmationMessage;
 
     private DatabaseReference dbRef;
     private string userId;
+
+    private List<Address> workingList = new();
     private const int maxAddresses = 3;
 
     void Start()
@@ -34,68 +36,86 @@ public class AddressUpdateManager : MonoBehaviour
             errorMessageText.text = "";
         });
 
+        confirmAddButton.onClick.AddListener(AddNewAddress);
+
         discardButton.onClick.AddListener(() =>
         {
             ClearInputs();
-            LoadAddresses();
+            confirmationMessage.text = "";
+            errorMessageText.text = "";
+            LoadFromFirebase();
         });
 
         saveButton.onClick.AddListener(() =>
         {
-            confirmationMessage.text = "Changes saved successfully.";
+            SaveToFirebase();
         });
 
         confirmationMessage.text = "";
+        errorMessageText.text = "";
     }
 
     IEnumerator WaitForUserIdAndLoad()
     {
         while (string.IsNullOrEmpty(UserManager.Instance.UserId)) yield return null;
         userId = UserManager.Instance.UserId;
-        LoadAddresses();
+        LoadFromFirebase();
     }
 
-    void LoadAddresses()
+    void LoadFromFirebase()
     {
-        foreach (Transform child in addressListParent)
-            Destroy(child.gameObject);
-
         dbRef.Child("REVIRA/Consumers/" + userId + "/AddressBook").GetValueAsync().ContinueWithOnMainThread(task =>
         {
             if (task.IsCompleted && task.Result.Exists)
             {
-                int index = 1;
+                workingList.Clear();
                 foreach (var snap in task.Result.Children)
                 {
                     Address address = JsonUtility.FromJson<Address>(snap.GetRawJsonValue());
-
-                    GameObject go = Instantiate(addressBarPrefab, addressListParent);
-                    go.transform.Find("AddressText").GetComponent<TextMeshProUGUI>().text =
-                        $"{address.addressName}, {address.city}, {address.district}, {address.street}, {address.building}, {address.phoneNumber}";
-
-                    Button deleteBtn = go.transform.Find("DeleteButton").GetComponent<Button>();
-                    string key = snap.Key;
-                    deleteBtn.onClick.AddListener(() => DeleteAddress(key));
-                    index++;
+                    workingList.Add(address);
                 }
-
-                noAddressMessage.SetActive(task.Result.ChildrenCount == 0);
-                addNewAddressButton.interactable = task.Result.ChildrenCount < maxAddresses;
             }
+            else
+            {
+                workingList.Clear();
+            }
+
+            RebuildUIFromWorkingList();
         });
     }
 
-    void DeleteAddress(string key)
+    void RebuildUIFromWorkingList()
     {
-        dbRef.Child("REVIRA/Consumers/" + userId + "/AddressBook").Child(key).RemoveValueAsync().ContinueWithOnMainThread(task =>
+        foreach (Transform child in addressListParent)
+            Destroy(child.gameObject);
+
+        for (int i = 0; i < workingList.Count; i++)
         {
-            if (task.IsCompleted)
-                LoadAddresses();
-        });
+            int index = i;
+            Address address = workingList[index];
+
+            GameObject go = Instantiate(addressBarPrefab, addressListParent);
+            go.transform.Find("AddressText").GetComponent<TextMeshProUGUI>().text =
+                $"{address.addressName}, {address.city}, {address.district}, {address.street}, {address.building}, {address.phoneNumber}";
+
+            Button deleteBtn = go.transform.Find("DeleteButton").GetComponent<Button>();
+            deleteBtn.onClick.RemoveAllListeners();
+            deleteBtn.onClick.AddListener(() =>
+            {
+                workingList.RemoveAt(index);
+                RebuildUIFromWorkingList();
+            });
+        }
+
+        noAddressMessage.SetActive(workingList.Count == 0);
+        addNewAddressButton.interactable = workingList.Count < maxAddresses;
     }
 
     public void AddNewAddress()
     {
+        errorMessageText.text = "";
+        confirmationMessage.text = "";
+
         if (string.IsNullOrEmpty(addressNameInput.text) || string.IsNullOrEmpty(cityInput.text) ||
             string.IsNullOrEmpty(districtInput.text) || string.IsNullOrEmpty(streetInput.text) ||
             string.IsNullOrEmpty(buildingInput.text) || string.IsNullOrEmpty(phoneNumberInput.text))
@@ -110,37 +130,40 @@ public class AddressUpdateManager : MonoBehaviour
             return;
         }
 
-        dbRef.Child("REVIRA/Consumers/" + userId + "/AddressBook").GetValueAsync().ContinueWithOnMainThread(task =>
+        if (workingList.Count >= maxAddresses)
         {
-            if (task.IsCompleted)
+            errorMessageText.text = "You’ve reached the maximum number of addresses.";
+            return;
+        }
+
+        Address newAddr = new(
+            addressNameInput.text.Trim(),
+            countryDropdown.options[countryDropdown.value].text,
+            cityInput.text.Trim(),
+            districtInput.text.Trim(),
+            streetInput.text.Trim(),
+            buildingInput.text.Trim(),
+            phoneNumberInput.text.Trim()
+        );
+
+        workingList.Add(newAddr);
+        ClearInputs();
+        addNewAddressForm.SetActive(false);
+        RebuildUIFromWorkingList();
+    }
+
+    void SaveToFirebase()
+    {
+        var baseRef = dbRef.Child("REVIRA/Consumers").Child(userId).Child("AddressBook");
+        baseRef.RemoveValueAsync().ContinueWithOnMainThread(_ =>
+        {
+            for (int i = 0; i < workingList.Count; i++)
             {
-                int count = (int)task.Result.ChildrenCount;
-                if (count >= maxAddresses)
-                {
-                    errorMessageText.text = "You’ve reached the maximum number of addresses.";
-                    return;
-                }
-
-                string key = "Address" + (count + 1);
-                Address newAddr = new(
-                    addressNameInput.text.Trim(),
-                    countryDropdown.options[countryDropdown.value].text,
-                    cityInput.text.Trim(),
-                    districtInput.text.Trim(),
-                    streetInput.text.Trim(),
-                    buildingInput.text.Trim(),
-                    phoneNumberInput.text.Trim()
-                );
-
-                dbRef.Child("REVIRA/Consumers/" + userId + "/AddressBook").Child(key)
-                    .SetRawJsonValueAsync(JsonUtility.ToJson(newAddr))
-                    .ContinueWithOnMainThread(_ =>
-                    {
-                        ClearInputs();
-                        addNewAddressForm.SetActive(false);
-                        LoadAddresses();
-                    });
+                string key = "Address" + (i + 1);
+                baseRef.Child(key).SetRawJsonValueAsync(JsonUtility.ToJson(workingList[i]));
             }
+
+            confirmationMessage.text = "Changes saved successfully.";
         });
     }
 
