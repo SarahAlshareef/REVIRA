@@ -5,128 +5,154 @@ using TMPro;
 using Firebase.Database;
 using Firebase.Extensions;
 using System.Collections.Generic;
-using System;
 
 public class CartManager : MonoBehaviour
 {
+    [Header("UI References")]
     public Transform cartContent;
     public GameObject cartItemPrefab;
     public TextMeshProUGUI totalText;
 
     private string userId;
-    private DatabaseReference dbRef;
-    private float currentTotal = 0f;
-    private Dictionary<string, float> itemTotals = new();
     private const string storeId = "storeID_123";
+    private DatabaseReference dbRef;
+
+    private Dictionary<string, float> itemTotals = new();
+    private float currentTotal = 0f;
 
     void Start()
     {
+        Debug.Log("CartManager started...");
+
+        
+        if (UserManager.Instance == null)
+        {
+            Debug.LogError("UserManager is NULL. Scene was loaded without login?");
+            return;
+        }
+
+        
+        Debug.Log("Cart Content: " + (cartContent != null));
+        Debug.Log("Cart Item Prefab: " + (cartItemPrefab != null));
+        Debug.Log("Total Text: " + (totalText != null));
+
+       
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
         userId = UserManager.Instance.UserId;
+
+       
+        LoadCartTotal();
         LoadCartItems();
     }
-
-    void LoadCartItems()
+    public void LoadCartItems()
     {
-        dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartItems").GetValueAsync().ContinueWithOnMainThread(task =>
+        foreach (Transform child in cartContent)
         {
-            if (task.IsCompleted)
+            Destroy(child.gameObject);
+        }
+
+        itemTotals.Clear();
+        currentTotal = 0f;
+
+        dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartItems").GetValueAsync().ContinueWithOnMainThread(cartTask =>
+        {
+            if (!cartTask.IsCompleted || !cartTask.Result.Exists)
             {
-                DataSnapshot snapshot = task.Result;
-                currentTotal = 0f;
-                itemTotals.Clear();
+                Debug.LogWarning("No cart items found.");
+                UpdateTotalUI();
+                return;
+            }
 
-                foreach (Transform child in cartContent) Destroy(child.gameObject);
+            foreach (DataSnapshot itemSnapshot in cartTask.Result.Children)
+            {
+                string productId = itemSnapshot.Key;
+                string selectedColor = itemSnapshot.Child("color").Value.ToString();
+                string selectedSize = "";
+                int quantity = 1;
 
-                foreach (DataSnapshot item in snapshot.Children)
+                foreach (DataSnapshot sizeEntry in itemSnapshot.Child("sizes").Children)
                 {
-                    string productId = item.Key;
-
-                    long expiresAt = item.HasChild("expiresAt") ? Convert.ToInt64(item.Child("expiresAt").Value) : 0;
-                    long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-                    string color = item.Child("color").Value.ToString();
-                    string size = "";
-                    int qty = 1;
-
-                    foreach (DataSnapshot sizeEntry in item.Child("sizes").Children)
-                    {
-                        size = sizeEntry.Key;
-                        qty = int.Parse(sizeEntry.Value.ToString());
-                        break;
-                    }
-
-                    // Temporarily disabled expiration logic for testing
-                    /*
-                    if (expiresAt > 0 && now >= expiresAt)
-                    {
-                        string stockPath = $"REVIRA/Stores/{storeId}/products/{productId}/stock/{color}/{size}";
-                        dbRef.Child(stockPath).GetValueAsync().ContinueWithOnMainThread(stockTask =>
-                        {
-                            if (stockTask.IsCompleted)
-                            {
-                                int currentStock = stockTask.Result.Exists ? Convert.ToInt32(stockTask.Result.Value) : 0;
-                                int updatedStock = currentStock + qty;
-                                dbRef.Child(stockPath).SetValueAsync(updatedStock).ContinueWithOnMainThread(setTask =>
-                                {
-                                    if (setTask.IsCompleted)
-                                        Debug.Log($"Restored {qty} units to stock for {productId} [{color}-{size}]");
-                                    else
-                                        Debug.LogError("Failed to restore stock: " + setTask.Exception);
-                                });
-                            }
-                        });
-
-                        dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartItems/{productId}")
-                            .RemoveValueAsync()
-                            .ContinueWithOnMainThread(removeTask =>
-                            {
-                                if (removeTask.IsCompleted)
-                                    Debug.Log($"Removed expired cart item: {productId}");
-                                else
-                                    Debug.LogError("Failed to remove expired item: " + removeTask.Exception);
-                            });
-
-                        continue;
-                    }
-                    */
-
-                    string productName = item.Child("productName").Value.ToString();
-                    float price = float.Parse(item.Child("price").Value.ToString());
-
-                    dbRef.Child($"REVIRA/Stores/{storeId}/products/{productId}").GetValueAsync().ContinueWithOnMainThread(productTask =>
-                    {
-                        if (productTask.IsCompleted)
-                        {
-                            DataSnapshot productSnapshot = productTask.Result;
-                            string imageUrl = productSnapshot.Child("imageUrl").Value.ToString();
-                            float discount = productSnapshot.HasChild("discount") ?
-                                             float.Parse(productSnapshot.Child("discount").Value.ToString()) : 0f;
-
-                            Dictionary<string, Dictionary<string, int>> stockData = new();
-                            foreach (DataSnapshot colorEntry in productSnapshot.Child("stock").Children)
-                            {
-                                string col = colorEntry.Key;
-                                Dictionary<string, int> sizes = new();
-                                foreach (DataSnapshot sizeEntry in colorEntry.Children)
-                                {
-                                    sizes[sizeEntry.Key] = int.Parse(sizeEntry.Value.ToString());
-                                }
-                                stockData[col] = sizes;
-                            }
-
-                            GameObject cartItemObj = Instantiate(cartItemPrefab, cartContent);
-                            CartItemUI cartItem = cartItemObj.GetComponent<CartItemUI>();
-                            cartItem.Initialize(userId, productId, productName, price, discount, color, size, qty, stockData, imageUrl);
-                            cartItem.SetManager(this);
-
-                            float finalPrice = discount > 0 ? price - (price * discount / 100f) : price;
-                            float itemTotal = finalPrice * qty;
-                            itemTotals[productId] = itemTotal;
-                            UpdateTotalUI();
-                        }
-                    });
+                    selectedSize = sizeEntry.Key;
+                    quantity = int.Parse(sizeEntry.Value.ToString());
+                    break;
                 }
+
+                float basePrice = float.Parse(itemSnapshot.Child("price").Value.ToString());
+                string productName = itemSnapshot.Child("productName").Value.ToString();
+
+                // Now get image, discount, and stock
+                dbRef.Child($"REVIRA/stores/{storeId}/products/{productId}").GetValueAsync().ContinueWithOnMainThread(productTask =>
+                {
+                    if (!productTask.IsCompleted || !productTask.Result.Exists)
+                    {
+                        Debug.LogWarning($"Product {productId} not found in store.");
+                        return;
+                    }
+
+                    DataSnapshot productData = productTask.Result;
+                    string imageUrl = productData.Child("image").Value.ToString();
+
+                    float discount = 0f;
+                    if (productData.HasChild("discount") && productData.Child("discount").Child("exists").Value.ToString() == "true")
+                    {
+                        discount = float.Parse(productData.Child("discount").Child("percentage").Value.ToString());
+                    }
+
+                    // Load stock structure
+                    Dictionary<string, Dictionary<string, int>> stockData = new();
+                    foreach (var colorEntry in productData.Child("colors").Children)
+                    {
+                        string colorName = colorEntry.Key;
+                        Dictionary<string, int> sizeData = new();
+                        foreach (var sizeEntry in colorEntry.Child("sizes").Children)
+                        {
+                            sizeData[sizeEntry.Key] = int.Parse(sizeEntry.Value.ToString());
+                        }
+                        stockData[colorName] = sizeData;
+                    }
+
+                    GameObject itemObj = Instantiate(cartItemPrefab, cartContent);
+
+                    Debug.Log("Cart item instantiated: " + itemObj.name);
+                    Debug.Log("parent is " + itemObj.transform.parent.name);
+                    Debug.Log("active in hierarchy : " + itemObj.activeInHierarchy);
+                    CartItemUI itemUI = itemObj.GetComponent<CartItemUI>();
+                    itemUI.SetManager(this);
+
+                    itemUI.Initialize(
+                        userId,
+                        productId,
+                        productName,
+                        basePrice,
+                        discount,
+                        selectedColor,
+                        selectedSize,
+                        quantity,
+                        stockData,
+                        imageUrl 
+                        );
+
+                    float finalPrice = discount > 0 ? basePrice - (basePrice * discount / 100f) : basePrice;
+                    float itemTotal = finalPrice * quantity;
+
+                    itemTotals[productId] = itemTotal;
+                    UpdateTotalUI();
+                });
+            }
+        });
+    }
+    private void LoadCartTotal()
+    {
+        dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartTotal").GetValueAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCompleted && task.Result.Exists)
+            {
+                float totalPrice = float.Parse(task.Result.Child("totalPrice").Value.ToString());
+                totalText.text = "Total: " + totalPrice.ToString("F2") + " SAR";
+            }
+            else
+            {
+                totalText.text = "Total: 0.00 SAR";
             }
         });
     }
@@ -137,37 +163,32 @@ public class CartManager : MonoBehaviour
         UpdateTotalUI();
     }
 
-    public void UpdateTotalUI()
+    private void UpdateTotalUI()
     {
         float total = 0f;
-        foreach (var pair in itemTotals) total += pair.Value;
-        currentTotal = total;
-        totalText.text = $"Total: {currentTotal:F2}";
-    }
+        foreach (var item in itemTotals)
+        {
+            total += item.Value;
+        }
 
-    public void AdjustTotal(float priceDelta)
-    {
-        currentTotal += priceDelta;
-        UpdateTotalUI();
+        currentTotal = total;
+        totalText.text = $"Total: {currentTotal:F2} SAR";
     }
 
     public void RestoreStock(string productId, string color, string size, int qty)
     {
-        string stockPath = $"REVIRA/Stores/{storeId}/products/{productId}/stock/{color}/{size}";
-        dbRef.Child(stockPath).GetValueAsync().ContinueWithOnMainThread(stockTask =>
+        string path = $"REVIRA/stores/{storeId}/products/{productId}/colors/{color}/sizes/{size}";
+        dbRef.Child(path).GetValueAsync().ContinueWithOnMainThread(task =>
         {
-            if (stockTask.IsCompleted)
+            if (task.IsCompleted)
             {
-                int currentStock = stockTask.Result.Exists ? Convert.ToInt32(stockTask.Result.Value) : 0;
-                int updatedStock = currentStock + qty;
-                dbRef.Child(stockPath).SetValueAsync(updatedStock).ContinueWithOnMainThread(setTask =>
-                {
-                    if (setTask.IsCompleted)
-                        Debug.Log($"Restored {qty} units to stock for {productId} [{color}-{size}] after manual delete");
-                    else
-                        Debug.LogError("Failed to restore stock on delete: " + setTask.Exception);
-                });
+                int currentStock = int.Parse(task.Result.Value.ToString());
+                dbRef.Child(path).SetValueAsync(currentStock + qty);
             }
         });
     }
 }
+
+
+
+

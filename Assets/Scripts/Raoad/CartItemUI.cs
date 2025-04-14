@@ -13,27 +13,19 @@ public class CartItemUI : MonoBehaviour
     [Header("UI Elements")]
     public Image productImage;
     public TMP_Text productNameText;
-
-    [Header("Price Containers")]
-    public GameObject originalPriceImage;
-    public GameObject discountedPriceImage;
-    public TMP_Text originalPriceText;
     public TMP_Text discountedPriceText;
-    public Image strikeThroughImage; // NEW
+    public TMP_Text originalPriceText;
 
-    [Header("Dropdowns")]
     public TMP_Dropdown colorDropdown;
     public TMP_Dropdown sizeDropdown;
     public TMP_Dropdown quantityDropdown;
-
-    [Header("Buttons")]
-    public Button deleteButton;
+    public Button removeButton;
 
     private string userId, productId, storeId = "storeID_123";
-    private DatabaseReference dbRef;
     private float basePrice, discountPercentage;
-    private Dictionary<string, Dictionary<string, int>> stockData;
+    private DatabaseReference dbRef;
     private CartManager cartManager;
+    private Dictionary<string, Dictionary<string, int>> stockData;
 
     public void SetManager(CartManager manager)
     {
@@ -41,179 +33,167 @@ public class CartItemUI : MonoBehaviour
     }
 
     public void Initialize(
-        string _userId,
-        string _productId,
-        string name,
-        float price,
-        float discount,
-        string selectedColor,
-        string selectedSize,
-        int selectedQty,
-        Dictionary<string, Dictionary<string, int>> _stockData,
-        string imageUrl)
+     string userId,
+     string productId,
+     string productName,
+     float basePrice,
+     float discount,
+     string selectedColor,
+     string selectedSize,
+     int quantity,
+     Dictionary<string, Dictionary<string, int>> stockData,
+     string imageUrl)
     {
-        userId = _userId;
-        productId = _productId;
-        basePrice = price;
-        discountPercentage = discount;
-        stockData = _stockData;
+        this.userId = userId;
+        this.productId = productId;
+        this.basePrice = basePrice;
+        this.discountPercentage = discount;
+        this.stockData = stockData;
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
 
-        productNameText.text = name;
+        productNameText.text = productName;
         DisplayPrice();
         StartCoroutine(LoadImage(imageUrl));
 
         PopulateColorDropdown(selectedColor);
         PopulateSizeDropdown(selectedColor, selectedSize);
-        PopulateQuantityDropdown(selectedColor, selectedSize, selectedQty);
+        PopulateQuantityDropdown(selectedColor, selectedSize, quantity);
 
         colorDropdown.onValueChanged.AddListener(_ => OnColorChanged());
         sizeDropdown.onValueChanged.AddListener(_ => OnSizeChanged());
         quantityDropdown.onValueChanged.AddListener(_ => OnQuantityChanged());
-
-        deleteButton.onClick.AddListener(DeleteItemFromCart);
+        removeButton.onClick.AddListener(DeleteItemFromCart);
     }
-
     private void DisplayPrice()
     {
+        float finalPrice = basePrice;
         if (discountPercentage > 0)
         {
-            float discounted = basePrice - (basePrice * discountPercentage / 100f);
-
-            originalPriceText.text = $"{basePrice:F2}";
-            discountedPriceText.text = $"{discounted:F2}";
-            originalPriceText.fontStyle = FontStyles.Strikethrough;
-
-            originalPriceImage.SetActive(true);
-            discountedPriceImage.SetActive(true);
-            if (strikeThroughImage != null)
-                strikeThroughImage.enabled = true;
+            finalPrice = basePrice - (basePrice * discountPercentage / 100f);
+            originalPriceText.text = basePrice.ToString("F2") + " SAR";
+            originalPriceText.gameObject.SetActive(true);
         }
         else
         {
-            originalPriceText.text = $"{basePrice:F2}";
-            originalPriceText.fontStyle = FontStyles.Normal;
-
-            originalPriceImage.SetActive(true);
-            discountedPriceImage.SetActive(false);
-            if (strikeThroughImage != null)
-                strikeThroughImage.enabled = false;
+            originalPriceText.gameObject.SetActive(false);
         }
+
+        discountedPriceText.text = finalPrice.ToString("F2") + " SAR";
     }
 
-    void PopulateColorDropdown(string selected)
+    private void PopulateColorDropdown(string selected)
     {
         colorDropdown.ClearOptions();
-        List<string> options = new(stockData.Keys);
+        var options = new List<string>(stockData.Keys);
         colorDropdown.AddOptions(options);
+
         int index = options.IndexOf(selected);
         colorDropdown.value = index >= 0 ? index : 0;
         colorDropdown.RefreshShownValue();
     }
 
-    void PopulateSizeDropdown(string color, string selected)
+    private void PopulateSizeDropdown(string color, string selected)
     {
         sizeDropdown.ClearOptions();
         if (!stockData.ContainsKey(color)) return;
-        List<string> sizes = new(stockData[color].Keys);
+
+        var sizes = new List<string>(stockData[color].Keys);
         sizeDropdown.AddOptions(sizes);
+
         int index = sizes.IndexOf(selected);
         sizeDropdown.value = index >= 0 ? index : 0;
         sizeDropdown.RefreshShownValue();
     }
 
-    void PopulateQuantityDropdown(string color, string size, int selectedQty)
+    private void PopulateQuantityDropdown(string color, string size, int selectedQty)
     {
         quantityDropdown.ClearOptions();
         if (!stockData.ContainsKey(color) || !stockData[color].ContainsKey(size)) return;
-        int maxQty = Mathf.Min(5, stockData[color][size]);
+
+        int maxQty = Mathf.Min(stockData[color][size], 10);
         List<string> quantities = new();
-        for (int i = 1; i <= maxQty; i++) quantities.Add(i.ToString());
+        for (int i = 1; i <= maxQty; i++)
+            quantities.Add(i.ToString());
+
         quantityDropdown.AddOptions(quantities);
         int index = quantities.IndexOf(selectedQty.ToString());
         quantityDropdown.value = index >= 0 ? index : 0;
         quantityDropdown.RefreshShownValue();
     }
 
-    void OnColorChanged()
+    private void OnColorChanged()
     {
         string color = GetSelectedColor();
-        string size = stockData[color].Keys.Count > 0 ? new List<string>(stockData[color].Keys)[0] : "";
+        string size = new List<string>(stockData[color].Keys)[0];
+
         PopulateSizeDropdown(color, size);
-        OnFirebaseUpdate();
-        UpdateCartManagerTotal();
-    }
-
-    void OnSizeChanged()
-    {
-        string color = GetSelectedColor();
-        string size = GetSelectedSize();
         PopulateQuantityDropdown(color, size, 1);
-        OnFirebaseUpdate();
-        UpdateCartManagerTotal();
+
+        SaveChangesToFirebase();
     }
 
-    void OnQuantityChanged()
+    private void OnSizeChanged()
     {
-        OnFirebaseUpdate();
-        UpdateCartManagerTotal();
+        string color = GetSelectedColor();
+        string size = GetSelectedSize();
+
+        PopulateQuantityDropdown(color, size, 1);
+        SaveChangesToFirebase();
     }
 
-    void UpdateCartManagerTotal()
+    private void OnQuantityChanged()
     {
-        int qty = int.Parse(quantityDropdown.options[quantityDropdown.value].text);
-        float finalPrice = discountPercentage > 0 ? basePrice - (basePrice * discountPercentage / 100f) : basePrice;
-        float newTotal = finalPrice * qty;
-        cartManager?.UpdateItemTotal(productId, newTotal);
+        SaveChangesToFirebase();
     }
 
-    void OnFirebaseUpdate()
+    private void SaveChangesToFirebase()
     {
         string color = GetSelectedColor();
         string size = GetSelectedSize();
         int qty = int.Parse(quantityDropdown.options[quantityDropdown.value].text);
+
         long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
         Dictionary<string, object> updateData = new()
         {
             { "color", color },
             { "sizes/" + size, qty },
-            { "price", basePrice },
-            { "productID", productId },
-            { "productName", productNameText.text },
             { "timestamp", timestamp },
             { "expiresAt", timestamp + 86400 }
         };
 
-        string path = $"REVIRA/Consumers/{userId}/cart/cartItems/{productId}";
-        dbRef.Child(path).UpdateChildrenAsync(updateData).ContinueWithOnMainThread(task =>
-        {
-            if (!task.IsCompleted)
-                Debug.LogError("Failed to update cart item: " + task.Exception);
-        });
+        dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartItems/{productId}")
+            .UpdateChildrenAsync(updateData)
+            .ContinueWithOnMainThread(task =>
+            {
+                if (task.IsCompleted)
+                {
+                    float finalPrice = discountPercentage > 0 ? basePrice - (basePrice * discountPercentage / 100f) : basePrice;
+                    cartManager?.UpdateItemTotal(productId, finalPrice * qty);
+                }
+            });
     }
 
-    void DeleteItemFromCart()
+    private void DeleteItemFromCart()
     {
         string color = GetSelectedColor();
         string size = GetSelectedSize();
         int qty = int.Parse(quantityDropdown.options[quantityDropdown.value].text);
 
-        cartManager?.RestoreStock(productId, color, size, qty);
-
-        string path = $"REVIRA/Consumers/{userId}/cart/cartItems/{productId}";
-        dbRef.Child(path).RemoveValueAsync().ContinueWithOnMainThread(task =>
-        {
-            if (task.IsCompleted)
-                Destroy(gameObject);
-            else
-                Debug.LogError("Failed to delete cart item: " + task.Exception);
-        });
+        dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartItems/{productId}")
+            .RemoveValueAsync().ContinueWithOnMainThread(task =>
+            {
+                if (task.IsCompleted)
+                {
+                    cartManager?.RestoreStock(productId, color, size, qty);
+                    Destroy(gameObject);
+                }
+            });
     }
 
-    IEnumerator LoadImage(string url)
+    private IEnumerator LoadImage(string url)
     {
-        using UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
+        UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
         yield return request.SendWebRequest();
 
         if (request.result == UnityWebRequest.Result.Success)
@@ -227,6 +207,9 @@ public class CartItemUI : MonoBehaviour
         }
     }
 
-    string GetSelectedColor() => colorDropdown.options[colorDropdown.value].text;
-    string GetSelectedSize() => sizeDropdown.options[sizeDropdown.value].text;
+    private string GetSelectedColor() => colorDropdown.options[colorDropdown.value].text;
+    private string GetSelectedSize() => sizeDropdown.options[sizeDropdown.value].text;
 }
+
+
+
