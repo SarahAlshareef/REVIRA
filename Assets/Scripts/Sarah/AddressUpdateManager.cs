@@ -25,21 +25,25 @@ public class AddressUpdateManager : MonoBehaviour
 
     private DatabaseReference dbRef;
     private string userId;
-
     private List<Address> workingList = new();
     private const int maxAddresses = 3;
 
     void Start()
     {
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
-        StartCoroutine(WaitForUserIdAndLoad());
+        StartCoroutine(WaitUntilUserReady());
+
+        errorMessageText.text = "";
+        confirmationMessage.text = "";
+        errorMessageText.gameObject.SetActive(false);
+        confirmationMessage.gameObject.SetActive(false);
 
         addNewAddressButton.onClick.AddListener(() =>
         {
             bool isActive = addNewAddressForm.activeSelf;
             addNewAddressForm.SetActive(!isActive);
             if (isActive) ClearInputs();
-            errorMessageText.text = "";
+            HideMessages();
         });
 
         confirmAddButton.onClick.AddListener(AddNewAddress);
@@ -47,35 +51,40 @@ public class AddressUpdateManager : MonoBehaviour
         discardButton.onClick.AddListener(() =>
         {
             ClearInputs();
-            confirmationMessage.text = "";
-            errorMessageText.text = "";
+            HideMessages();
             LoadFromFirebase();
         });
 
-        saveButton.onClick.AddListener(() =>
-        {
-            SaveToFirebase();
-        });
-
+        saveButton.onClick.AddListener(SaveToFirebase);
         backButton.onClick.AddListener(OnBackButtonPressed);
-
-        confirmationMessage.text = "";
-        errorMessageText.text = "";
     }
 
-    IEnumerator WaitForUserIdAndLoad()
+    IEnumerator WaitUntilUserReady()
     {
-        while (string.IsNullOrEmpty(UserManager.Instance.UserId)) yield return null;
+        while (string.IsNullOrEmpty(UserManager.Instance.UserId))
+            yield return null;
+
         userId = UserManager.Instance.UserId;
+        LoadFromFirebase();
+    }
+
+    public void OnOpenAddressUpdatePanel()
+    {
+        ClearInputs();
+        HideMessages();
         LoadFromFirebase();
     }
 
     void LoadFromFirebase()
     {
+        workingList.Clear();
+
+        // Remove all existing address bars from the UI before loading fresh data
+        foreach (Transform child in addressListParent)
+            Destroy(child.gameObject);
+
         dbRef.Child("REVIRA/Consumers/" + userId + "/AddressBook").GetValueAsync().ContinueWithOnMainThread(task =>
         {
-            workingList.Clear();
-
             if (task.IsCompleted && task.Result.Exists)
             {
                 foreach (var snap in task.Result.Children)
@@ -118,26 +127,28 @@ public class AddressUpdateManager : MonoBehaviour
 
     public void AddNewAddress()
     {
-        errorMessageText.text = "";
-        confirmationMessage.text = "";
+        HideMessages();
 
         if (string.IsNullOrEmpty(addressNameInput.text) || string.IsNullOrEmpty(cityInput.text) ||
             string.IsNullOrEmpty(districtInput.text) || string.IsNullOrEmpty(streetInput.text) ||
             string.IsNullOrEmpty(buildingInput.text) || string.IsNullOrEmpty(phoneNumberInput.text))
         {
             errorMessageText.text = "Please fill in all fields.";
+            errorMessageText.gameObject.SetActive(true);
             return;
         }
 
         if (!phoneNumberInput.text.StartsWith("05") || phoneNumberInput.text.Length != 10 || !phoneNumberInput.text.All(char.IsDigit))
         {
             errorMessageText.text = "Phone number must start with '05' and be 10 digits.";
+            errorMessageText.gameObject.SetActive(true);
             return;
         }
 
         if (workingList.Count >= maxAddresses)
         {
             errorMessageText.text = "You’ve reached the maximum number of addresses.";
+            errorMessageText.gameObject.SetActive(true);
             return;
         }
 
@@ -159,6 +170,8 @@ public class AddressUpdateManager : MonoBehaviour
 
     void SaveToFirebase()
     {
+        HideMessages();
+
         var baseRef = dbRef.Child("REVIRA/Consumers").Child(userId).Child("AddressBook");
         baseRef.RemoveValueAsync().ContinueWithOnMainThread(_ =>
         {
@@ -169,6 +182,7 @@ public class AddressUpdateManager : MonoBehaviour
             }
 
             confirmationMessage.text = "Changes saved successfully.";
+            confirmationMessage.gameObject.SetActive(true);
         });
     }
 
@@ -178,12 +192,19 @@ public class AddressUpdateManager : MonoBehaviour
         streetInput.text = buildingInput.text = phoneNumberInput.text = "";
     }
 
+    void HideMessages()
+    {
+        errorMessageText.text = "";
+        confirmationMessage.text = "";
+        errorMessageText.gameObject.SetActive(false);
+        confirmationMessage.gameObject.SetActive(false);
+    }
+
     public void OnBackButtonPressed()
     {
         addNewAddressForm.SetActive(false);
         ClearInputs();
-        errorMessageText.text = "";
-        confirmationMessage.text = "";
+        HideMessages();
 
         addressUpdatePanel.SetActive(false);
         profileDetailsPanel.SetActive(true);
