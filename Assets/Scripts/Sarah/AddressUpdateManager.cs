@@ -12,10 +12,16 @@ public class AddressUpdateManager : MonoBehaviour
     [Header("UI References")]
     public Transform addressListParent;
     public GameObject addressBarPrefab, noAddressMessage, addNewAddressForm;
-    public Button addNewAddressButton, discardButton, saveButton, confirmAddButton;
+
+    public Button addNewAddressButton, discardButton, saveButton, confirmAddButton, backButton;
+
     public TMP_InputField addressNameInput, cityInput, districtInput, streetInput, buildingInput, phoneNumberInput;
     public TMP_Dropdown countryDropdown;
     public TextMeshProUGUI errorMessageText, confirmationMessage;
+
+    [Header("UI Panels")]
+    public GameObject addressUpdatePanel;
+    public GameObject profileDetailsPanel;
 
     private DatabaseReference dbRef;
     private string userId;
@@ -51,6 +57,8 @@ public class AddressUpdateManager : MonoBehaviour
             SaveToFirebase();
         });
 
+        backButton.onClick.AddListener(OnBackButtonPressed);
+
         confirmationMessage.text = "";
         errorMessageText.text = "";
     }
@@ -66,18 +74,15 @@ public class AddressUpdateManager : MonoBehaviour
     {
         dbRef.Child("REVIRA/Consumers/" + userId + "/AddressBook").GetValueAsync().ContinueWithOnMainThread(task =>
         {
+            workingList.Clear();
+
             if (task.IsCompleted && task.Result.Exists)
             {
-                workingList.Clear();
                 foreach (var snap in task.Result.Children)
                 {
                     Address address = JsonUtility.FromJson<Address>(snap.GetRawJsonValue());
                     workingList.Add(address);
                 }
-            }
-            else
-            {
-                workingList.Clear();
             }
 
             RebuildUIFromWorkingList();
@@ -171,5 +176,16 @@ public class AddressUpdateManager : MonoBehaviour
     {
         addressNameInput.text = cityInput.text = districtInput.text =
         streetInput.text = buildingInput.text = phoneNumberInput.text = "";
+    }
+
+    public void OnBackButtonPressed()
+    {
+        addNewAddressForm.SetActive(false);
+        ClearInputs();
+        errorMessageText.text = "";
+        confirmationMessage.text = "";
+
+        addressUpdatePanel.SetActive(false);
+        profileDetailsPanel.SetActive(true);
     }
 }
