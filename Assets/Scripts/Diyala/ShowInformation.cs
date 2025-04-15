@@ -9,6 +9,7 @@ public class ShowInformation : MonoBehaviour
 {
     [Header("General")]
     public Button closeProfileButton;
+    public Button backToViewButton;
     public TextMeshProUGUI welcomeText;
 
     [Header("Panels")]
@@ -16,7 +17,6 @@ public class ShowInformation : MonoBehaviour
     public GameObject updateInformation;
 
     [Header("View Information Panel")]
-    public Button updateInfoButton;
     public TextMeshProUGUI genderText;
     public TextMeshProUGUI firstNameText;
     public TextMeshProUGUI lastNameText;
@@ -25,8 +25,6 @@ public class ShowInformation : MonoBehaviour
 
     private string userId;
 
-    public UpdateInformation updateScript;
-
     void Start()
     {
         userId = UserManager.Instance.UserId;
@@ -34,9 +32,9 @@ public class ShowInformation : MonoBehaviour
 
         viewInformation.SetActive(false);
         updateInformation.SetActive(false);
-
-        updateInfoButton?.onClick.AddListener(updateScript.ShowUpdatePanel);
+       
         closeProfileButton?.onClick.AddListener(CloseProfile);
+        backToViewButton?.onClick.AddListener(ShowViewPanel);
     }
     public void ShowProfile()
     {

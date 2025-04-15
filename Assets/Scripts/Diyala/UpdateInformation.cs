@@ -23,14 +23,14 @@ public class UpdateInformation : MonoBehaviour
     public TMP_InputField phoneInput;
     public Toggle maleToggle;
     public Toggle femaleToggle;
-    public Button saveButton;
-    public Button discardButton;
-    public Button backButton;
     public TextMeshProUGUI messageText;
 
-    private string userId;
+    [Header("Update Information Buttons")]
+    public Button updateInfoButton;
+    public Button saveButton;
+    public Button discardButton;
 
-    public ShowInformation showScript;
+    private string userId;
 
     void Start()
     {
@@ -39,24 +39,15 @@ public class UpdateInformation : MonoBehaviour
         phoneInput.characterLimit = 10;
         phoneInput.onValueChanged.AddListener(FilterPhoneNumber);
 
-        viewInformation.SetActive(false);
-        updateInformation.SetActive(false);
-
+        updateInfoButton?.onClick.AddListener(ShowUpdatePanel);
         saveButton?.onClick.AddListener(SaveChanges);
         discardButton?.onClick.AddListener(LoadUpdateData);
-        backButton?.onClick.AddListener(ShowViewPanel);
     }
     public void ShowUpdatePanel()
     {
         viewInformation.SetActive(false);
         updateInformation.SetActive(true);
         LoadUpdateData();
-    }
-    void ShowViewPanel()
-    {
-        viewInformation.SetActive(true);
-        updateInformation.SetActive(false);
-        showScript.LoadViewData();
     }
     public void LoadUpdateData()
     {
@@ -161,7 +152,6 @@ public class UpdateInformation : MonoBehaviour
                 UserManager.Instance.UpdatePhoneNumber(phone);
                 UserManager.Instance.UpdateGender(gender);
 
-                showScript.LoadViewData();
                 ShowMessage(successMessage, Color.green);
             }
             else
