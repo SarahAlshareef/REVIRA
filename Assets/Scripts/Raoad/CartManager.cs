@@ -31,7 +31,6 @@ public class CartManager : MonoBehaviour
             return;
         }
 
-        
         Debug.Log("Cart Content: " + (cartContent != null));
         Debug.Log("Cart Item Prefab: " + (cartItemPrefab != null));
         Debug.Log("Total Text: " + (totalText != null));
@@ -96,8 +95,8 @@ public class CartManager : MonoBehaviour
                     if (productData.HasChild("discount") && productData.Child("discount").Child("exists").Value.ToString().ToLower() == "true")
                     {
                         discount = float.Parse(productData.Child("discount").Child("percentage").Value.ToString());
-                    }
 
+                    }
                     // Load stock structure
                     Dictionary<string, Dictionary<string, int>> stockData = new();
                     foreach (var colorEntry in productData.Child("colors").Children)

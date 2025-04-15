@@ -74,27 +74,23 @@ public class CartItemUI : MonoBehaviour
         {
             finalPrice = basePrice - (basePrice * discountPercentage / 100f);
 
-
-            originalPriceText.text = basePrice.ToString("F0");
+            originalPriceText.text = basePrice.ToString("F1");
             originalPriceText.gameObject.SetActive(true);
 
-            
             transform.Find("price/Image(line)").gameObject.SetActive(true);
             transform.Find("Discount/Image(RedRiyal)").gameObject.SetActive(true);
 
-            
-            discountedPriceText.text = finalPrice.ToString("F0");
+            discountedPriceText.text = finalPrice.ToString("F1");
             discountedPriceText.gameObject.SetActive(true);
         }
-        else {
-            
-            originalPriceText.text = basePrice.ToString("F0");
+        else
+        {
+            originalPriceText.text = basePrice.ToString("F1");
             originalPriceText.gameObject.SetActive(true);
 
             transform.Find("price/Image(line)").gameObject.SetActive(false);
             transform.Find("Discount/Image(RedRiyal)").gameObject.SetActive(false);
 
-           
             discountedPriceText.gameObject.SetActive(false);
         }
     }
@@ -144,8 +140,8 @@ public class CartItemUI : MonoBehaviour
 
         PopulateSizeDropdown(color, size);
         PopulateQuantityDropdown(color, size, 1);
-
         SaveChangesToFirebase();
+        DisplayPrice();
     }
     private void OnSizeChanged()
     {
@@ -154,11 +150,13 @@ public class CartItemUI : MonoBehaviour
 
         PopulateQuantityDropdown(color, size, 1);
         SaveChangesToFirebase();
+        DisplayPrice();
     }
 
     private void OnQuantityChanged()
     {
         SaveChangesToFirebase();
+        DisplayPrice();
     }
 
     private void SaveChangesToFirebase()
@@ -223,6 +221,7 @@ public class CartItemUI : MonoBehaviour
     private string GetSelectedColor() => colorDropdown.options[colorDropdown.value].text;
     private string GetSelectedSize() => sizeDropdown.options[sizeDropdown.value].text;
 }
+
 
 
 
