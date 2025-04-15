@@ -9,17 +9,18 @@ public class AddressUpdateUIManager : MonoBehaviour
     public GameObject addressUpdatePanel;
 
     [Header("Buttons")]
-    public Button updateAddressButton;
-    public Button backButton;
+    public Button updateAddressButton;  // Button from Profile Details
+    public Button backButton;           // Button inside Address Update panel
 
     [Header("Address Input Fields")]
     public TMP_InputField addressNameInput, cityInput, districtInput, streetInput, buildingInput, phoneNumberInput;
 
-    [Header("Scripts")]
-    public AddressDisplayOnly addressDisplayOnlyScript;
+    [Header("Managers")]
+    public AddressUpdateManager addressUpdateManager; // Assign this in the Inspector
 
     void Start()
     {
+        // Initial state
         profileDetailsPanel.SetActive(true);
         addressUpdatePanel.SetActive(false);
 
@@ -31,14 +32,16 @@ public class AddressUpdateUIManager : MonoBehaviour
     {
         profileDetailsPanel.SetActive(false);
         addressUpdatePanel.SetActive(true);
+
+        if (addressUpdateManager != null)
+            addressUpdateManager.OnOpenAddressUpdatePanel();
     }
 
     void BackToProfileDetails()
     {
         ClearInputs();
-        addressUpdatePanel.SetActive(false);
         profileDetailsPanel.SetActive(true);
-        addressDisplayOnlyScript.LoadAddresses();
+        addressUpdatePanel.SetActive(false);
     }
 
     void ClearInputs()

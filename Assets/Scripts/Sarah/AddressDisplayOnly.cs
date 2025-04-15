@@ -8,6 +8,7 @@ public class AddressDisplayOnly : MonoBehaviour
 {
     public Transform addressParent;
     public GameObject addressBarPrefab;
+    public GameObject noAddressMessage; // Assign in Inspector
 
     private DatabaseReference dbRef;
     private string userId;
@@ -38,6 +39,8 @@ public class AddressDisplayOnly : MonoBehaviour
 
         dbRef.Child("REVIRA/Consumers/" + userId + "/AddressBook").GetValueAsync().ContinueWithOnMainThread(task =>
         {
+            bool hasAddress = false;
+
             if (task.IsCompleted && task.Result.Exists)
             {
                 foreach (DataSnapshot snap in task.Result.Children)
@@ -51,8 +54,13 @@ public class AddressDisplayOnly : MonoBehaviour
                     {
                         textComponent.text = $"{address.addressName}, {address.city}, {address.district}, {address.street}, {address.building}, {address.phoneNumber}";
                     }
+
+                    hasAddress = true;
                 }
             }
+
+            // Show/hide "No Address" message
+            noAddressMessage.SetActive(!hasAddress);
         });
     }
 }

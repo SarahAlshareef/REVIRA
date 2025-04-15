@@ -6,6 +6,7 @@ using Firebase.Extensions;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 public class AddressUpdateManager : MonoBehaviour
 {
@@ -22,6 +23,12 @@ public class AddressUpdateManager : MonoBehaviour
     [Header("UI Panels")]
     public GameObject addressUpdatePanel;
     public GameObject profileDetailsPanel;
+
+    [Header("Scripts")]
+    public AddressDisplayOnly addressDisplayOnlyScript;
+
+    [Header("Visuals")]
+    public GameObject addNewAddressButtonImage;
 
     private DatabaseReference dbRef;
     private string userId;
@@ -70,8 +77,17 @@ public class AddressUpdateManager : MonoBehaviour
 
     public void OnOpenAddressUpdatePanel()
     {
+        // Ensure the form is hidden even if enabled in editor
+        if (addNewAddressForm.activeSelf)
+            addNewAddressForm.SetActive(false);
+
         ClearInputs();
         HideMessages();
+
+        workingList.Clear();
+        foreach (Transform child in addressListParent)
+            Destroy(child.gameObject);
+
         LoadFromFirebase();
     }
 
@@ -79,7 +95,6 @@ public class AddressUpdateManager : MonoBehaviour
     {
         workingList.Clear();
 
-        // Remove all existing address bars from the UI before loading fresh data
         foreach (Transform child in addressListParent)
             Destroy(child.gameObject);
 
@@ -122,7 +137,12 @@ public class AddressUpdateManager : MonoBehaviour
         }
 
         noAddressMessage.SetActive(workingList.Count == 0);
-        addNewAddressButton.interactable = workingList.Count < maxAddresses;
+
+        bool canAddMore = workingList.Count < maxAddresses;
+        addNewAddressButton.interactable = canAddMore;
+
+        if (addNewAddressButtonImage != null)
+            addNewAddressButtonImage.SetActive(canAddMore);
     }
 
     public void AddNewAddress()
@@ -175,14 +195,23 @@ public class AddressUpdateManager : MonoBehaviour
         var baseRef = dbRef.Child("REVIRA/Consumers").Child(userId).Child("AddressBook");
         baseRef.RemoveValueAsync().ContinueWithOnMainThread(_ =>
         {
+            List<Task> saveTasks = new();
+
             for (int i = 0; i < workingList.Count; i++)
             {
                 string key = "Address" + (i + 1);
-                baseRef.Child(key).SetRawJsonValueAsync(JsonUtility.ToJson(workingList[i]));
+                var task = baseRef.Child(key).SetRawJsonValueAsync(JsonUtility.ToJson(workingList[i]));
+                saveTasks.Add(task);
             }
 
-            confirmationMessage.text = "Changes saved successfully.";
-            confirmationMessage.gameObject.SetActive(true);
+            Task.WhenAll(saveTasks).ContinueWithOnMainThread(__ =>
+            {
+                confirmationMessage.text = "Changes saved successfully.";
+                confirmationMessage.gameObject.SetActive(true);
+
+                if (addressDisplayOnlyScript != null)
+                    addressDisplayOnlyScript.LoadAddresses();
+            });
         });
     }
 
@@ -208,5 +237,8 @@ public class AddressUpdateManager : MonoBehaviour
 
         addressUpdatePanel.SetActive(false);
         profileDetailsPanel.SetActive(true);
+
+        if (addressDisplayOnlyScript != null)
+            addressDisplayOnlyScript.LoadAddresses();
     }
 }
