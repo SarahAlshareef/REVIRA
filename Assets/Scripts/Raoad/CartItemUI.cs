@@ -70,7 +70,7 @@ public class CartItemUI : MonoBehaviour
         if (discountPercentage > 0)
         {
             finalPrice = basePrice - (basePrice * discountPercentage / 100f);
-            originalPriceText.text = basePrice.ToString("F2") + " SAR";
+            originalPriceText.text = basePrice.ToString("F2") ;
             originalPriceText.gameObject.SetActive(true);
         }
         else
@@ -78,7 +78,7 @@ public class CartItemUI : MonoBehaviour
             originalPriceText.gameObject.SetActive(false);
         }
 
-        discountedPriceText.text = finalPrice.ToString("F2") + " SAR";
+        discountedPriceText.text = finalPrice.ToString("F2") ;
     }
 
     private void PopulateColorDropdown(string selected)
@@ -210,6 +210,7 @@ public class CartItemUI : MonoBehaviour
     private string GetSelectedColor() => colorDropdown.options[colorDropdown.value].text;
     private string GetSelectedSize() => sizeDropdown.options[sizeDropdown.value].text;
 }
+
 
 
 

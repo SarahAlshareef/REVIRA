@@ -148,11 +148,11 @@ public class CartManager : MonoBehaviour
             if (task.IsCompleted && task.Result.Exists)
             {
                 float totalPrice = float.Parse(task.Result.Child("totalPrice").Value.ToString());
-                totalText.text = "Total: " + totalPrice.ToString("F2") + " SAR";
+                totalText.text = "Total: " + totalPrice.ToString("F2") ;
             }
             else
             {
-                totalText.text = "Total: 0.00 SAR";
+                totalText.text = "Total: 0.00 ";
             }
         });
     }
@@ -172,7 +172,7 @@ public class CartManager : MonoBehaviour
         }
 
         currentTotal = total;
-        totalText.text = $"Total: {currentTotal:F2} SAR";
+        totalText.text = $"Total: {currentTotal:F2} ";
     }
 
     public void RestoreStock(string productId, string color, string size, int qty)
