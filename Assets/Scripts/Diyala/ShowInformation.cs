@@ -25,27 +25,25 @@ public class ShowInformation : MonoBehaviour
 
     private string userId;
 
+    private void Awake()
+    {
+        viewInformation.SetActive(false);
+        updateInformation.SetActive(false);
+    }
     void Start()
     {
         userId = UserManager.Instance.UserId;
         welcomeText.text = $"Hi, {UserManager.Instance.FirstName} {UserManager.Instance.LastName}";
-
-        viewInformation.SetActive(false);
-        updateInformation.SetActive(false);
        
         closeProfileButton?.onClick.AddListener(CloseProfile);
         backToViewButton?.onClick.AddListener(ShowViewPanel);
-    }
-    public void ShowProfile()
-    {
-        ShowViewPanel();
     }
     public void CloseProfilePanel()
     {
         viewInformation.SetActive(false);
         updateInformation.SetActive(false);
     }
-    void ShowViewPanel()
+    public void ShowViewPanel()
     {
         viewInformation.SetActive(true);
         updateInformation.SetActive(false);
