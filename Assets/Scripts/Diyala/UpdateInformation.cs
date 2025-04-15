@@ -2,30 +2,19 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using UnityEngine.SceneManagement;
 // Firebase
+using Firebase.Auth;
 using Firebase.Database;
 using Firebase.Extensions;
 // C#
 using System.Collections.Generic;
 
-public class PersonalInformation : MonoBehaviour
-{
-    [Header("General")]
-    public Button closeProfileButton;
-    public TextMeshProUGUI welcomeText;
 
+public class UpdateInformation : MonoBehaviour
+{
     [Header("Panels")]
     public GameObject viewInformation;
     public GameObject updateInformation;
-
-    [Header("View Information Panel")]
-    public Button updateInfoButton;
-    public TextMeshProUGUI genderText;
-    public TextMeshProUGUI firstNameText;
-    public TextMeshProUGUI lastNameText;
-    public TextMeshProUGUI emailText;
-    public TextMeshProUGUI phoneText;
 
     [Header("Update Information Panel")]
     public TMP_InputField firstNameInput;
@@ -41,10 +30,11 @@ public class PersonalInformation : MonoBehaviour
 
     private string userId;
 
+    public ShowInformation showScript;
+
     void Start()
     {
         userId = UserManager.Instance.UserId;
-        welcomeText.text = $"Hi, {UserManager.Instance.FirstName} {UserManager.Instance.LastName}";
 
         phoneInput.characterLimit = 10;
         phoneInput.onValueChanged.AddListener(FilterPhoneNumber);
@@ -52,49 +42,23 @@ public class PersonalInformation : MonoBehaviour
         viewInformation.SetActive(false);
         updateInformation.SetActive(false);
 
-        updateInfoButton?.onClick.AddListener(ShowUpdatePanel);
         saveButton?.onClick.AddListener(SaveChanges);
         discardButton?.onClick.AddListener(LoadUpdateData);
         backButton?.onClick.AddListener(ShowViewPanel);
-
-        closeProfileButton?.onClick.AddListener(CloseProfile);
     }
-    public void ShowProfile()
-    {     
-        ShowViewPanel();        
-    }
-    public void CloseProfilePanel()
-    {
-        viewInformation.SetActive(false);
-        updateInformation.SetActive(false);
-    }
-    void ShowViewPanel()
-    {
-        viewInformation.SetActive(true);
-        updateInformation.SetActive(false);
-        LoadViewData();
-    }
-    void ShowUpdatePanel()
+    public void ShowUpdatePanel()
     {
         viewInformation.SetActive(false);
         updateInformation.SetActive(true);
         LoadUpdateData();
     }
-    void LoadViewData()
+    void ShowViewPanel()
     {
-        string gender = string.IsNullOrEmpty(UserManager.Instance.Gender) ? "Not Added" : UserManager.Instance.Gender;
-        string firstName = string.IsNullOrEmpty(UserManager.Instance.FirstName) ? "Not Added" : UserManager.Instance.FirstName;
-        string lastName = string.IsNullOrEmpty(UserManager.Instance.LastName) ? "Not Added" : UserManager.Instance.LastName;
-        string email = string.IsNullOrEmpty(UserManager.Instance.Email) ? "Not Added" : UserManager.Instance.Email;
-        string phone = string.IsNullOrEmpty(UserManager.Instance.PhoneNumber) ? "Not Added" : UserManager.Instance.PhoneNumber;
-
-        genderText.text = gender;
-        firstNameText.text = firstName;
-        lastNameText.text = lastName;
-        emailText.text = email;
-        phoneText.text = phone;
+        viewInformation.SetActive(true);
+        updateInformation.SetActive(false);
+        showScript.LoadViewData();
     }
-    void LoadUpdateData()
+    public void LoadUpdateData()
     {
         firstNameInput.text = UserManager.Instance.FirstName;
         lastNameInput.text = UserManager.Instance.LastName;
@@ -110,22 +74,32 @@ public class PersonalInformation : MonoBehaviour
 
         maleToggle.onValueChanged.AddListener((isOn) =>
         {
-        if (isOn) femaleToggle.isOn = false;
+            if (isOn) femaleToggle.isOn = false;
         });
         femaleToggle.onValueChanged.AddListener((isOn) =>
         {
-        if (isOn) maleToggle.isOn = false;
+            if (isOn) maleToggle.isOn = false;
         });
     }
     void FilterPhoneNumber(string input)
     {
         string digitsOnly = "";
 
-        foreach (char c in input) {
+        foreach (char c in input)
+        {
             if (char.IsDigit(c)) digitsOnly += c;
         }
-        if (phoneInput.text != digitsOnly )
+        if (phoneInput.text != digitsOnly)
             phoneInput.text = digitsOnly;
+    }
+    bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch { return false; }
     }
     void SaveChanges()
     {
@@ -135,36 +109,60 @@ public class PersonalInformation : MonoBehaviour
         string newPhone = phoneInput.text.Trim();
         string newGender = maleToggle.isOn ? "Male" : (femaleToggle.isOn ? "Female" : "");
 
-        if ( string.IsNullOrEmpty(newFirstName) || string.IsNullOrEmpty(newLastName) || string.IsNullOrEmpty(newEmail) || 
+        if (string.IsNullOrEmpty(newFirstName) || string.IsNullOrEmpty(newLastName) || string.IsNullOrEmpty(newEmail) ||
             string.IsNullOrEmpty(newPhone) || string.IsNullOrEmpty(newGender))
         {
             ShowMessage("Please complete all fields before saving.", Color.red);
             return;
         }
-
+        if (!IsValidEmail(newEmail))
+        {
+            ShowMessage("Please enter a valid email address.", Color.red);
+            return;
+        }
+        if (newEmail != UserManager.Instance.Email)
+        {
+            FirebaseAuth.DefaultInstance.CurrentUser.UpdateEmailAsync(newEmail).ContinueWithOnMainThread(authTask =>
+            {
+                if (authTask.IsCompleted)
+                {
+                    UpdateUserData(newFirstName, newLastName, newEmail, newPhone, newGender, "Information updated successfully. Your new email will be used to log in.");
+                }
+                else
+                {
+                    ShowMessage("Failed to update email. It may already be in use.", Color.red);
+                }
+            });
+        }
+        else
+        {
+            UpdateUserData(newFirstName, newLastName, newEmail, newPhone, newGender, "Your information updated successfully.");
+        }
+    }
+    void UpdateUserData(string firstName, string lastName, string email, string phone, string gender, string successMessage)
+    {
         DatabaseReference userRef = FirebaseDatabase.DefaultInstance.RootReference.Child("REVIRA").Child("Consumers").Child(userId);
 
         var updates = new Dictionary<string, object>
-    {
-        { "firstName", newFirstName },
-        { "lastName", newLastName },
-        { "email", newEmail },
-        { "phoneNumber", newPhone },
-        { "gender", newGender }
-    };
-
-        userRef.UpdateChildrenAsync(updates).ContinueWithOnMainThread(task =>
+                {
+                    { "firstName", firstName },
+                    { "lastName", lastName },
+                    { "email", email },
+                    { "phoneNumber", phone },
+                    { "gender", gender }
+                };
+        userRef.UpdateChildrenAsync(updates).ContinueWithOnMainThread(dbTask =>
         {
-            if (task.IsCompleted)
+            if (dbTask.IsCompleted)
             {
-                UserManager.Instance.UpdateFirstName(newFirstName);
-                UserManager.Instance.UpdateLastName(newLastName);
-                UserManager.Instance.UpdateEmail(newEmail);
-                UserManager.Instance.UpdatePhoneNumber(newPhone);
-                UserManager.Instance.UpdateGender(newGender);
+                UserManager.Instance.UpdateFirstName(firstName);
+                UserManager.Instance.UpdateLastName(lastName);
+                UserManager.Instance.UpdateEmail(email);
+                UserManager.Instance.UpdatePhoneNumber(phone);
+                UserManager.Instance.UpdateGender(gender);
 
-                LoadViewData(); 
-                ShowMessage("Your information has been updated successfully.", Color.green);
+                showScript.LoadViewData();
+                ShowMessage(successMessage, Color.green);
             }
             else
             {
@@ -172,19 +170,6 @@ public class PersonalInformation : MonoBehaviour
             }
         });
     }
-
-    public void CloseProfile()
-    {
-        if (!string.IsNullOrEmpty(SceneTracker.Instance.PreviousSceneName))
-        {
-            SceneManager.LoadScene(SceneTracker.Instance.PreviousSceneName);
-        }
-        else
-        {
-            Debug.LogWarning("No previous scene stored.");
-        }
-    }
-
     void ShowMessage(string message, Color color)
     {
         if (messageText != null)
@@ -194,3 +179,4 @@ public class PersonalInformation : MonoBehaviour
         }
     }
 }
+
