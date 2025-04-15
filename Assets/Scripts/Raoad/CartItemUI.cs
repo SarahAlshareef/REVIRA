@@ -15,7 +15,7 @@ public class CartItemUI : MonoBehaviour
     public TMP_Text productNameText;
     public TMP_Text discountedPriceText;
     public TMP_Text originalPriceText;
-
+    
     public TMP_Dropdown colorDropdown;
     public TMP_Dropdown sizeDropdown;
     public TMP_Dropdown quantityDropdown;
@@ -37,8 +37,8 @@ public class CartItemUI : MonoBehaviour
      string productId,
      string productName,
      float basePrice,
-     float discount,
-     string selectedColor,
+     float discountPercentage,
+    string selectedColor,
      string selectedSize,
      int quantity,
      Dictionary<string, Dictionary<string, int>> stockData,
@@ -47,13 +47,13 @@ public class CartItemUI : MonoBehaviour
         this.userId = userId;
         this.productId = productId;
         this.basePrice = basePrice;
-        this.discountPercentage = discount;
+        this.discountPercentage = discountPercentage;
         this.stockData = stockData;
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
 
         productNameText.text = productName;
-        DisplayPrice();
         StartCoroutine(LoadImage(imageUrl));
+        
 
         PopulateColorDropdown(selectedColor);
         PopulateSizeDropdown(selectedColor, selectedSize);
@@ -63,24 +63,41 @@ public class CartItemUI : MonoBehaviour
         sizeDropdown.onValueChanged.AddListener(_ => OnSizeChanged());
         quantityDropdown.onValueChanged.AddListener(_ => OnQuantityChanged());
         removeButton.onClick.AddListener(DeleteItemFromCart);
+
+        DisplayPrice();
     }
     private void DisplayPrice()
     {
         float finalPrice = basePrice;
+
         if (discountPercentage > 0)
         {
             finalPrice = basePrice - (basePrice * discountPercentage / 100f);
-            originalPriceText.text = basePrice.ToString("F2") ;
+
+
+            originalPriceText.text = basePrice.ToString("F0");
             originalPriceText.gameObject.SetActive(true);
-        }
-        else
-        {
-            originalPriceText.gameObject.SetActive(false);
-        }
 
-        discountedPriceText.text = finalPrice.ToString("F2") ;
+            
+            transform.Find("price/Image(line)").gameObject.SetActive(true);
+            transform.Find("Discount/Image(RedRiyal)").gameObject.SetActive(true);
+
+            
+            discountedPriceText.text = finalPrice.ToString("F0");
+            discountedPriceText.gameObject.SetActive(true);
+        }
+        else {
+            
+            originalPriceText.text = basePrice.ToString("F0");
+            originalPriceText.gameObject.SetActive(true);
+
+            transform.Find("price/Image(line)").gameObject.SetActive(false);
+            transform.Find("Discount/Image(RedRiyal)").gameObject.SetActive(false);
+
+           
+            discountedPriceText.gameObject.SetActive(false);
+        }
     }
-
     private void PopulateColorDropdown(string selected)
     {
         colorDropdown.ClearOptions();
@@ -120,7 +137,6 @@ public class CartItemUI : MonoBehaviour
         quantityDropdown.value = index >= 0 ? index : 0;
         quantityDropdown.RefreshShownValue();
     }
-
     private void OnColorChanged()
     {
         string color = GetSelectedColor();
@@ -131,7 +147,6 @@ public class CartItemUI : MonoBehaviour
 
         SaveChangesToFirebase();
     }
-
     private void OnSizeChanged()
     {
         string color = GetSelectedColor();
@@ -190,7 +205,6 @@ public class CartItemUI : MonoBehaviour
                 }
             });
     }
-
     private IEnumerator LoadImage(string url)
     {
         UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
@@ -206,10 +220,14 @@ public class CartItemUI : MonoBehaviour
             Debug.LogError("Image load failed: " + request.error);
         }
     }
-
     private string GetSelectedColor() => colorDropdown.options[colorDropdown.value].text;
     private string GetSelectedSize() => sizeDropdown.options[sizeDropdown.value].text;
 }
+
+
+
+
+
 
 
 

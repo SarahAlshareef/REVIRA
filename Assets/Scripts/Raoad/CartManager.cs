@@ -93,7 +93,7 @@ public class CartManager : MonoBehaviour
                     string imageUrl = productData.Child("image").Value.ToString();
 
                     float discount = 0f;
-                    if (productData.HasChild("discount") && productData.Child("discount").Child("exists").Value.ToString() == "true")
+                    if (productData.HasChild("discount") && productData.Child("discount").Child("exists").Value.ToString().ToLower() == "true")
                     {
                         discount = float.Parse(productData.Child("discount").Child("percentage").Value.ToString());
                     }
@@ -148,11 +148,11 @@ public class CartManager : MonoBehaviour
             if (task.IsCompleted && task.Result.Exists)
             {
                 float totalPrice = float.Parse(task.Result.Child("totalPrice").Value.ToString());
-                totalText.text = "Total: " + totalPrice.ToString("F2") ;
+                totalText.text = totalPrice.ToString("F1") ;
             }
             else
             {
-                totalText.text = "Total: 0.00 ";
+                totalText.text = " 0 ";
             }
         });
     }
@@ -172,7 +172,7 @@ public class CartManager : MonoBehaviour
         }
 
         currentTotal = total;
-        totalText.text = $"Total: {currentTotal:F2} ";
+        totalText.text = $" {currentTotal:F1} ";
     }
 
     public void RestoreStock(string productId, string color, string size, int qty)
@@ -188,6 +188,11 @@ public class CartManager : MonoBehaviour
         });
     }
 }
+
+
+
+
+
 
 
 
