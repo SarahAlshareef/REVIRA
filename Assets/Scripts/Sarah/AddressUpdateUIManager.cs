@@ -21,7 +21,6 @@ public class AddressUpdateUIManager : MonoBehaviour
     void Start()
     {
         // Initial state
-        profileDetailsPanel.SetActive(true);
         addressUpdatePanel.SetActive(false);
 
         updateAddressButton.onClick.AddListener(SwitchToAddressUpdate);

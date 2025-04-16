@@ -25,7 +25,7 @@ public class AddressUpdateManager : MonoBehaviour
     public GameObject profileDetailsPanel;
 
     [Header("Scripts")]
-    public AddressDisplayOnly addressDisplayOnlyScript;
+    public ShowInformation ShowInfoScript;
 
     [Header("Visuals")]
     public GameObject addNewAddressButtonImage;
@@ -209,8 +209,8 @@ public class AddressUpdateManager : MonoBehaviour
                 confirmationMessage.text = "Changes saved successfully.";
                 confirmationMessage.gameObject.SetActive(true);
 
-                if (addressDisplayOnlyScript != null)
-                    addressDisplayOnlyScript.LoadAddresses();
+                if (ShowInfoScript != null)
+                    ShowInfoScript.addressScript.LoadAddresses();
             });
         });
     }
@@ -238,7 +238,7 @@ public class AddressUpdateManager : MonoBehaviour
         addressUpdatePanel.SetActive(false);
         profileDetailsPanel.SetActive(true);
 
-        if (addressDisplayOnlyScript != null)
-            addressDisplayOnlyScript.LoadAddresses();
+        if (ShowInfoScript != null)
+            ShowInfoScript.addressScript.LoadAddresses();
     }
 }

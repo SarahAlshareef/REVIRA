@@ -23,6 +23,9 @@ public class ShowInformation : MonoBehaviour
     public TextMeshProUGUI emailText;
     public TextMeshProUGUI phoneText;
 
+    [Header("Adresses")]
+    public AddressDisplayOnly addressScript;
+
     private string userId;
 
     private void Awake()
@@ -47,8 +50,8 @@ public class ShowInformation : MonoBehaviour
     {
         viewInformation.SetActive(true);
         updateInformation.SetActive(false);
-
         LoadViewData();
+        addressScript?.LoadAddresses();
     }
     public void LoadViewData()
     {
