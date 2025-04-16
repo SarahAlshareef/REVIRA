@@ -149,15 +149,18 @@ public class UpdateInformation : MonoBehaviour
             {
                 if ( reAuthTask.IsCompleted && !reAuthTask.IsFaulted)
                 {
-                    FirebaseAuth.DefaultInstance.CurrentUser.UpdateEmailAsync(newEmail).ContinueWithOnMainThread(authTask =>
+                    FirebaseAuth.DefaultInstance.CurrentUser.SendEmailVerificationBeforeUpdatingEmailAsync(newEmail).ContinueWithOnMainThread(emailTask =>
                     {
-                        if (authTask.IsCompleted && !authTask.IsFaulted)
+                        if (emailTask.IsCompleted && !emailTask.IsFaulted)
                         {
-                            UpdateUserData(newFirstName, newLastName, newEmail, newPhone, newGender, "Information updated successfully. Your new email will be used to log in.");
+                            ShowMessage("A verification link has been sent to your new email. Please check and confirm to complete the update.", Color.green);
+                            UpdateUserData(newFirstName, newLastName, UserManager.Instance.Email, newPhone, newGender, "Information updated successfully, and email change is pending verification.");
+
+                            EmailSync.Instance?.StartSync();
                         }
                         else
                         {
-                            ShowMessage("Failed to update email. It may already be in use.", Color.red);
+                            ShowMessage("Failed to send verification email. Please try again.", Color.red);
                         }
                     });
                 }

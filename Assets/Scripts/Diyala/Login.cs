@@ -88,6 +88,7 @@ public class Login : MonoBehaviour
 
         UserManager.Instance.SetUserData(userId, firstName, lastName, email, accountBalance, gender, phone);
         SceneManager.LoadScene("HomeScene");
+        EmailSync.Instance?.StartSync();
     }
 
     void ShowError(string message)
