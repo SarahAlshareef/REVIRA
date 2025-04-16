@@ -69,6 +69,7 @@ public class CartItemUI : MonoBehaviour
     private void DisplayPrice()
     {
         float finalPrice = basePrice;
+        
 
         if (discountPercentage > 0)
         {
@@ -77,7 +78,7 @@ public class CartItemUI : MonoBehaviour
             originalPriceText.text = basePrice.ToString("F1");
             originalPriceText.gameObject.SetActive(true);
 
-            transform.Find("price/Image(line)").gameObject.SetActive(true);
+            transform.Find("price/Image(Line)").gameObject.SetActive(true);
             transform.Find("Discount/Image(RedRiyal)").gameObject.SetActive(true);
 
             discountedPriceText.text = finalPrice.ToString("F1");
@@ -88,7 +89,7 @@ public class CartItemUI : MonoBehaviour
             originalPriceText.text = basePrice.ToString("F1");
             originalPriceText.gameObject.SetActive(true);
 
-            transform.Find("price/Image(line)").gameObject.SetActive(false);
+            transform.Find("price/Image(Line)").gameObject.SetActive(false);
             transform.Find("Discount/Image(RedRiyal)").gameObject.SetActive(false);
 
             discountedPriceText.gameObject.SetActive(false);
@@ -174,7 +175,6 @@ public class CartItemUI : MonoBehaviour
             { "timestamp", timestamp },
             { "expiresAt", timestamp + 86400 }
         };
-
         dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartItems/{productId}")
             .UpdateChildrenAsync(updateData)
             .ContinueWithOnMainThread(task =>
@@ -186,7 +186,6 @@ public class CartItemUI : MonoBehaviour
                 }
             });
     }
-
     private void DeleteItemFromCart()
     {
         string color = GetSelectedColor();
@@ -221,6 +220,7 @@ public class CartItemUI : MonoBehaviour
     private string GetSelectedColor() => colorDropdown.options[colorDropdown.value].text;
     private string GetSelectedSize() => sizeDropdown.options[sizeDropdown.value].text;
 }
+
 
 
 
