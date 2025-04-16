@@ -20,7 +20,6 @@ public class UpdateInformation : MonoBehaviour
     [Header("Update Information Panel")]
     public TMP_InputField firstNameInput;
     public TMP_InputField lastNameInput;
-    public TMP_InputField emailInput;
     public TMP_InputField phoneInput;
     public Toggle maleToggle;
     public Toggle femaleToggle;
@@ -28,10 +27,6 @@ public class UpdateInformation : MonoBehaviour
     [Header("Display Message")]
     public TextMeshProUGUI messageText;
     private Coroutine messageCoroutine;
-
-    [Header("Email change Authentication")]
-    public GameObject passwordPanel;
-    public TMP_InputField passwordInput;
 
     [Header("Update Information Buttons")]
     public Button updateInfoButton;
@@ -43,9 +38,6 @@ public class UpdateInformation : MonoBehaviour
     void Start()
     {
         userId = UserManager.Instance.UserId;
-
-        passwordPanel.SetActive(false);
-        emailInput.onValueChanged.AddListener(OnEmailChange);
 
         phoneInput.characterLimit = 10;
         phoneInput.onValueChanged.AddListener(FilterPhoneNumber);
@@ -64,7 +56,6 @@ public class UpdateInformation : MonoBehaviour
     {
         firstNameInput.text = UserManager.Instance.FirstName;
         lastNameInput.text = UserManager.Instance.LastName;
-        emailInput.text = UserManager.Instance.Email;
         phoneInput.text = UserManager.Instance.PhoneNumber;
 
         string UserGender = (UserManager.Instance.Gender ?? "").ToLower();
@@ -94,88 +85,24 @@ public class UpdateInformation : MonoBehaviour
         if (phoneInput.text != digitsOnly)
             phoneInput.text = digitsOnly;
     }
-    void OnEmailChange (string newEmail)
-    {
-        if (newEmail.Trim() != UserManager.Instance.Email)
-        {
-            passwordPanel.SetActive(true); 
-        }
-        else
-        {
-            passwordPanel.SetActive(false);
-            passwordInput.text = "";
-        }
-    }
-    bool IsValidEmail(string email)
-    {
-        try
-        {
-            var addr = new System.Net.Mail.MailAddress(email);
-            return addr.Address == email;
-        }
-        catch { return false; }
-    }
     void SaveChanges()
     {
         string newFirstName = firstNameInput.text.Trim();
         string newLastName = lastNameInput.text.Trim();
-        string newEmail = emailInput.text.Trim();
         string newPhone = phoneInput.text.Trim();
         string newGender = maleToggle.isOn ? "Male" : (femaleToggle.isOn ? "Female" : "");
 
-        if (string.IsNullOrEmpty(newFirstName) || string.IsNullOrEmpty(newLastName) || string.IsNullOrEmpty(newEmail) ||
+        if (string.IsNullOrEmpty(newFirstName) || string.IsNullOrEmpty(newLastName) ||
             string.IsNullOrEmpty(newPhone) || string.IsNullOrEmpty(newGender))
         {
             ShowMessage("Please complete all fields before saving.", Color.red);
             return;
-        }
-        if (!IsValidEmail(newEmail))
-        {
-            ShowMessage("Please enter a valid email address.", Color.red);
-            return;
-        }
-        if (newEmail != UserManager.Instance.Email)
-        {
-            string password = passwordInput.text.Trim();
-            if (string.IsNullOrEmpty(password))
-            {
-                ShowMessage("Please enter your password to update the email.", Color.red);
-                return;
-            }
-
-            var credential = EmailAuthProvider.GetCredential(UserManager.Instance.Email, password);
-
-            FirebaseAuth.DefaultInstance.CurrentUser.ReauthenticateAsync(credential).ContinueWithOnMainThread(reAuthTask =>
-            {
-                if ( reAuthTask.IsCompleted && !reAuthTask.IsFaulted)
-                {
-                    FirebaseAuth.DefaultInstance.CurrentUser.SendEmailVerificationBeforeUpdatingEmailAsync(newEmail).ContinueWithOnMainThread(emailTask =>
-                    {
-                        if (emailTask.IsCompleted && !emailTask.IsFaulted)
-                        {
-                            ShowMessage("A verification link has been sent to your new email. Please check and confirm to complete the update.", Color.green);
-                            UpdateUserData(newFirstName, newLastName, UserManager.Instance.Email, newPhone, newGender, "Information updated successfully, and email change is pending verification.");
-
-                            EmailSync.Instance?.StartSync();
-                        }
-                        else
-                        {
-                            ShowMessage("Failed to send verification email. Please try again.", Color.red);
-                        }
-                    });
-                }
-                else
-                {
-                    ShowMessage("Reauthentication failed. Please check your password.", Color.red);
-                }
-            });
-        }
-        else
-        {
-            UpdateUserData(newFirstName, newLastName, newEmail, newPhone, newGender, "Your information updated successfully.");
-        }
+        }        
+        UpdateUserData(newFirstName, newLastName, newPhone, newGender);
+  
     }
-    void UpdateUserData(string firstName, string lastName, string email, string phone, string gender, string successMessage)
+
+    void UpdateUserData(string firstName, string lastName, string phone, string gender)
     {
         DatabaseReference userRef = FirebaseDatabase.DefaultInstance.RootReference.Child("REVIRA").Child("Consumers").Child(userId);
 
@@ -183,7 +110,6 @@ public class UpdateInformation : MonoBehaviour
                 {
                     { "firstName", firstName },
                     { "lastName", lastName },
-                    { "email", email },
                     { "phoneNumber", phone },
                     { "gender", gender }
                 };
@@ -193,11 +119,10 @@ public class UpdateInformation : MonoBehaviour
             {
                 UserManager.Instance.UpdateFirstName(firstName);
                 UserManager.Instance.UpdateLastName(lastName);
-                UserManager.Instance.UpdateEmail(email);
                 UserManager.Instance.UpdatePhoneNumber(phone);
                 UserManager.Instance.UpdateGender(gender);
 
-                ShowMessage(successMessage, Color.green);
+                ShowMessage("Your information updated successfully.", Color.green);
             }
             else
             {

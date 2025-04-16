@@ -3,8 +3,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
-// Firebase
-using Firebase.Auth;
 
 
 public class ShowInformation : MonoBehaviour
@@ -24,7 +22,6 @@ public class ShowInformation : MonoBehaviour
     public TextMeshProUGUI lastNameText;
     public TextMeshProUGUI emailText;
     public TextMeshProUGUI phoneText;
-    public TextMeshProUGUI emailNoteText;
 
     private string userId;
 
@@ -50,6 +47,7 @@ public class ShowInformation : MonoBehaviour
     {
         viewInformation.SetActive(true);
         updateInformation.SetActive(false);
+
         LoadViewData();
     }
     public void LoadViewData()
@@ -59,16 +57,6 @@ public class ShowInformation : MonoBehaviour
         string lastName = string.IsNullOrEmpty(UserManager.Instance.LastName) ? "Not Added" : UserManager.Instance.LastName;
         string email = string.IsNullOrEmpty(UserManager.Instance.Email) ? "Not Added" : UserManager.Instance.Email;
         string phone = string.IsNullOrEmpty(UserManager.Instance.PhoneNumber) ? "Not Added" : UserManager.Instance.PhoneNumber;
-
-        if (!FirebaseAuth.DefaultInstance.CurrentUser.IsEmailVerified)
-        {
-            emailNoteText.text = "Your new email is pending, waitng for verification.";
-            emailNoteText.gameObject.SetActive(true);
-        }
-        else
-        {
-            emailNoteText.gameObject.SetActive(false);
-        }
 
         genderText.text = gender;
         firstNameText.text = firstName;
