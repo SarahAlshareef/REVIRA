@@ -87,8 +87,8 @@ public class Login : MonoBehaviour
         string phone = snapshot.Child("phoneNumber").Exists ? snapshot.Child("phoneNumber").Value.ToString() : "Not Added";
 
         UserManager.Instance.SetUserData(userId, firstName, lastName, email, accountBalance, gender, phone);
-        SceneManager.LoadScene("HomeScene");
         EmailSync.Instance?.StartSync();
+        SceneManager.LoadScene("HomeScene");
     }
 
     void ShowError(string message)
