@@ -102,7 +102,17 @@ public class VRProductClickHandler : MonoBehaviour
             specBtn.onClick.RemoveAllListeners();
             specBtn.onClick.AddListener(OnSpecButtonPressed);
         }
-        controlManager.LockControls();
+
+        if (closeButtonObject != null)
+        {
+            Button closeBtn = closeButtonObject.GetComponent<Button>();
+            if (closeBtn != null)
+            {
+                closeBtn.onClick.RemoveAllListeners();
+                closeBtn.onClick.AddListener(ClosePreview);
+            }
+        }
+            controlManager.LockControls();
     }
 
 
