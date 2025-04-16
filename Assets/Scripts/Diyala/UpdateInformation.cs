@@ -7,6 +7,7 @@ using Firebase.Auth;
 using Firebase.Database;
 using Firebase.Extensions;
 // C#
+using System.Collections;
 using System.Collections.Generic;
 
 
@@ -23,7 +24,14 @@ public class UpdateInformation : MonoBehaviour
     public TMP_InputField phoneInput;
     public Toggle maleToggle;
     public Toggle femaleToggle;
+
+    [Header("Display Message")]
     public TextMeshProUGUI messageText;
+    private Coroutine messageCoroutine;
+
+    [Header("Email change Authentication")]
+    public GameObject passwordPanel;
+    public TMP_InputField passwordInput;
 
     [Header("Update Information Buttons")]
     public Button updateInfoButton;
@@ -35,6 +43,9 @@ public class UpdateInformation : MonoBehaviour
     void Start()
     {
         userId = UserManager.Instance.UserId;
+
+        passwordPanel.SetActive(false);
+        emailInput.onValueChanged.AddListener(OnEmailChange);
 
         phoneInput.characterLimit = 10;
         phoneInput.onValueChanged.AddListener(FilterPhoneNumber);
@@ -83,6 +94,18 @@ public class UpdateInformation : MonoBehaviour
         if (phoneInput.text != digitsOnly)
             phoneInput.text = digitsOnly;
     }
+    void OnEmailChange (string newEmail)
+    {
+        if (newEmail.Trim() != UserManager.Instance.Email)
+        {
+            passwordPanel.SetActive(true); 
+        }
+        else
+        {
+            passwordPanel.SetActive(false);
+            passwordInput.text = "";
+        }
+    }
     bool IsValidEmail(string email)
     {
         try
@@ -113,15 +136,34 @@ public class UpdateInformation : MonoBehaviour
         }
         if (newEmail != UserManager.Instance.Email)
         {
-            FirebaseAuth.DefaultInstance.CurrentUser.UpdateEmailAsync(newEmail).ContinueWithOnMainThread(authTask =>
+            string password = passwordInput.text.Trim();
+            if (string.IsNullOrEmpty(password))
             {
-                if (authTask.IsCompleted)
+                ShowMessage("Please enter your password to update the email.", Color.red);
+                return;
+            }
+
+            var credential = EmailAuthProvider.GetCredential(UserManager.Instance.Email, password);
+
+            FirebaseAuth.DefaultInstance.CurrentUser.ReauthenticateAsync(credential).ContinueWithOnMainThread(reAuthTask =>
+            {
+                if ( reAuthTask.IsCompleted && !reAuthTask.IsFaulted)
                 {
-                    UpdateUserData(newFirstName, newLastName, newEmail, newPhone, newGender, "Information updated successfully. Your new email will be used to log in.");
+                    FirebaseAuth.DefaultInstance.CurrentUser.UpdateEmailAsync(newEmail).ContinueWithOnMainThread(authTask =>
+                    {
+                        if (authTask.IsCompleted && !authTask.IsFaulted)
+                        {
+                            UpdateUserData(newFirstName, newLastName, newEmail, newPhone, newGender, "Information updated successfully. Your new email will be used to log in.");
+                        }
+                        else
+                        {
+                            ShowMessage("Failed to update email. It may already be in use.", Color.red);
+                        }
+                    });
                 }
                 else
                 {
-                    ShowMessage("Failed to update email. It may already be in use.", Color.red);
+                    ShowMessage("Reauthentication failed. Please check your password.", Color.red);
                 }
             });
         }
@@ -166,7 +208,18 @@ public class UpdateInformation : MonoBehaviour
         {
             messageText.text = message;
             messageText.color = color;
+            messageText.gameObject.SetActive(true);
+
+            if (messageCoroutine != null)
+                StopCoroutine(messageCoroutine);
+
+            messageCoroutine = StartCoroutine(HideMessageAfterDelay(5f));
         }
+    }
+    IEnumerator HideMessageAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        messageText.gameObject.SetActive(false);
     }
 }
 
