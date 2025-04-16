@@ -69,7 +69,6 @@ public class CartItemUI : MonoBehaviour
     private void DisplayPrice()
     {
         float finalPrice = basePrice;
-        
 
         if (discountPercentage > 0)
         {
@@ -78,22 +77,24 @@ public class CartItemUI : MonoBehaviour
             originalPriceText.text = basePrice.ToString("F1");
             originalPriceText.gameObject.SetActive(true);
 
-            transform.Find("price/Image(Line)").gameObject.SetActive(true);
-            transform.Find("Discount/Image(RedRiyal)").gameObject.SetActive(true);
-
             discountedPriceText.text = finalPrice.ToString("F1");
             discountedPriceText.gameObject.SetActive(true);
+
+            transform.Find("price/Image(Line)").gameObject.SetActive(true);
+            transform.Find("Discount/Image(RedRiyal)").gameObject.SetActive(true);
         }
         else
         {
             originalPriceText.text = basePrice.ToString("F1");
             originalPriceText.gameObject.SetActive(true);
 
+            discountedPriceText.gameObject.SetActive(false);
+
             transform.Find("price/Image(Line)").gameObject.SetActive(false);
             transform.Find("Discount/Image(RedRiyal)").gameObject.SetActive(false);
-
-            discountedPriceText.gameObject.SetActive(false);
         }
+
+        Debug.Log($"discount = {discountPercentage}, base = {basePrice}, final = {finalPrice}");
     }
     private void PopulateColorDropdown(string selected)
     {
@@ -192,15 +193,51 @@ public class CartItemUI : MonoBehaviour
         string size = GetSelectedSize();
         int qty = int.Parse(quantityDropdown.options[quantityDropdown.value].text);
 
-        dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartItems/{productId}")
-            .RemoveValueAsync().ContinueWithOnMainThread(task =>
+        DatabaseReference cartRef = dbRef.Child($"REVIRA/Consumers/{userId}/cart");
+
+        cartRef.Child("cartItems").GetValueAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.IsFaulted || !task.Result.Exists)
             {
-                if (task.IsCompleted)
+                Debug.LogWarning("Failed to retrieve cart items.");
+                return;
+            }
+
+            int itemCount = 0;
+            foreach (var _ in task.Result.Children) itemCount++;
+
+            if (itemCount <= 1)
+            {
+                cartRef.RemoveValueAsync().ContinueWithOnMainThread(removeTask =>
                 {
-                    cartManager?.RestoreStock(productId, color, size, qty);
-                    Destroy(gameObject);
-                }
-            });
+                    if (removeTask.IsCompleted)
+                    {
+                        Debug.Log("Cart deleted completely.");
+                        cartManager?.RestoreStock(productId, color, size, qty);
+                        Destroy(gameObject);
+                    }
+                });
+            }
+            else
+            {
+                cartRef.Child("cartItems").Child(productId).RemoveValueAsync().ContinueWithOnMainThread(removeTask =>
+                {
+                    if (removeTask.IsCompleted)
+                    {
+                        Debug.Log("Item removed from cart.");
+                        cartManager?.RestoreStock(productId, color, size, qty);
+
+                        float price = discountPercentage > 0
+                            ? basePrice - (basePrice * discountPercentage / 100f)
+                            : basePrice;
+
+                        cartManager?.UpdateItemTotal(productId, -price * qty);
+
+                        Destroy(gameObject);
+                    }
+                });
+            }
+        });
     }
     private IEnumerator LoadImage(string url)
     {
@@ -220,6 +257,8 @@ public class CartItemUI : MonoBehaviour
     private string GetSelectedColor() => colorDropdown.options[colorDropdown.value].text;
     private string GetSelectedSize() => sizeDropdown.options[sizeDropdown.value].text;
 }
+
+
 
 
 

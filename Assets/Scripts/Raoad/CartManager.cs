@@ -156,24 +156,30 @@ public class CartManager : MonoBehaviour
         });
     }
 
-    public void UpdateItemTotal(string productId, float newTotal)
+    public void UpdateItemTotal(string productId, float deltaPrice)
     {
-        itemTotals[productId] = newTotal;
-        UpdateTotalUI();
-    }
-
-    private void UpdateTotalUI()
-    {
-        float total = 0f;
-        foreach (var item in itemTotals)
+        if (itemTotals.ContainsKey(productId))
         {
-            total += item.Value;
+            itemTotals[productId] += deltaPrice;
+
+            if (itemTotals[productId] <= 0)
+                itemTotals.Remove(productId);
+        }
+        else
+        {
+            itemTotals[productId] = deltaPrice;
         }
 
-        currentTotal = total;
-        totalText.text = $" {currentTotal:F1} ";
+        UpdateTotalUI();
     }
-
+    public void UpdateTotalUI()
+    {
+        float total = 0f;
+        foreach (var pair in itemTotals)
+            total += pair.Value;
+        currentTotal = total;
+        totalText.text = total.ToString("F1");
+    }
     public void RestoreStock(string productId, string color, string size, int qty)
     {
         string path = $"REVIRA/stores/{storeId}/products/{productId}/colors/{color}/sizes/{size}";
@@ -187,6 +193,8 @@ public class CartManager : MonoBehaviour
         });
     }
 }
+
+
 
 
 
