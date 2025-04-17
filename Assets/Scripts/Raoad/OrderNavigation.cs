@@ -13,6 +13,9 @@ public class OrderNavigation : MonoBehaviour
 
     void Start()
     {
+        viewOrderPanel.SetActive(false);
+        viewDetailsPanel.SetActive(false);
+
         sidebarViewOrderButton?.onClick.AddListener(ShowViewOrders);
         backButton?.onClick.AddListener(BackToOrders);
     }
@@ -33,6 +36,11 @@ public class OrderNavigation : MonoBehaviour
 
         if (ViewOrderManager.Instance != null)
             ViewOrderManager.Instance.LoadOrders();
+    }
+    public void CloseOrderHistory()
+    {
+        viewOrderPanel.SetActive(false);
+        viewDetailsPanel.SetActive(false);
     }
 }
 

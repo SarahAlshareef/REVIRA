@@ -17,37 +17,41 @@ public class ViewOrderManager : MonoBehaviour
     public GameObject orderDetailsPanel;
     public OrderDetailsManager detailsManager;
 
-    private string userId;
+    string userId;
     private DatabaseReference dbRef;
+
+    private bool isLoading = false;
 
     void Awake()
     {
         Instance = this;
     }
-
-    void OnEnable()
+    
+    void Start()
     {
-        StartCoroutine(WaitForUserIdAndLoadOrders());
-    }
-
-    IEnumerator WaitForUserIdAndLoadOrders()
-    {
-        while (string.IsNullOrEmpty(UserManager.Instance.UserId))
-            yield return null;
-
         userId = UserManager.Instance.UserId;
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
-        LoadOrders();
+
+        if (!string.IsNullOrEmpty(userId) )
+        {
+            LoadOrders();
+        }
     }
 
     public void LoadOrders()
     {
+        if (isLoading) return;
+
+        isLoading = true;
+
         foreach (Transform child in orderListParent)
             Destroy(child.gameObject);
 
         dbRef.Child("REVIRA").Child("Consumers").Child(userId).Child("OrderHistory")
             .GetValueAsync().ContinueWithOnMainThread(task =>
             {
+                isLoading = false;
+
                 if (!task.IsCompleted || task.Result == null || !task.Result.Exists)
                 {
                     Debug.Log("No orders found.");
