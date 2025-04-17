@@ -31,6 +31,11 @@ public class DeleteAccount : MonoBehaviour
         confirmDeleteButton?.onClick.AddListener(HandleDeleteClick);
         confirmationToggle?.onValueChanged.AddListener(OnToggleChanged);
     }
+    public void HideDeletePanel()
+    {
+        if (deleteConfirmationPanel != null)
+            deleteConfirmationPanel.SetActive(false);
+    }
 
     public void ShowDeletePanel()
     {
