@@ -13,21 +13,25 @@ using System.Collections.Generic;
 
 public class ProductsManager : MonoBehaviour
 {
-
     private DatabaseReference dbReference;
     private ProductData product;
     [HideInInspector] public string productID, storeID;
 
     [Header("Game Objects")]
-    public GameObject productPopup, discountTag;
+    public GameObject productPopup;
+    public GameObject discountTag;
 
     [Header("Product Data")]
-    public TMP_Text productName, productPrice, discountedPrice, productDescription;
+    public TMP_Text productName;
+    public TMP_Text productPrice;
+    public TMP_Text discountedPrice;
+    public TMP_Text productDescription;
     public Image productImage;
     public TMP_Dropdown colorDropdown, sizeDropdown, quantityDropdown;
 
     [Header("Buttons")]
-    public Button closePopup, openPopup;
+    public Button closePopup;
+    //public Button openPopup;
 
     // Declare Product Data
     public Dictionary<string, Dictionary<string, int>> productColorsAndSizes;
@@ -56,7 +60,7 @@ public class ProductsManager : MonoBehaviour
 
         productPopup?.SetActive(false);
 
-        openPopup?.onClick.AddListener(OpenProductPopup);
+        //openPopup?.onClick.AddListener(OpenProductPopup);
 
         closePopup?.onClick.AddListener(CloseProductPopup);
 
