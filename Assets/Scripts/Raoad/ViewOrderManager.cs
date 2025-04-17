@@ -1,90 +1,82 @@
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 using Firebase.Database;
 using Firebase.Extensions;
+using TMPro;
+using UnityEngine.UI;
+using System.Collections;
 using System.Collections.Generic;
 
 public class ViewOrderManager : MonoBehaviour
 {
     public static ViewOrderManager Instance;
 
-    [Header("Order List UI")]
-    public GameObject orderItemPrefab;     
-    public Transform contentParent;        
-
-    [Header("Panels")]
-    public GameObject orderListPanel;      
-    public GameObject orderDetailsPanel;   
-
-    [Header("Details Manager")]
+    [Header("UI Elements")]
+    public GameObject orderItemPrefab;
+    public Transform orderListParent;
+    public GameObject orderListPanel;
+    public GameObject orderDetailsPanel;
     public OrderDetailsManager detailsManager;
 
-    private DatabaseReference dbRef;
     private string userId;
+    private DatabaseReference dbRef;
 
     void Awake()
     {
         Instance = this;
     }
 
-    void Start()
+    void OnEnable()
     {
-        dbRef = FirebaseDatabase.DefaultInstance.RootReference;
-        userId = UserManager.Instance.UserId;
+        StartCoroutine(WaitForUserIdAndLoadOrders());
+    }
 
+    IEnumerator WaitForUserIdAndLoadOrders()
+    {
+        while (string.IsNullOrEmpty(UserManager.Instance.UserId))
+            yield return null;
+
+        userId = UserManager.Instance.UserId;
+        dbRef = FirebaseDatabase.DefaultInstance.RootReference;
         LoadOrders();
     }
 
-    void LoadOrders()
+    public void LoadOrders()
     {
-        dbRef.Child("REVIRA/Consumers").Child(userId).Child("OrderHistory").GetValueAsync().ContinueWithOnMainThread(task =>
-        {
-            if (task.IsCompleted && task.Result.Exists)
+        foreach (Transform child in orderListParent)
+            Destroy(child.gameObject);
+
+        dbRef.Child("REVIRA").Child("Consumers").Child(userId).Child("OrderHistory")
+            .GetValueAsync().ContinueWithOnMainThread(task =>
             {
-                // Õ–› «·⁄‰«’— «·ﬁœÌ„…
-                foreach (Transform child in contentParent)
-                    Destroy(child.gameObject);
-
-                //  ﬂ—«— «·ÿ·»« 
-                foreach (var order in task.Result.Children)
+                if (!task.IsCompleted || task.Result == null || !task.Result.Exists)
                 {
-                    string orderId = order.Key;
-                    string orderDate = order.Child("orderDate").Value?.ToString() ?? "N/A";
-                    string status = order.Child("orderStatus").Value?.ToString() ?? "Pending";
-                    string total = order.Child("finalPrice").Value?.ToString() ?? "0.00";
+                    Debug.Log("No orders found.");
+                    return;
+                }
 
-                    GameObject orderGO = Instantiate(orderItemPrefab, contentParent);
+                foreach (var orderSnapshot in task.Result.Children)
+                {
+                    string orderId = orderSnapshot.Child("orderId").Value?.ToString();
+                    string orderDate = orderSnapshot.Child("orderDate").Value?.ToString();
+                    string status = orderSnapshot.Child("orderStatus").Value?.ToString();
+                    string finalPrice = orderSnapshot.Child("finalPrice").Value?.ToString();
 
-                    orderGO.transform.Find("Text (Id)").GetComponent<TextMeshProUGUI>().text = orderId;
-                    orderGO.transform.Find("Text (Date)").GetComponent<TextMeshProUGUI>().text = orderDate;
-                    orderGO.transform.Find("Text (Status)").GetComponent<TextMeshProUGUI>().text = status;
-                    orderGO.transform.Find("Text (Total)").GetComponent<TextMeshProUGUI>().text = total;
+                    GameObject item = Instantiate(orderItemPrefab, orderListParent);
 
-                    // »—„Ã… “— View Details
-                    Button viewDetailsBtn = orderGO.transform.Find("Button (view Details)").GetComponent<Button>();
-                    viewDetailsBtn.onClick.AddListener(() =>
+                    item.transform.Find("Text (Id)").GetComponent<TextMeshProUGUI>().text = "#" + orderId;
+                    item.transform.Find("Text (Date)").GetComponent<TextMeshProUGUI>().text = orderDate;
+                    item.transform.Find("Text (Status)").GetComponent<TextMeshProUGUI>().text = status;
+                    item.transform.Find("Text (Total)").GetComponent<TextMeshProUGUI>().text = finalPrice;
+
+                    Button viewButton = item.transform.Find("Button (view Details)").GetComponent<Button>();
+                    viewButton.onClick.AddListener(() =>
                     {
-                        ShowOrderDetails(orderId);
+                        orderListPanel.SetActive(false);
+                        orderDetailsPanel.SetActive(true);
+                        detailsManager.DisplayOrderDetails(orderSnapshot);
                     });
                 }
-            }
-            else
-            {
-                Debug.LogWarning("No orders found for this user.");
-            }
-        });
-    }
-
-    public void ShowOrderDetails(string orderId)
-    {
-        orderListPanel.SetActive(false);
-        orderDetailsPanel.SetActive(true);
-
-        if (detailsManager != null)
-        {
-            detailsManager.DisplayOrderDetails(orderId);
-        }
+            });
     }
 }
 
