@@ -12,13 +12,14 @@ public class DeleteAccount : MonoBehaviour
     public GameObject deleteConfirmationPanel;
     public Button cancelButton;
     public Button confirmDeleteButton;
-    public TextMeshProUGUI subMessageText;   // ›ﬁÿ «·‰’ «··Ì  Õ  «·⁄‰Ê«‰
+
+    [Header("Checkbox Confirmation")]
+    public Toggle confirmationToggle;               // «· ‘Ìﬂ »Êﬂ”
+    public TextMeshProUGUI confirmationText;        // «·‰’ «··Ì »Ã«‰» «· ‘Ìﬂ »Êﬂ”
 
     private string userId;
     private FirebaseAuth auth;
     private DatabaseReference dbReference;
-
-    private bool firstClick = false;
 
     void Start()
     {
@@ -28,39 +29,44 @@ public class DeleteAccount : MonoBehaviour
 
         cancelButton?.onClick.AddListener(CancelDelete);
         confirmDeleteButton?.onClick.AddListener(HandleDeleteClick);
+        confirmationToggle?.onValueChanged.AddListener(OnToggleChanged);
     }
 
     public void ShowDeletePanel()
     {
         deleteConfirmationPanel.SetActive(true);
-        ResetPanel();  // Ì—Ã⁄ ﬂ· ‘Ì¡ ·Ê÷⁄Â «·ÿ»Ì⁄Ì
+        ResetPanel();
     }
 
     void CancelDelete()
     {
-        ResetPanel(); // Ì—Ã⁄ ﬂ· ‘Ì¡ ﬂ√‰ „« ÷€ÿ ‘Ì¡
+        ResetPanel();
         deleteConfirmationPanel.SetActive(false);
     }
 
     void HandleDeleteClick()
     {
-        if (!firstClick)
+        // ·«“„ «·„” Œœ„ ÌÕœœ «· ‘Ìﬂ »Êﬂ” √Ê·
+        if (confirmationToggle != null && confirmationToggle.isOn)
         {
-            firstClick = true;
-            subMessageText.text = "Click again to delete account";
-            subMessageText.color = Color.red;
+            confirmationText.color = Color.green;  // Ã«Â“ ··Õ–›
+            DeleteAccountFromFirebase();
         }
         else
         {
-            DeleteAccountFromFirebase();
+            confirmationText.color = Color.red; //  ‰»ÌÂ ··„” Œœ„
         }
+    }
+
+    void OnToggleChanged(bool isOn)
+    {
+        confirmationText.color = isOn ? Color.green : Color.gray;
     }
 
     void ResetPanel()
     {
-        firstClick = false;
-        subMessageText.text = "We're sad to see you go!\nIf you delete your account, all your data will be wiped.\nAre you absolutely sure you want to proceed?";
-        subMessageText.color = Color.gray;
+        confirmationToggle.isOn = false;
+        confirmationText.color = Color.gray;
     }
 
     void DeleteAccountFromFirebase()
@@ -73,24 +79,18 @@ public class DeleteAccount : MonoBehaviour
                 {
                     if (deleteTask.IsCompleted)
                     {
-                        SceneManager.LoadScene("SignUpScene");
+                        SceneManager.LoadScene("MainMenu");
                     }
                     else
                     {
-                        ShowError("Failed to delete account from Auth.");
+                        Debug.LogError("Failed to delete from Auth.");
                     }
                 });
             }
             else
             {
-                ShowError("Failed to delete data from Database.");
+                Debug.LogError("Failed to delete from Database.");
             }
         });
-    }
-
-    void ShowError(string message)
-    {
-        subMessageText.text = message;
-        subMessageText.color = Color.red;
     }
 }
