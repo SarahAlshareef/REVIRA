@@ -16,7 +16,7 @@ public class ProductCartManager : MonoBehaviour
     private UserManager userManager;
 
     private bool isAdding = false;
-    private bool recentlyAdded = false;
+    private bool firstClickDone = false;
 
     void Start()
     {
@@ -28,13 +28,13 @@ public class ProductCartManager : MonoBehaviour
             addToCartButton.onClick.AddListener(AddToCart);
 
         if (colorDropdown != null)
-            colorDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); ResetRecentlyAdded(); });
+            colorDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); });
 
         if (sizeDropdown != null)
-            sizeDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); ResetRecentlyAdded(); });
+            sizeDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); });
 
         if (quantityDropdown != null)
-            quantityDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); ResetRecentlyAdded(); });
+            quantityDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); });
 
         if (errorText != null)
             errorText.text = "";
@@ -68,23 +68,13 @@ public class ProductCartManager : MonoBehaviour
         ShowError("");
     }
 
-    public void ResetRecentlyAdded()
-    {
-        recentlyAdded = false;
-    }
-
     public void AddToCart()
     {
-        if (isAdding)
-        {
-            ShowError("Please wait...");
-            return;
-        }
+        if (isAdding) return;
 
-        if (recentlyAdded)
+       
+        if (firstClickDone)
         {
-            ShowError("Product already added successfully!");
-            Debug.Log("Redirecting to CartTest scene...");
             SceneManager.LoadScene("CartTest");
             return;
         }
@@ -93,19 +83,22 @@ public class ProductCartManager : MonoBehaviour
         if (!string.IsNullOrEmpty(errorText.text)) return;
 
         isAdding = true;
+        addToCartButton.interactable = false;
 
         if (string.IsNullOrEmpty(userManager.UserId))
         {
-            Debug.LogError("User is not logged in!");
+            ShowError("User not logged in.");
             isAdding = false;
+            addToCartButton.interactable = true;
             return;
         }
 
         ProductData productData = productsManager.GetProductData();
         if (productData == null || string.IsNullOrEmpty(productsManager.productID))
         {
-            Debug.LogError("Product data is missing!");
+            ShowError("Product data is missing.");
             isAdding = false;
+            addToCartButton.interactable = true;
             return;
         }
 
@@ -124,6 +117,7 @@ public class ProductCartManager : MonoBehaviour
         {
             ShowError("This product is out of stock.");
             isAdding = false;
+            addToCartButton.interactable = true;
             return;
         }
 
@@ -135,15 +129,15 @@ public class ProductCartManager : MonoBehaviour
                 int newQuantity = existingQuantity + quantity;
 
                 Dictionary<string, object> cartItem = new Dictionary<string, object>
-                {
-                    { "productID", productID },
-                    { "productName", productName },
-                    { "color", selectedColor },
-                    { "sizes/" + selectedSize, newQuantity },
-                    { "price", productPrice },
-                    { "timestamp", GetUnixTimestamp() },
-                    { "expiresAt", expirationTime }
-                };
+            {
+                { "productID", productID },
+                { "productName", productName },
+                { "color", selectedColor },
+                { "sizes/" + selectedSize, newQuantity },
+                { "price", productPrice },
+                { "timestamp", GetUnixTimestamp() },
+                { "expiresAt", expirationTime }
+            };
 
                 dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).UpdateChildrenAsync(cartItem).ContinueWith(updateTask =>
                 {
@@ -152,18 +146,23 @@ public class ProductCartManager : MonoBehaviour
                     if (updateTask.IsCompleted)
                     {
                         UpdateCartSummary(userID);
-                        recentlyAdded = true;
-                        ShowError("Product added to cart successfully!");
-                        Debug.Log("Cart item added successfully");
-                        SceneManager.LoadScene("CartTest");
+
+                        firstClickDone = true;
+                        ShowError("Product added successfully! Tap again to go to cart.");
                     }
                     else
                     {
-                        Debug.LogError("Error adding to Firebase: " + updateTask.Exception);
+                        ShowError("Failed to add product. Try again.");
+                        addToCartButton.interactable = true;
                     }
                 });
             });
         });
+    }
+
+    private void GoToCartScene()
+    {
+        SceneManager.LoadScene("CartTest");
     }
 
     private void UpdateCartSummary(string userId)
@@ -211,12 +210,13 @@ public class ProductCartManager : MonoBehaviour
                 {
                     if (stockUpdateTask.IsCompleted)
                     {
-                        Debug.Log("Stock updated successfully.");
                         onSuccess?.Invoke();
                     }
                     else
                     {
                         Debug.LogError("Error updating stock: " + stockUpdateTask.Exception);
+                        addToCartButton.interactable = true;
+                        isAdding = false;
                     }
                 });
             }
@@ -279,6 +279,8 @@ public class ProductCartManager : MonoBehaviour
         {
             errorText.text = "";
         }
+
+        addToCartButton.interactable = true;
     }
 
     private long GetUnixTimestamp()
