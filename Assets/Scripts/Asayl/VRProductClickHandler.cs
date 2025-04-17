@@ -122,11 +122,28 @@ public class VRProductClickHandler : MonoBehaviour
             currentActiveHandler.StartPreview();
     }
 
-    public void OnSpecButtonPressed()
+
+    public void OnSpecButtonPressed()  // Diyala
     {
-        if (currentActiveHandler != null)        
-            currentActiveHandler.ReturnProductToShelf();
-            isPreviewing = false;
+        if (currentActiveHandler == null)
+            return;
+
+        ProductIdentifie identifier = productObject.GetComponent<ProductIdentifie>();
+        if (identifier == null) 
+            return;
+
+        ProductsManager products = FindObjectOfType<ProductsManager>();
+        if (products == null)
+            return;
+
+        products.storeID = identifier.StoreID;
+        products.productID = identifier.ProductID;
+
+        products.LoadProductData();
+        products.OpenProductPopup();
+
+        currentActiveHandler.ReturnProductToShelf();
+        isPreviewing = false;
     }
 
     void StartPreview()

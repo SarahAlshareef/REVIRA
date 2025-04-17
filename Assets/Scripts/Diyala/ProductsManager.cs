@@ -16,12 +16,17 @@ public class ProductsManager : MonoBehaviour
 
     private DatabaseReference dbReference;
     private ProductData product;
-    public string productID, storeID;
+    [HideInInspector] public string productID, storeID;
 
+    [Header("Game Objects")]
     public GameObject productPopup, discountTag;
+
+    [Header("Product Data")]
     public TMP_Text productName, productPrice, discountedPrice, productDescription;
     public Image productImage;
     public TMP_Dropdown colorDropdown, sizeDropdown, quantityDropdown;
+
+    [Header("Buttons")]
     public Button closePopup, openPopup;
 
     // Declare Product Data
