@@ -4,6 +4,7 @@ using TMPro;
 using Firebase.Database;
 using Firebase.Extensions;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 
 public class CartManager : MonoBehaviour
 {
@@ -11,6 +12,7 @@ public class CartManager : MonoBehaviour
     public Transform cartContent;
     public GameObject cartItemPrefab;
     public TextMeshProUGUI totalText;
+    public Button checkoutButton;
 
     private string userId;
     private const string storeId = "storeID_123";
@@ -41,6 +43,14 @@ public class CartManager : MonoBehaviour
 
         LoadCartTotal();
         LoadCartItems();
+    }
+    public void OnEnable()
+    {
+        if (checkoutButton != null)
+        {
+            checkoutButton.onClick.RemoveAllListeners();
+            checkoutButton.onClick.AddListener(() => SceneManager.LoadScene("Promotional"));
+        }
     }
 
     public void LoadCartItems()
