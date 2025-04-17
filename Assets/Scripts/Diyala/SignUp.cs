@@ -8,10 +8,11 @@ using Firebase;
 using Firebase.Auth;
 using Firebase.Database;
 using Firebase.Extensions;
+using Firebase.AppCheck;
 // C#
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System;
 
 public class SignUp : MonoBehaviour
 {
@@ -23,14 +24,28 @@ public class SignUp : MonoBehaviour
     private FirebaseAuth auth;
     private DatabaseReference dbReference;
 
+    private bool firebaseReady = false;
+
     void Start()
     {
+        FirebaseAppCheck.SetAppCheckProviderFactory(null);
+
         FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
         {
+            if (task.Exception != null)
+            {
+                ShowError("Firebase Dependency check failed.");
+                return;
+            }
             if (task.Result == DependencyStatus.Available)
             {
                 auth = FirebaseAuth.DefaultInstance;
                 dbReference = FirebaseDatabase.DefaultInstance.RootReference;
+                firebaseReady = true;
+            }
+            else
+            {
+                ShowError("Firebase failed to initialize.");
             }
         });
 
@@ -39,6 +54,12 @@ public class SignUp : MonoBehaviour
     }
     public void OnSignUpButtonClick()
     {
+        if (!firebaseReady)
+        {
+            ShowError("Firebase is not initialized yet.");
+            return;
+        }
+
         string firstName = firstNameInput?.text.Trim();
         string lastName = lastNameInput?.text.Trim();
         string email = emailInput?.text.Trim();
