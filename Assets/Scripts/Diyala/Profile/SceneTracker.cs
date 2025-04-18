@@ -1,5 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
+// Unity
 using UnityEngine;
 
 public class SceneTracker : MonoBehaviour
@@ -17,6 +16,7 @@ public class SceneTracker : MonoBehaviour
             Destroy(gameObject);
         }
     }
+
     public string PreviousSceneName { get; private set; }
 
     public void SetPreviousScene(string SceneName)

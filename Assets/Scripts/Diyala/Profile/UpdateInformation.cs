@@ -3,7 +3,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 // Firebase
-using Firebase.Auth;
 using Firebase.Database;
 using Firebase.Extensions;
 // C#
@@ -14,8 +13,8 @@ using System.Collections.Generic;
 public class UpdateInformation : MonoBehaviour
 {
     [Header("Panels")]
-    public GameObject viewInformation;
-    public GameObject updateInformation;
+    public GameObject viewInformationPanel;
+    public GameObject updateInformationPanel;
 
     [Header("Update Information Panel")]
     public TMP_InputField firstNameInput;
@@ -48,8 +47,8 @@ public class UpdateInformation : MonoBehaviour
     }
     public void ShowUpdatePanel()
     {
-        viewInformation.SetActive(false);
-        updateInformation.SetActive(true);
+        viewInformationPanel.SetActive(false);
+        updateInformationPanel.SetActive(true);
         LoadUpdateData();
     }
     public void LoadUpdateData()

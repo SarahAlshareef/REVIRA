@@ -2,9 +2,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
-// C#
-using System.Collections;
-using System.Collections.Generic;
+
 
 public class ExitStore : MonoBehaviour
 {

@@ -5,9 +5,7 @@ using TMPro;
 // Firebase
 using Firebase.Auth;
 using Firebase.Extensions;
-// C#
-using System.Collections;
-using System.Collections.Generic;
+
 
 public class ResetPassword : MonoBehaviour
 {

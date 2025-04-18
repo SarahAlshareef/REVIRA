@@ -9,12 +9,11 @@ public class ShowInformation : MonoBehaviour
 {
     [Header("General")]
     public Button closeProfileButton;
-    public Button backToViewButton;
     public TextMeshProUGUI welcomeText;
 
     [Header("Panels")]
-    public GameObject viewInformation;
-    public GameObject updateInformation;
+    public GameObject viewInformationPanel;
+    public GameObject updateInformationPanel;
 
     [Header("View Information Panel")]
     public TextMeshProUGUI genderText;
@@ -23,6 +22,9 @@ public class ShowInformation : MonoBehaviour
     public TextMeshProUGUI emailText;
     public TextMeshProUGUI phoneText;
 
+    [Header("Update Information Panel")]
+    public Button backToViewButton;
+
     [Header("Adresses")]
     public AddressDisplayOnly addressScript;
 
@@ -30,9 +32,10 @@ public class ShowInformation : MonoBehaviour
 
     private void Awake()
     {
-        viewInformation.SetActive(false);
-        updateInformation.SetActive(false);
+        viewInformationPanel.SetActive(false);
+        updateInformationPanel.SetActive(false);
     }
+
     void Start()
     {
         userId = UserManager.Instance.UserId;
@@ -41,18 +44,21 @@ public class ShowInformation : MonoBehaviour
         closeProfileButton?.onClick.AddListener(CloseProfile);
         backToViewButton?.onClick.AddListener(ShowViewPanel);
     }
+
     public void CloseProfilePanel()
     {
-        viewInformation.SetActive(false);
-        updateInformation.SetActive(false);
+        viewInformationPanel.SetActive(false);
+        updateInformationPanel.SetActive(false);
     }
+
     public void ShowViewPanel()
     {
-        viewInformation.SetActive(true);
-        updateInformation.SetActive(false);
+        viewInformationPanel.SetActive(true);
+        updateInformationPanel.SetActive(false);
         LoadViewData();
         addressScript?.LoadAddresses();
     }
+
     public void LoadViewData()
     {
         string gender = string.IsNullOrEmpty(UserManager.Instance.Gender) ? "Not Added" : UserManager.Instance.Gender;
@@ -67,6 +73,7 @@ public class ShowInformation : MonoBehaviour
         emailText.text = email;
         phoneText.text = phone;
     }
+
     public void CloseProfile()
     {
         if (!string.IsNullOrEmpty(SceneTracker.Instance.PreviousSceneName))
