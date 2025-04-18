@@ -123,13 +123,22 @@ public class VRProductClickHandler : MonoBehaviour
     }
 
 
-    public void OnSpecButtonPressed()  // Diyala
+    public void OnSpecButtonPressed()
     {
         if (currentActiveHandler == null)
             return;
 
+        if (vrCamera == null)
+            return;
+
+        // 1. Move the current popup (with buttons) to the right of the player
+        Vector3 popupOffset = vrCamera.right * 0.8f + vrCamera.forward * 0.3f;
+        productPopup.transform.position = vrCamera.position + popupOffset;
+        productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
+
+        // 2. Load and open the details panel
         ProductIdentifie identifier = productObject.GetComponent<ProductIdentifie>();
-        if (identifier == null) 
+        if (identifier == null)
             return;
 
         ProductsManager products = FindObjectOfType<ProductsManager>();
@@ -140,11 +149,23 @@ public class VRProductClickHandler : MonoBehaviour
         products.productID = identifier.ProductID;
 
         products.LoadProductData();
+
+        // 3. Move the SpecificationCanvas (productPopup) to front of player before opening
+        if (products.productPopup != null)
+        {
+            Vector3 frontOffset = vrCamera.forward * 1.2f;
+            products.productPopup.transform.position = vrCamera.position + frontOffset;
+            products.productPopup.transform.rotation = Quaternion.LookRotation(products.productPopup.transform.position - vrCamera.position);
+        }
+       
+        // 4. Show the details panel
         products.OpenProductPopup();
 
         currentActiveHandler.ReturnProductToShelf();
         isPreviewing = false;
     }
+
+
 
     void StartPreview()
     {

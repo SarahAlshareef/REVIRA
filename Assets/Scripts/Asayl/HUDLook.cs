@@ -1,38 +1,45 @@
 ﻿using UnityEngine;
 
-[RequireComponent(typeof(Canvas))]
-public class HUDLook : MonoBehaviour
+public class HUDAbsoluteLock : MonoBehaviour
 {
-    public Transform cameraTransform; // اسحبي الكاميرا هنا (CenterEyeAnchor)
-    public float distanceFromCamera = 1.3f; // المسافة من اللاعب
-    public float verticalOffset = 0.4f;     // كم يكون فوق مجال الرؤية
-    public float horizontalFOV = 110f;      // مجال الرؤية الأفقي (للحساب)
-    public float canvasHeight = 0.3f;       // ارتفاع الشريط بوحدات العالم
+    [Header("المراجع")]
+    public Transform cameraTransform;       // الكاميرا (CenterEyeAnchor)
+    public RectTransform hudPanel;          // الشريط نفسه (Blue background)
 
-    private RectTransform rectTransform;
+    [Header("الإعدادات")]
+    public float forwardDistance = 1.3f;    // كم يبعد قدام النظر
+    public float verticalOffset = 0.5f;     // كم فوق العين
+    public float hudWidthInMeters = 2.0f;   // عرض الشريط
+    public float hudHeightInMeters = 0.25f; // سماكة الشريط
+
+    private Canvas parentCanvas;
 
     void Start()
     {
-        rectTransform = GetComponent<RectTransform>();
+        if (cameraTransform == null || hudPanel == null)
+        {
+            Debug.LogWarning("HUDAbsoluteLock: تأكدي من تعيين الكاميرا والشريط.");
+            return;
+        }
 
-        // احسب العرض اللي يغطي FOV
-        float halfFOVRad = Mathf.Deg2Rad * (horizontalFOV / 2f);
-        float totalWidth = 2f * Mathf.Tan(halfFOVRad) * distanceFromCamera;
+        // نضبط الحجم بناءً على المقياس
+        parentCanvas = hudPanel.GetComponentInParent<Canvas>();
+        float canvasScale = parentCanvas.transform.localScale.x;
 
-        // اضبط الحجم بالـ World Units
-        rectTransform.sizeDelta = new Vector2(totalWidth * 1000f, canvasHeight * 1000f); // لأن scale صغير
-        transform.localScale = Vector3.one * 0.001f; // مقاس مناسب لـ VR
+        float width = hudWidthInMeters / canvasScale;
+        float height = hudHeightInMeters / canvasScale;
+
+        hudPanel.sizeDelta = new Vector2(width * 1000f, height * 1000f); // 1000 عشان units داخل الـ Canvas
+        hudPanel.localScale = Vector3.one;
     }
 
     void LateUpdate()
     {
-        if (cameraTransform == null) return;
+        if (cameraTransform == null || hudPanel == null) return;
 
-        // حط الشريط قدام الكاميرا + فوق شوي
-        Vector3 offset = cameraTransform.forward * distanceFromCamera + cameraTransform.up * verticalOffset;
-        transform.position = cameraTransform.position + offset;
+        Vector3 offset = cameraTransform.forward * forwardDistance + cameraTransform.up * verticalOffset;
 
-        // خليه يواجه نفس اتجاه الكاميرا
-        transform.rotation = Quaternion.LookRotation(cameraTransform.forward);
+        hudPanel.position = cameraTransform.position + offset;
+        hudPanel.rotation = Quaternion.LookRotation(cameraTransform.forward);
     }
 }
