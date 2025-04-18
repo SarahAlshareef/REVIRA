@@ -75,6 +75,13 @@ public class ViewOrderManager : MonoBehaviour
                     Button viewButton = item.transform.Find("Button (view Details)").GetComponent<Button>();
                     viewButton.onClick.AddListener(() =>
                     {
+                        OrderNavigation nav = FindObjectOfType<OrderNavigation>();
+                        if (nav != null)
+                        {
+                            nav.viewOrderPanel.SetActive(false);
+                            nav.viewDetailsPanel.SetActive(true);
+                        }
+
                         orderListPanel.SetActive(false);
                         orderDetailsPanel.SetActive(true);
                         detailsManager.DisplayOrderDetails(orderSnapshot);
@@ -83,5 +90,6 @@ public class ViewOrderManager : MonoBehaviour
             });
     }
 }
+
 
 

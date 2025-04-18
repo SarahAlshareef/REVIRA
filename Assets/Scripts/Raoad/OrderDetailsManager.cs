@@ -55,8 +55,19 @@ public class OrderDetailsManager : MonoBehaviour
                 string name = item.Child("productName").Value?.ToString();
                 string price = item.Child("price").Value?.ToString();
                 string discount = item.Child("discount").Value?.ToString();
-                string size = item.Child("size").Value?.ToString();
-                string quantity = item.Child("quantity").Value?.ToString();
+
+                string size = "";
+                string quantity = "";
+
+                if (item.Child("sizes").HasChildren)
+                {
+                    foreach (var sizeEntry in item.Child("sizes").Children)
+                    {
+                        size = sizeEntry.Key;
+                        quantity = sizeEntry.Value.ToString();
+                        break; 
+                    }
+                }
 
                 GameObject productGO = Instantiate(productItemPrefab, productListParent);
                 productGO.transform.Find("Text (Product name)").GetComponent<TextMeshProUGUI>().text = name;
