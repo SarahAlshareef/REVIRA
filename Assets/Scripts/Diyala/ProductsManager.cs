@@ -246,6 +246,9 @@ public class ProductsManager : MonoBehaviour
         else
         {
             productPrice?.SetText($"{product.price:F2}");
+            if (productPrice != null)
+                productPrice.fontStyle = FontStyles.Normal;
+
             discountedPrice?.gameObject.SetActive(false);
             discountTag?.SetActive(false);
         }
@@ -257,9 +260,23 @@ public class ProductsManager : MonoBehaviour
     public void CloseProductPopup()
     {
         productPopup?.SetActive(false);
+
+        productName?.SetText("");
+        productPrice?.SetText("");
+        discountedPrice?.SetText("");
+        productDescription?.SetText("");
+        productImage.sprite = null;
+
+        colorDropdown?.ClearOptions();
+        sizeDropdown?.ClearOptions();
+        quantityDropdown?.ClearOptions();
+
+        discountedPrice?.gameObject.SetActive(false);
+        discountTag?.SetActive(false);
+
+        product = null;
     }
 }
-
     public class ProductData
 {
     public float price;
@@ -268,7 +285,6 @@ public class ProductsManager : MonoBehaviour
     public DiscountData discount;
     public Dictionary<string, int> sizes;
 }
-
 public class DiscountData
 {
     public bool exists;
