@@ -36,8 +36,9 @@ public class VRProductClickHandler : MonoBehaviour
     public float minScale = 0.5f;
     public float maxScale = 1.5f;
 
-    private Vector3 lastControllerPosition;
-    private Transform activeController;
+    public GameObject football;
+    private BallInteraction ballScript;
+
 
 
     // Static reference to track the active handler
@@ -63,6 +64,9 @@ public class VRProductClickHandler : MonoBehaviour
         {
             vrCamera = cam.transform;
         }
+
+        if (football != null)
+            ballScript = football.GetComponent<BallInteraction>();
     }
     void Update()
     {
@@ -120,6 +124,9 @@ public class VRProductClickHandler : MonoBehaviour
     {
         if (currentActiveHandler != null)
             currentActiveHandler.StartPreview();
+
+        if (ballScript != null)
+            ballScript.EnableInteraction();
     }
 
 
@@ -238,6 +245,10 @@ public class VRProductClickHandler : MonoBehaviour
 
         isPreviewing = false;
         Debug.Log(">> isPreviewing set to false");
+
+
+        if (ballScript != null)
+            ballScript.DisableInteraction();
     }
 
     void ReturnProductToShelf()
