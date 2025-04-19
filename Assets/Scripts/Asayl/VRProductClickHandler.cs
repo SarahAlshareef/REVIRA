@@ -65,8 +65,8 @@ public class VRProductClickHandler : MonoBehaviour
             vrCamera = cam.transform;
         }
 
-        if (football != null)
-            ballScript = football.GetComponent<BallInteraction>();
+       // if (football != null)
+          //  ballScript = football.GetComponent<BallInteraction>();
     }
     void Update()
     {
@@ -87,7 +87,7 @@ public class VRProductClickHandler : MonoBehaviour
         if (vrCamera == null) return;
 
         currentActiveHandler = this;
-        Vector3 offset = vrCamera.forward * 2f;
+        Vector3 offset = vrCamera.forward * 1.2f;
         productPopup.transform.position = vrCamera.position + offset;
         productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
         productPopup.SetActive(true);
@@ -247,8 +247,8 @@ public class VRProductClickHandler : MonoBehaviour
         Debug.Log(">> isPreviewing set to false");
 
 
-        if (ballScript != null)
-            ballScript.DisableInteraction();
+      //  if (ballScript != null)
+         //   ballScript.DisableInteraction();
     }
 
     void ReturnProductToShelf()
