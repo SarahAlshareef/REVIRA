@@ -1,8 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class OVRPlayerMovement : MonoBehaviour
 {
-    public float moveSpeed = 2.0f;
+    [Header("Movement Settings")]
+    public float moveSpeed = 3.0f;
+
     private CharacterController characterController;
 
     void Start()
@@ -14,20 +16,22 @@ public class OVRPlayerMovement : MonoBehaviour
     {
         if (characterController == null) return;
 
-        Vector3 moveDirection = Vector3.zero;
-
-        // Get Left Joystick Input
+        // Get input from the left thumbstick (X: left/right, Y: forward/backward)
         Vector2 moveInput = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick);
-        moveDirection += transform.right * moveInput.x; // Strafe left/right
-        moveDirection += transform.forward * moveInput.y; // Move forward/backward
 
-        // Apply Gravity (Prevents Floating Issues)
+        // Convert input into world direction relative to player orientation
+        Vector3 direction = (transform.right * moveInput.x + transform.forward * moveInput.y);
+
+        // Apply movement speed and deltaTime
+        Vector3 velocity = direction * moveSpeed * Time.deltaTime;
+
+        // Apply gravity if not grounded
         if (!characterController.isGrounded)
         {
-            moveDirection.y -= 9.81f * Time.deltaTime; // Simulate gravity
+            velocity.y -= 9.81f * Time.deltaTime;
         }
 
-        // Apply Movement With Collision Detection
-        characterController.Move(moveDirection * moveSpeed * Time.deltaTime);
+        // Move the player
+        characterController.Move(velocity);
     }
 }

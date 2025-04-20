@@ -28,7 +28,7 @@ public class PlayerRotation : MonoBehaviour
 
             Transform cam = Camera.main.transform;
             rotationPopupPanel.transform.rotation = Quaternion.LookRotation(cam.forward);
-            rotationPopupPanel.transform.position = Camera.main.transform.position + Camera.main.transform.forward * 2f + Camera.main.transform.up * 1.2f;
+            rotationPopupPanel.transform.position = Camera.main.transform.position + Camera.main.transform.forward * 2f + Camera.main.transform.up * 1.0f;
         }
 
         if (snapButton != null)

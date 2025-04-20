@@ -1,4 +1,3 @@
-
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
@@ -21,12 +20,11 @@ public class VRProductClickHandler : MonoBehaviour
 
     [Header("References")]
     public PlayerControlManager controlManager; // Central manager for locking/unlocking movement
-    public Transform rayOrigin;                 // Controller ray origin (used for raycast)
 
     private Transform vrCamera;                 // CenterEyeAnchor camera reference
     private Vector3 originalProductPosition;    // Original shelf position
     private Quaternion originalProductRotation; // Original shelf rotation
-    private Vector3 originalScale;             // // Original shelf scale
+    private Vector3 originalScale;              // Original shelf scale
 
     private bool isPreviewing = false;
 
@@ -34,16 +32,11 @@ public class VRProductClickHandler : MonoBehaviour
 
     private float currentScale;
     public float minScale = 0.5f;
-    public float maxScale = 1.5f;
+    public float maxScale = 1.2f;
 
-    public GameObject football;
-    private BallInteraction ballScript;
+    public GameObject specCanvas;               // Reference to specification canvas to check if open
 
-
-
-    // Static reference to track the active handler
     public static VRProductClickHandler currentActiveHandler;
-
 
     void Start()
     {
@@ -55,19 +48,16 @@ public class VRProductClickHandler : MonoBehaviour
             originalProductPosition = productObject.transform.position;
             originalProductRotation = productObject.transform.rotation;
             originalScale = productObject.transform.localScale;
-            currentScale = 1f * (1f / originalScale.x); // normalize to actual object scale
+            currentScale = 1f;
         }
 
-        // Get reference to the VR camera inside OVR Camera Rig
         GameObject cam = GameObject.Find("CenterEyeAnchor");
         if (cam != null)
         {
             vrCamera = cam.transform;
         }
-
-       // if (football != null)
-          //  ballScript = football.GetComponent<BallInteraction>();
     }
+
     void Update()
     {
         if (isPreviewing && productObject != null)
@@ -82,16 +72,16 @@ public class VRProductClickHandler : MonoBehaviour
             productObject.transform.localScale = originalScale * currentScale;
         }
     }
+
     public void ShowPopup()
     {
         if (vrCamera == null) return;
 
         currentActiveHandler = this;
-        Vector3 offset = vrCamera.forward * 1.2f;
+        Vector3 offset = vrCamera.forward * 1.4f;
         productPopup.transform.position = vrCamera.position + offset;
         productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
         productPopup.SetActive(true);
-
 
         if (previewButtonObject != null)
         {
@@ -116,75 +106,57 @@ public class VRProductClickHandler : MonoBehaviour
                 closeBtn.onClick.AddListener(ClosePreview);
             }
         }
-            controlManager.LockControls();
-    }
 
+        controlManager.LockControls();
+    }
 
     public void OnPreviewButtonPressed()
     {
         if (currentActiveHandler != null)
             currentActiveHandler.StartPreview();
-
-        if (ballScript != null)
-            ballScript.EnableInteraction();
     }
-
 
     public void OnSpecButtonPressed()
     {
-        if (currentActiveHandler == null)
-            return;
+        if (currentActiveHandler == null) return;
+        if (vrCamera == null) return;
 
-        if (vrCamera == null)
-            return;
-
-        // 1. Move the current popup (with buttons) to the right of the player
-        Vector3 popupOffset = vrCamera.right * 0.8f + vrCamera.forward * 0.3f;
+        Vector3 popupOffset = vrCamera.right * 0.6f + vrCamera.forward * 0.3f;
         productPopup.transform.position = vrCamera.position + popupOffset;
         productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
 
-        // 2. Load and open the details panel
         ProductIdentifie identifier = productObject.GetComponent<ProductIdentifie>();
-        if (identifier == null)
-            return;
+        if (identifier == null) return;
 
         ProductsManager products = FindObjectOfType<ProductsManager>();
-        if (products == null)
-            return;
+        if (products == null) return;
 
         products.storeID = identifier.StoreID;
         products.productID = identifier.ProductID;
-
         products.LoadProductData();
 
-        // 3. Move the SpecificationCanvas (productPopup) to front of player before opening
         if (products.productPopup != null)
         {
-            Vector3 frontOffset = vrCamera.forward * 1.2f;
+            Vector3 frontOffset = vrCamera.forward * 1.4f;
             products.productPopup.transform.position = vrCamera.position + frontOffset;
             products.productPopup.transform.rotation = Quaternion.LookRotation(products.productPopup.transform.position - vrCamera.position);
         }
-       
-        // 4. Show the details panel
+
         products.OpenProductPopup();
 
-        currentActiveHandler.ReturnProductToShelf();
+        ReturnProductToShelf();
         isPreviewing = false;
     }
-
-
 
     void StartPreview()
     {
         if (vrCamera == null) return;
 
-        // Move UI to the right of player
-        Vector3 offset = vrCamera.right * 0.8f + vrCamera.forward * 0.3f;
+        Vector3 offset = vrCamera.right * 0.6f + vrCamera.forward * 0.3f;
         productPopup.transform.position = vrCamera.position + offset;
         productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
 
-        // Set preview position
-        previewCenter = vrCamera.position + vrCamera.forward * 1.2f;
+        previewCenter = vrCamera.position + vrCamera.forward * 1.4f;
         StartCoroutine(MoveProductToCenter(productObject, previewCenter));
 
         isPreviewing = true;
@@ -194,8 +166,8 @@ public class VRProductClickHandler : MonoBehaviour
     {
         float elapsed = 0f;
         Vector3 startPos = obj.transform.position;
-        Quaternion startRot = obj.transform.rotation;
-        Quaternion targetRot = Quaternion.LookRotation(targetPosition - vrCamera.position);
+        Quaternion startRot = originalProductRotation; // Start with original rotation
+        Quaternion targetRot = originalProductRotation; // Maintain original rotation throughout
 
         while (elapsed < moveDuration)
         {
@@ -207,48 +179,37 @@ public class VRProductClickHandler : MonoBehaviour
         }
 
         obj.transform.position = targetPosition;
-        obj.transform.rotation = targetRot;
-        Debug.Log("Product moved to preview center: " + targetPosition);
+        obj.transform.rotation = originalProductRotation;
+        currentScale = 0.8f; // Smaller scale when previewing
+        productObject.transform.localScale = originalScale * currentScale;
     }
 
     public void ClosePreview()
     {
-        Debug.Log(">> ClosePreview() Called");
+        if (specCanvas != null && specCanvas.activeSelf)
+        {
+            Debug.Log("Cannot close preview while spec canvas is open");
+            return;
+        }
 
         if (productPopup != null)
         {
-            Debug.Log(">> Closing popup");
             productPopup.SetActive(false);
         }
 
         if (productObject != null)
         {
-            Debug.Log(">> Returning product to shelf");
             productObject.transform.position = originalProductPosition;
             productObject.transform.rotation = originalProductRotation;
             productObject.transform.localScale = originalScale;
         }
-        else
-        {
-            Debug.LogWarning(">> productObject is NULL");
-        }
 
         if (controlManager != null)
         {
-            Debug.Log(">> Unlocking controls");
             controlManager.UnlockControls();
-        }
-        else
-        {
-            Debug.LogWarning(">> controlManager is NULL");
         }
 
         isPreviewing = false;
-        Debug.Log(">> isPreviewing set to false");
-
-
-      //  if (ballScript != null)
-         //   ballScript.DisableInteraction();
     }
 
     void ReturnProductToShelf()
