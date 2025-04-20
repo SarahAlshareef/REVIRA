@@ -87,7 +87,6 @@ public class Payment : MonoBehaviour
 
                         string userId = UserManager.Instance.UserId;
 
-
                         var userBalanceReference = dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("accountBalance");
 
                         userBalanceReference.GetValueAsync().ContinueWithOnMainThread(balanceTask =>

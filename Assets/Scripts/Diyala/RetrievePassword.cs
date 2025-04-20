@@ -67,7 +67,7 @@ public class RetrievePassword : MonoBehaviour
             else
             {
                 ShowFeedback("A password reset link sent to your email successfully.", Color.green);
-                yield return new WaitForSeconds(2f);
+                yield return new WaitForSeconds(3f);
                 ClosePopup();
             }           
         retrieveButton.interactable = true;
@@ -84,7 +84,10 @@ public class RetrievePassword : MonoBehaviour
     
     public void ShowFeedback(string message, Color color)
     {
-        feedbackText.text = message;
-        feedbackText.color = color;
+        if ( feedbackText != null)
+        {
+            feedbackText.text = message;
+            feedbackText.color = color;
+        }       
     }
 }
