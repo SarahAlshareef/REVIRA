@@ -112,6 +112,11 @@ public class VRProductClickHandler : MonoBehaviour
 
     public void OnPreviewButtonPressed()
     {
+        if (specCanvas != null && specCanvas.activeSelf)
+        {
+            specCanvas.SetActive(false);
+        }
+
         if (currentActiveHandler != null)
             currentActiveHandler.StartPreview();
     }
