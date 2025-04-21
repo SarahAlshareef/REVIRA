@@ -30,7 +30,7 @@ public class ShowInformation : MonoBehaviour
 
     private string userId;
 
-    private void Awake()
+    void Awake()
     {
         viewInformationPanel.SetActive(false);
         updateInformationPanel.SetActive(false);
