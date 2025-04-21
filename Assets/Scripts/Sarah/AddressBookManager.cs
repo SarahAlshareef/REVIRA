@@ -1,3 +1,4 @@
+// AddressBookManager (Cleaned Version)
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -29,57 +30,57 @@ public class AddressBookManager : MonoBehaviour
 
     public static Address SelectedAddress { get; private set; }
 
+    #region Unity Methods
     void Start()
     {
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
         StartCoroutine(WaitForUserIdAndLoad());
 
-        formErrorMessageText.text = ""; // Hide error message at start
+        formErrorMessageText.text = "";
+        SetupButtonListeners();
+        nextButton.gameObject.SetActive(false);
+    }
+    #endregion
 
-        addNewAddressButton.onClick.AddListener(() =>
-        {
+    #region UI Panel Navigation
+    void ShowOnlyPanel(GameObject target)
+    {
+        promotionalPanel?.SetActive(false);
+        addressPanel?.SetActive(false);
+        methodPanel?.SetActive(false);
+
+        target?.SetActive(true);
+    }
+
+    void SetupButtonListeners()
+    {
+        addNewAddressButton.onClick.AddListener(() => {
             bool isActive = newAddressForm.activeSelf;
             newAddressForm.SetActive(!isActive);
 
-            if (!isActive)
-            {
-                formErrorMessageText.text = ""; // Clear error when opening
-            }
-            else
-            {
-                ClearInputs(); // Clear inputs and errors when closing
-            }
+            formErrorMessageText.text = isActive ? "" : formErrorMessageText.text;
+            if (isActive) ClearInputs();
         });
 
         saveButton.onClick.AddListener(SaveNewAddress);
 
-        nextButton.onClick.AddListener(() =>
-        {
+        nextButton.onClick.AddListener(() => {
             ShowOnlyPanel(methodPanel);
             CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
         });
 
-        backButton.onClick.AddListener(() =>
-        {
+        backButton.onClick.AddListener(() => {
             ShowOnlyPanel(promotionalPanel);
         });
-
-        nextButton.gameObject.SetActive(false);
     }
+    #endregion
 
-    void ShowOnlyPanel(GameObject target)
-    {
-        if (promotionalPanel != null) promotionalPanel.SetActive(false);
-        if (addressPanel != null) addressPanel.SetActive(false);
-        if (methodPanel != null) methodPanel.SetActive(false);
-
-        if (target != null)
-            target.SetActive(true);
-    }
-
+    #region Firebase Operations
     IEnumerator WaitForUserIdAndLoad()
     {
-        while (string.IsNullOrEmpty(UserManager.Instance.UserId)) yield return null;
+        while (string.IsNullOrEmpty(UserManager.Instance.UserId))
+            yield return null;
+
         LoadAddresses();
     }
 
@@ -92,53 +93,22 @@ public class AddressBookManager : MonoBehaviour
         addressRef.GetValueAsync().ContinueWithOnMainThread(task => {
             if (task.IsCompleted && task.Result.Exists)
             {
-                foreach (var snap in task.Result.Children)
+                foreach (var snapshot in task.Result.Children)
                 {
-                    var address = JsonUtility.FromJson<Address>(snap.GetRawJsonValue());
+                    var address = JsonUtility.FromJson<Address>(snapshot.GetRawJsonValue());
                     addressList.Add(address);
-                    CreateToggle(address, snap.Key);
+                    CreateToggle(address, snapshot.Key);
                 }
             }
 
-            bool hasNoAddresses = addressList.Count == 0;
-            noAddressMessage.SetActive(hasNoAddresses);
+            noAddressMessage.SetActive(addressList.Count == 0);
             nextButton.gameObject.SetActive(false);
 
             bool isMaxed = addressList.Count >= maxAddresses;
             addNewAddressButton.interactable = !isMaxed;
             outsideErrorMessageText.text = isMaxed ? "You’ve reached the maximum number of addresses. Delete one to add a new one." : "";
-            if (addNewAddressButtonImage) addNewAddressButtonImage.SetActive(!isMaxed);
+            addNewAddressButtonImage?.SetActive(!isMaxed);
         });
-    }
-
-    void ClearToggles()
-    {
-        foreach (Transform child in toggleParent) Destroy(child.gameObject);
-        addressList.Clear();
-        allToggles.Clear();
-    }
-
-    void CreateToggle(Address address, string key)
-    {
-        GameObject go = Instantiate(addressTogglePrefab, toggleParent);
-        go.transform.Find("AddressText").GetComponent<TextMeshProUGUI>().text =
-            $"{address.addressName}, {address.city}, {address.district}, {address.street}, {address.building}, {address.phoneNumber}";
-
-        Toggle toggle = go.GetComponent<Toggle>();
-        Button deleteBtn = go.transform.Find("DeleteButton").GetComponent<Button>();
-
-        toggle.isOn = false;
-        toggle.group = toggleParent.GetComponent<ToggleGroup>();
-        allToggles.Add(toggle);
-
-        toggle.onValueChanged.AddListener(isOn => {
-            if (!isOn) return;
-            allToggles.ForEach(t => { if (t != toggle) t.isOn = false; });
-            SelectedAddress = address;
-            nextButton.gameObject.SetActive(true);
-        });
-
-        deleteBtn.onClick.AddListener(() => DeleteAddress(key));
     }
 
     void SaveNewAddress()
@@ -156,15 +126,9 @@ public class AddressBookManager : MonoBehaviour
             return;
         }
 
-        if (!phone.StartsWith("05"))
+        if (!phone.StartsWith("05") || phone.Length != 10 || !phone.All(char.IsDigit))
         {
-            formErrorMessageText.text = "Phone number must start with '05'.";
-            return;
-        }
-
-        if (phone.Length != 10 || !phone.All(char.IsDigit))
-        {
-            formErrorMessageText.text = "Phone number must be exactly 10 digits.";
+            formErrorMessageText.text = "Phone number must start with '05' and be exactly 10 digits.";
             return;
         }
 
@@ -187,11 +151,12 @@ public class AddressBookManager : MonoBehaviour
         var baseRef = dbReference.Child("REVIRA/Consumers").Child(userId).Child("AddressBook");
 
         baseRef.Child(key).RemoveValueAsync().ContinueWithOnMainThread(task => {
-            if (task.IsCompleted) ShiftAddresses(baseRef, userId);
+            if (task.IsCompleted)
+                ShiftAddresses(baseRef);
         });
     }
 
-    void ShiftAddresses(DatabaseReference baseRef, string userId)
+    void ShiftAddresses(DatabaseReference baseRef)
     {
         baseRef.GetValueAsync().ContinueWithOnMainThread(task => {
             if (!task.IsCompleted || !task.Result.Exists)
@@ -201,8 +166,8 @@ public class AddressBookManager : MonoBehaviour
             }
 
             List<Address> remaining = new();
-            foreach (var snap in task.Result.Children)
-                remaining.Add(JsonUtility.FromJson<Address>(snap.GetRawJsonValue()));
+            foreach (var snapshot in task.Result.Children)
+                remaining.Add(JsonUtility.FromJson<Address>(snapshot.GetRawJsonValue()));
 
             baseRef.RemoveValueAsync().ContinueWithOnMainThread(_ => {
                 for (int i = 0; i < remaining.Count; i++)
@@ -214,6 +179,45 @@ public class AddressBookManager : MonoBehaviour
             });
         });
     }
+    #endregion
+
+    #region UI Helpers
+    void CreateToggle(Address address, string key)
+    {
+        GameObject toggleObject = Instantiate(addressTogglePrefab, toggleParent);
+        toggleObject.transform.Find("AddressText").GetComponent<TextMeshProUGUI>().text =
+            $"{address.addressName}, {address.city}, {address.district}, {address.street}, {address.building}, {address.phoneNumber}";
+
+        Toggle toggle = toggleObject.GetComponent<Toggle>();
+        Button deleteBtn = toggleObject.transform.Find("DeleteButton").GetComponent<Button>();
+
+        toggle.isOn = false;
+        toggle.group = toggleParent.GetComponent<ToggleGroup>();
+        allToggles.Add(toggle);
+
+        toggle.onValueChanged.AddListener(isOn => {
+            if (isOn)
+            {
+                allToggles.ForEach(t => { if (t != toggle) t.isOn = false; });
+                SelectedAddress = address;
+            }
+            else if (!allToggles.Any(t => t.isOn))
+            {
+                SelectedAddress = null;
+            }
+
+            nextButton.gameObject.SetActive(SelectedAddress != null);
+        });
+
+        deleteBtn.onClick.AddListener(() => DeleteAddress(key));
+    }
+
+    void ClearToggles()
+    {
+        foreach (Transform child in toggleParent) Destroy(child.gameObject);
+        addressList.Clear();
+        allToggles.Clear();
+    }
 
     void ClearInputs()
     {
@@ -221,4 +225,5 @@ public class AddressBookManager : MonoBehaviour
             streetInput.text = buildingInput.text = phoneNumberInput.text = "";
         formErrorMessageText.text = "";
     }
+    #endregion
 }
