@@ -8,8 +8,6 @@ public class ExitStore : MonoBehaviour
 {
     public GameObject popupPanel;
     public Button confirmButton, cancelButton;
-    public Transform playerCamera;
-    public float popupDistance = 2.0f;
 
     void Start()
     {
@@ -21,13 +19,7 @@ public class ExitStore : MonoBehaviour
 
     public void ShowExitPopup()
     {
-        if ( popupPanel != null && playerCamera != null )
-        {
-            popupPanel.transform.position = playerCamera.position + playerCamera.forward * popupDistance;
-            popupPanel.transform.LookAt(playerCamera);
-            popupPanel.transform.Rotate(0, 180, 0);
             popupPanel.SetActive(true);
-        }
     }
 
     public void ConfirmExit()
