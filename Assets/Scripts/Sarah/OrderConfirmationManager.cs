@@ -118,27 +118,39 @@ public class ConfirmOrderManager : MonoBehaviour
 
                 dbRef.Child($"REVIRA/stores/storeID_123/products/{productId}").GetValueAsync().ContinueWithOnMainThread(productTask =>
                 {
-                    float finalUnitPrice = originalPrice;
+                    float priceAfterDiscount = originalPrice;
+                    float priceAfterPromo = originalPrice;
 
                     if (productTask.IsCompleted && productTask.Result.Exists)
                     {
                         var productSnapshot = productTask.Result;
+
                         bool hasDiscount = Convert.ToBoolean(productSnapshot.Child("discount").Child("exists").Value);
                         float discountPercent = Convert.ToSingle(productSnapshot.Child("discount").Child("percentage").Value);
 
                         if (hasDiscount)
-                            finalUnitPrice = originalPrice * (1f - discountPercent / 100f);
+                            priceAfterDiscount = originalPrice * (1f - discountPercent / 100f);
+
+                        if (PromotionalManager.ProductDiscounts.TryGetValue(productId, out DiscountInfo promoInfo))
+                        {
+                            priceAfterPromo = promoInfo.finalPrice / quantity; // unit promo price
+                        }
+                        else
+                        {
+                            priceAfterPromo = priceAfterDiscount;
+                        }
                     }
 
-                    float totalPrice = finalUnitPrice * quantity;
+                    float totalPrice = priceAfterPromo * quantity;
 
                     Dictionary<string, object> itemData = new()
                     {
                         {"productID", productId},
                         {"productName", productDict["productName"]},
-                        {"price", originalPrice},
-                        {"finalPriceAfterDiscount", finalUnitPrice},
-                        {"totalPriceAfterDiscount", totalPrice},
+                        {"originalPrice", originalPrice},
+                        {"priceAfterDiscount", priceAfterDiscount},
+                        {"priceAfterPromoDiscount", priceAfterPromo},
+                        {"totalPrice", totalPrice},
                         {"color", selectedColor},
                         {"sizes", new Dictionary<string, object> { { selectedSize, quantity } } }
                     };
