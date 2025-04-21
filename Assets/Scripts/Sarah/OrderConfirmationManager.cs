@@ -127,9 +127,10 @@ public class ConfirmOrderManager : MonoBehaviour
                     if (productTask.IsCompleted && productTask.Result.Exists)
                     {
                         var productSnapshot = productTask.Result;
+                        var discountNode = productSnapshot.Child("discount");
 
-                        bool hasDiscount = Convert.ToBoolean(productSnapshot.Child("discount").Child("exists").Value);
-                        float discountPercent = Convert.ToSingle(productSnapshot.Child("discount").Child("percentage").Value);
+                        bool hasDiscount = discountNode.HasChild("exists") && Convert.ToBoolean(discountNode.Child("exists").Value);
+                        float discountPercent = discountNode.HasChild("percentage") ? Convert.ToSingle(discountNode.Child("percentage").Value) : 0f;
 
                         if (hasDiscount)
                             priceAfterDiscount = originalPrice * (1f - discountPercent / 100f);
