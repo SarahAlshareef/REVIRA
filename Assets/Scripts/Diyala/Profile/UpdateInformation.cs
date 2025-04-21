@@ -140,7 +140,7 @@ public class UpdateInformation : MonoBehaviour
             if (messageCoroutine != null)
                 StopCoroutine(messageCoroutine);
 
-            messageCoroutine = StartCoroutine(HideMessageAfterDelay(5f));
+            messageCoroutine = StartCoroutine(HideMessageAfterDelay(3f));
         }
     }
     IEnumerator HideMessageAfterDelay(float delay)

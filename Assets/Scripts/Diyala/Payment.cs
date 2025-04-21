@@ -11,10 +11,25 @@ using Firebase.Extensions;
 
 public class Payment : MonoBehaviour
 {
-    public TextMeshProUGUI AccountBalance, errorText1, errorText2;
+    [Header("General")]
+    public TextMeshProUGUI AccountBalance;
     public TMP_InputField VoucherCodeInput;
-    public Button UseAccountBalanceButton, UseVoucherButtton, ApplyVoucherButtton;
-    public GameObject VoucherSection, ConfirmOrder;
+
+    [Header("Game Objects")]
+    public GameObject VoucherSection;
+    public GameObject ConfirmOrder;
+
+    [Header("Buttons")]
+    public Button UseAccountBalanceButton;
+    public Button UseVoucherButtton;
+    public Button ApplyVoucherButtton;
+
+    [Header("Display Message")]
+    public TextMeshProUGUI errorText1;
+    public TextMeshProUGUI errorText2;
+    private Coroutine messageCoroutine;
+
+    [Header("Sound")]
     public AudioSource coinsSound;
 
     private DatabaseReference dbReference;
@@ -164,6 +179,17 @@ public class Payment : MonoBehaviour
         {
             errorText.text = message;
             errorText.color = Color.red;
+            errorText.gameObject.SetActive(true);
+
+            if (messageCoroutine != null)
+                StopCoroutine(messageCoroutine);
+
+            messageCoroutine = StartCoroutine(HideMessageAfterDelay(errorText, 3f));
         }
+    }
+    IEnumerator HideMessageAfterDelay(TextMeshProUGUI errorText, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        errorText.gameObject.SetActive(false);
     }
 }
