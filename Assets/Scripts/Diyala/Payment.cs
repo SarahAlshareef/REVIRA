@@ -49,6 +49,8 @@ public class Payment : MonoBehaviour
     }
     public void OnUseAccountBalanceClick()
     {
+        VoucherSection.SetActive(false);
+
         float currentBalance = UserManager.Instance.AccountBalance;
         float TotalAmount = OrderSummaryManager.FinalTotal;
 
