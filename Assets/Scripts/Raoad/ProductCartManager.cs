@@ -64,7 +64,8 @@ public class ProductCartManager : MonoBehaviour
             ShowError("Please select a quantity.");
             return;
         }
-        errorText.text = "";
+        errorText.text = ("");
+        errorText.color = Color.red;
        
 
     }
@@ -73,18 +74,17 @@ public class ProductCartManager : MonoBehaviour
     {
         if (isAdding) return;
 
-
         ValidateSelection();
         if (!string.IsNullOrEmpty(errorText.text)) return;
 
         isAdding = true;
-        addToCartButton.interactable = false;
+        
 
         if (string.IsNullOrEmpty(userManager.UserId))
         {
             ShowError("User not logged in.");
             isAdding = false;
-            addToCartButton.interactable = true;
+            
             return;
         }
 
@@ -93,7 +93,7 @@ public class ProductCartManager : MonoBehaviour
         {
             ShowError("Product data is missing.");
             isAdding = false;
-            addToCartButton.interactable = true;
+            
             return;
         }
 
@@ -112,7 +112,7 @@ public class ProductCartManager : MonoBehaviour
         {
             ShowError("This product is out of stock.");
             isAdding = false;
-            addToCartButton.interactable = true;
+            
             return;
         }
 
@@ -147,8 +147,7 @@ public class ProductCartManager : MonoBehaviour
                     {
                         Debug.LogError("failled to add");
                         ShowError("Failed to add product. Try again.");
-                        isAdding = false;
-                        addToCartButton.interactable = true;
+                        
                     }
                 });
             });
@@ -262,17 +261,19 @@ public class ProductCartManager : MonoBehaviour
             CancelInvoke("ClearError");
             Invoke("ClearError", 3f);
         }
+        
     }
     private void ShowSuccess(string message)
     {
         if (errorText != null)
         {
-            errorText.text = message;
-            errorText.color = Color.green;
+           
 
-            addToCartButton.interactable = true;
-            isAdding = false;
-            Invoke("ClearError", 3f);
+            errorText.color = Color.green;
+            errorText.text = message;
+
+            CancelInvoke(nameof(ClearError));
+            Invoke(nameof(ClearError), 15f);
            
         }
     }
@@ -282,9 +283,8 @@ public class ProductCartManager : MonoBehaviour
         {
             errorText.text = "";
             errorText.color= Color.red;
+            errorText.gameObject.SetActive(false);
         }
-
-        addToCartButton.interactable = true;
     }
     private long GetUnixTimestamp()
     {

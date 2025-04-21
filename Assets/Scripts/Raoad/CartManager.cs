@@ -9,6 +9,7 @@ using UnityEngine.SceneManagement;
 public class CartManager : MonoBehaviour
 {
     [Header("UI References")]
+    public GameObject cartPanel;
     public Transform cartContent;
     public GameObject cartItemPrefab;
     public TextMeshProUGUI totalText;
@@ -224,6 +225,19 @@ public class CartManager : MonoBehaviour
                 dbRef.Child(path).SetValueAsync(currentStock + qty);
             }
         });
+    }
+    public void ToggleCartPanel()
+    {
+        bool isActive = cartPanel.activeSelf;
+        cartPanel.SetActive(!isActive);
+    }
+
+    public void showCartUI()
+    {
+        if (cartPanel != null)
+        {
+            cartPanel.SetActive(true);
+        }
     }
 }
 
