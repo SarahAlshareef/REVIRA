@@ -10,8 +10,10 @@ public class ConfirmOrderManager : MonoBehaviour
 {
     public GameObject confirmationPopup;
     public GameObject successPopup;
-    public Button confirmButton;
+    public Button confirmButton;           // First click: just opens the popup
+    public Button finalConfirmButton;      // Inside popup: confirms and submits order
     public Button cancelButton;
+    public TextMeshProUGUI errorText;
 
     private DatabaseReference dbRef;
     private string userId;
@@ -21,7 +23,8 @@ public class ConfirmOrderManager : MonoBehaviour
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
         userId = UserManager.Instance.UserId;
 
-        confirmButton.onClick.AddListener(OnConfirmOrder);
+        confirmButton.onClick.AddListener(() => confirmationPopup.SetActive(true));
+        finalConfirmButton.onClick.AddListener(OnConfirmOrder);
         cancelButton.onClick.AddListener(() => confirmationPopup.SetActive(false));
     }
 
@@ -133,7 +136,7 @@ public class ConfirmOrderManager : MonoBehaviour
 
                         if (PromotionalManager.ProductDiscounts.TryGetValue(productId, out DiscountInfo promoInfo))
                         {
-                            priceAfterPromo = promoInfo.finalPrice / quantity; // unit promo price
+                            priceAfterPromo = promoInfo.finalPrice / quantity;
                         }
                         else
                         {
@@ -191,5 +194,22 @@ public class ConfirmOrderManager : MonoBehaviour
                 Debug.LogError("Failed to save order: " + task.Exception);
             }
         });
+    }
+
+    void ShowError(string message)
+    {
+        if (errorText != null)
+        {
+            errorText.text = message;
+            errorText.color = Color.red;
+            CancelInvoke(nameof(ClearError));
+            Invoke(nameof(ClearError), 3f);
+        }
+    }
+
+    void ClearError()
+    {
+        if (errorText != null)
+            errorText.text = "";
     }
 }
