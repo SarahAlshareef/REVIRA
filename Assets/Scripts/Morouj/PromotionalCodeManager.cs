@@ -14,6 +14,7 @@ public class PromotionalCodeManager : MonoBehaviour
     public Button backToStoreButton;
     public Button exitButton;
     public TextMeshProUGUI messageText;
+    public TextMeshProUGUI CoinText;
 
     private DatabaseReference dbRef;
     private string storeID = "storeID_123";
@@ -26,6 +27,8 @@ public class PromotionalCodeManager : MonoBehaviour
     void Start()
     {
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
+
+        CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
 
         applyButton.onClick.AddListener(ValidatePromoCode);
         nextButton.onClick.AddListener(() => SceneManager.LoadScene("Address"));
