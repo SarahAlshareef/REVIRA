@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Firebase.Database;
 using TMPro;
-using UnityEngine.SceneManagement;
+
 
 public class ProductCartManager : MonoBehaviour
 {
@@ -16,7 +16,7 @@ public class ProductCartManager : MonoBehaviour
     private UserManager userManager;
 
     private bool isAdding = false;
-    private bool firstClickDone = false;
+  
 
     void Start()
     {
@@ -64,20 +64,15 @@ public class ProductCartManager : MonoBehaviour
             ShowError("Please select a quantity.");
             return;
         }
+        errorText.text = "";
+       
 
-        ShowError("");
     }
 
     public void AddToCart()
     {
         if (isAdding) return;
 
-       
-        if (firstClickDone)
-        {
-            SceneManager.LoadScene("CartTest");
-            return;
-        }
 
         ValidateSelection();
         if (!string.IsNullOrEmpty(errorText.text)) return;
@@ -146,13 +141,13 @@ public class ProductCartManager : MonoBehaviour
                     if (updateTask.IsCompleted)
                     {
                         UpdateCartSummary(userID);
-
-                        firstClickDone = true;
-                        ShowError("Product added successfully! Tap again to go to cart.");
+                        ShowSuccess("Product added successfully!");
                     }
                     else
                     {
+                        Debug.LogError("failled to add");
                         ShowError("Failed to add product. Try again.");
+                        isAdding = false;
                         addToCartButton.interactable = true;
                     }
                 });
@@ -160,11 +155,7 @@ public class ProductCartManager : MonoBehaviour
         });
     }
 
-    private void GoToCartScene()
-    {
-        SceneManager.LoadScene("CartTest");
-    }
-
+    
     private void UpdateCartSummary(string userId)
     {
         dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").Child("cartItems").GetValueAsync().ContinueWith(task =>
@@ -272,17 +263,29 @@ public class ProductCartManager : MonoBehaviour
             Invoke("ClearError", 3f);
         }
     }
+    private void ShowSuccess(string message)
+    {
+        if (errorText != null)
+        {
+            errorText.text = message;
+            errorText.color = Color.green;
 
+            addToCartButton.interactable = true;
+            isAdding = false;
+            Invoke("ClearError", 3f);
+           
+        }
+    }
     private void ClearError()
     {
         if (errorText != null)
         {
             errorText.text = "";
+            errorText.color= Color.red;
         }
 
         addToCartButton.interactable = true;
     }
-
     private long GetUnixTimestamp()
     {
         return (long)(System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1))).TotalSeconds;
