@@ -29,6 +29,7 @@ public class AddressBookManager1 : MonoBehaviour
     {
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
         StartCoroutine(WaitForUserIdAndLoad());
+        CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
 
         formErrorMessageText.text = ""; // Hide error message at start
 
@@ -51,7 +52,6 @@ public class AddressBookManager1 : MonoBehaviour
 
         nextButton.onClick.AddListener(() => {
             SceneManager.LoadScene("Method");
-            CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
         });
 
         backButton.onClick.AddListener(() => {
