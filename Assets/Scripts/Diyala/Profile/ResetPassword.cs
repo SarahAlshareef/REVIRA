@@ -11,7 +11,6 @@ public class ResetPassword : MonoBehaviour
 {
     [Header("Game Objects")]
     public GameObject resetPanel;
-    public GameObject Greeting;
 
     [Header("Buttons")]
     public Button resetPasswordButton;
@@ -41,7 +40,6 @@ public class ResetPassword : MonoBehaviour
     public void OpenResetPanel()
     {
             resetPanel.SetActive(true);
-            Greeting.SetActive(false);
 
             emailText.text = UserManager.Instance.Email;
             currentPasswordInput.text = "";
@@ -53,7 +51,6 @@ public class ResetPassword : MonoBehaviour
     public void CloseResetPanel()
     {
         resetPanel.SetActive(false);
-        Greeting.SetActive(true);
     }
 
     void HandlePasswordReset()
@@ -94,11 +91,11 @@ public class ResetPassword : MonoBehaviour
 
         user.ReauthenticateAsync(credential).ContinueWithOnMainThread(task =>
         {
-            if (task.IsCompleted && !task.IsFaulted && !task.IsCanceled)
+            if (task.IsCompletedSuccessfully)
             {
                 user.UpdatePasswordAsync(newPassword).ContinueWithOnMainThread(updateTask =>
                 {
-                    if (updateTask.IsCompleted && !updateTask.IsFaulted)
+                    if (updateTask.IsCompletedSuccessfully)
                     {
                         ShowMessage("Password updated successfully.", Color.green);
                     }
@@ -117,7 +114,10 @@ public class ResetPassword : MonoBehaviour
 
     void ShowMessage(string message, Color color)
     {
-        messageText.text = message;
-        messageText.color = color;
+        if (messageText != null)
+        {
+            messageText.text = message;
+            messageText.color = color;
+        }      
     }
 }
