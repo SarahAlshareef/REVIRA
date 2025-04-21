@@ -17,6 +17,7 @@ public class DeliveryMethodManager : MonoBehaviour
     public Button closeButton;
 
     public TextMeshProUGUI messageText;
+    public TextMeshProUGUI CoinText;
 
     private bool isSaved = false;
 
@@ -26,6 +27,9 @@ public class DeliveryMethodManager : MonoBehaviour
     private void Start()
     {
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
+
+        CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
+
 
         saveButton.onClick.AddListener(SaveDeliveryMethod);
         nextButton.onClick.AddListener(GoToNextStep);
