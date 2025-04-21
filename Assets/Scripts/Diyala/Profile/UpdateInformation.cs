@@ -53,13 +53,13 @@ public class UpdateInformation : MonoBehaviour
     }
     public void LoadUpdateData()
     {
-        firstNameInput.text = UserManager.Instance.FirstName;
-        lastNameInput.text = UserManager.Instance.LastName;
-        phoneInput.text = UserManager.Instance.PhoneNumber;
+        firstNameInput.text = string.IsNullOrEmpty(UserManager.Instance.FirstName) ? "Not Added" : UserManager.Instance.FirstName;
+        lastNameInput.text = string.IsNullOrEmpty(UserManager.Instance.LastName) ? "Not Added" : UserManager.Instance.LastName;
+        phoneInput.text = string.IsNullOrEmpty(UserManager.Instance.PhoneNumber) ? "Not Added" : UserManager.Instance.PhoneNumber;
 
         string UserGender = (UserManager.Instance.Gender ?? "").ToLower();
-        maleToggle.isOn = UserGender == "male";
-        femaleToggle.isOn = UserGender == "female";
+        maleToggle.isOn = (UserGender == "male");
+        femaleToggle.isOn = (UserGender == "female");
 
         maleToggle.onValueChanged.RemoveAllListeners();
         femaleToggle.onValueChanged.RemoveAllListeners();
@@ -114,7 +114,7 @@ public class UpdateInformation : MonoBehaviour
                 };
         userRef.UpdateChildrenAsync(updates).ContinueWithOnMainThread(dbTask =>
         {
-            if (dbTask.IsCompleted)
+            if (dbTask.IsCompletedSuccessfully)
             {
                 UserManager.Instance.UpdateFirstName(firstName);
                 UserManager.Instance.UpdateLastName(lastName);
