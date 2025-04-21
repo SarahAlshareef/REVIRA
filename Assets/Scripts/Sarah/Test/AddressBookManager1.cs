@@ -2,12 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
+using UnityEngine.SceneManagement;
 using Firebase.Database;
 using Firebase.Extensions;
+using TMPro;
 using System.Linq;
 
-public class AddressBookManager : MonoBehaviour
+public class AddressBookManager1 : MonoBehaviour
 {
     [Header("UI References")]
     public Transform toggleParent;
@@ -16,11 +17,6 @@ public class AddressBookManager : MonoBehaviour
     public TMP_InputField addressNameInput, cityInput, districtInput, streetInput, buildingInput, phoneNumberInput;
     public TMP_Dropdown countryDropdown;
     public TextMeshProUGUI outsideErrorMessageText, formErrorMessageText, CoinText;
-
-    [Header("Panels")]
-    public GameObject promotionalPanel;
-    public GameObject addressPanel;
-    public GameObject methodPanel;
 
     private DatabaseReference dbReference;
     private readonly List<Address> addressList = new();
@@ -53,28 +49,16 @@ public class AddressBookManager : MonoBehaviour
 
         saveButton.onClick.AddListener(SaveNewAddress);
 
-        nextButton.onClick.AddListener(() =>
-        {
-            ShowOnlyPanel(methodPanel);
+        nextButton.onClick.AddListener(() => {
+            SceneManager.LoadScene("Method");
             CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
         });
 
-        backButton.onClick.AddListener(() =>
-        {
-            ShowOnlyPanel(promotionalPanel);
+        backButton.onClick.AddListener(() => {
+            SceneManager.LoadScene("Promotional"); // Change to your desired previous scene name
         });
 
         nextButton.gameObject.SetActive(false);
-    }
-
-    void ShowOnlyPanel(GameObject target)
-    {
-        if (promotionalPanel != null) promotionalPanel.SetActive(false);
-        if (addressPanel != null) addressPanel.SetActive(false);
-        if (methodPanel != null) methodPanel.SetActive(false);
-
-        if (target != null)
-            target.SetActive(true);
     }
 
     IEnumerator WaitForUserIdAndLoad()
