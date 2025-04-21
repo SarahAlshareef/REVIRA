@@ -17,8 +17,6 @@ public class Payment : MonoBehaviour
     public GameObject VoucherSection, ConfirmOrder;
     public AudioSource coinsSound;
 
-    public float TotalAmount = OrderSummaryManager.FinalTotal;
-
     private DatabaseReference dbReference;
 
     void Start()
@@ -37,6 +35,7 @@ public class Payment : MonoBehaviour
     public void OnUseAccountBalanceClick()
     {
         float currentBalance = UserManager.Instance.AccountBalance;
+        float TotalAmount = OrderSummaryManager.FinalTotal;
 
         if (currentBalance >= TotalAmount)
             ConfirmOrder.SetActive(true);
