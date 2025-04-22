@@ -81,7 +81,7 @@ public class MenuManagerVR : MonoBehaviour
         dimmerCanvas.SetActive(true);
         playerControlManager.LockControls();
 
-        FaceUIToPlayer(menuUI);
+        FaceMenuToPlayer(menuUI); // use special centering for menu
     }
 
     public void CloseMenu()
@@ -154,5 +154,17 @@ public class MenuManagerVR : MonoBehaviour
         Vector3 lookDir = new Vector3(cam.forward.x, 0, cam.forward.z);
         if (lookDir != Vector3.zero)
             ui.transform.rotation = Quaternion.LookRotation(lookDir);
+    }
+
+    void FaceMenuToPlayer(GameObject ui)
+    {
+        Transform cam = Camera.main.transform;
+
+        // Appear exactly in the center of the player's view
+        Vector3 targetPos = cam.position + cam.forward * 2.5f;
+        ui.transform.position = targetPos;
+
+        // Match camera rotation perfectly
+        ui.transform.rotation = Quaternion.LookRotation(cam.forward, cam.up);
     }
 }
