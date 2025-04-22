@@ -12,6 +12,7 @@ public class ConfirmOrderManager : MonoBehaviour
     public GameObject successPopup;
     public Button confirmButton;
     public Button cancelButton;
+    public TextMeshProUGUI errorText;
 
     private DatabaseReference dbRef;
     private string userId;
@@ -27,6 +28,17 @@ public class ConfirmOrderManager : MonoBehaviour
 
     void OnConfirmOrder()
     {
+        var address = AddressBookManager1.SelectedAddress;
+
+        if (address == null)
+        {
+            if (errorText != null)
+                errorText.text = "Please select a delivery address before confirming the order.";
+
+            Debug.LogError("No address selected. Please ensure an address is selected before confirming the order. This is managed by the AddressBookManager1 class.");
+            return;
+        }
+
         GetNextOrderId(orderId =>
         {
             BuildOrderData(orderId, orderData =>
@@ -57,7 +69,7 @@ public class ConfirmOrderManager : MonoBehaviour
         string orderDate = DateTime.Now.ToString("yyyy-MM-dd hh:mm tt");
         long timestamp = DateTimeOffset.Now.ToUnixTimeSeconds();
 
-        var address = AddressBookManager.SelectedAddress;
+        var address = AddressBookManager1.SelectedAddress;
 
         Dictionary<string, object> orderData = new()
         {
@@ -133,7 +145,7 @@ public class ConfirmOrderManager : MonoBehaviour
 
                         if (PromotionalManager.ProductDiscounts.TryGetValue(productId, out DiscountInfo promoInfo))
                         {
-                            priceAfterPromo = promoInfo.finalPrice / quantity; // unit promo price
+                            priceAfterPromo = promoInfo.finalPrice / quantity;
                         }
                         else
                         {
