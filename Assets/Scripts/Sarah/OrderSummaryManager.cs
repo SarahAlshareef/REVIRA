@@ -39,7 +39,7 @@ public class OrderSummaryManager : MonoBehaviour
     public static float FinalTotal { get; private set; }
     public static OrderSummaryManager Instance { get; private set; }
 
-    // ? This property is what you were missing
+    
     public float Subtotal => subtotal;
 
     void Start()
@@ -132,7 +132,7 @@ public class OrderSummaryManager : MonoBehaviour
     void UpdateSummaryUI(float discountedAmount)
     {
         subtotalText.text = subtotal.ToString("F2");
-        discountText.text = discountedAmount > 0 ? "-" + discountedAmount.ToString("F2") : "-0.00";
+        discountText.text = discountedAmount > 0 ? "-" + discountedAmount.ToString("F2") : "0.00";
         deliveryChargesText.text = delivery.ToString("F2");
         totalText.text = total.ToString("F2");
 
