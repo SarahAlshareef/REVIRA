@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Firebase.Database;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 
 public class ProductCartManager : MonoBehaviour
@@ -16,7 +17,8 @@ public class ProductCartManager : MonoBehaviour
     private UserManager userManager;
 
     private bool isAdding = false;
-  
+    private bool firstClickDone = false;
+
 
     void Start()
     {
@@ -73,6 +75,12 @@ public class ProductCartManager : MonoBehaviour
     public void AddToCart()
     {
         if (isAdding) return;
+
+        if (firstClickDone)
+        {
+            SceneManager.LoadScene("CartTest");
+            return;
+        }
 
         ValidateSelection();
         if (!string.IsNullOrEmpty(errorText.text)) return;
@@ -141,7 +149,10 @@ public class ProductCartManager : MonoBehaviour
                     if (updateTask.IsCompleted)
                     {
                         UpdateCartSummary(userID);
+                        firstClickDone = true;
+                        addToCartButton.interactable = true;
                         ShowSuccess("Product added successfully!");
+                       
                     }
                     else
                     {
