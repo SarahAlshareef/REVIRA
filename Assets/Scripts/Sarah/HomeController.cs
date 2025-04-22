@@ -30,8 +30,8 @@ public class HomeController : MonoBehaviour, IPointerClickHandler
 
     public void OpenStoreSelection()
     {
-        //SceneManager.LoadScene("StoreSelection");
-        SceneManager.LoadScene("Promotional");
+        SceneManager.LoadScene("StoreSelection");
+        ///SceneManager.LoadScene("Promotional");
         //SceneManager.LoadScene("CartTest");
         //SceneManager.LoadScene("Raoad");
     }
