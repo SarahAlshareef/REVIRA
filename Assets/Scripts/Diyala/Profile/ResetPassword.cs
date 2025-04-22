@@ -5,6 +5,8 @@ using TMPro;
 // Firebase
 using Firebase.Auth;
 using Firebase.Extensions;
+// C#
+using System.Collections;
 
 
 public class ResetPassword : MonoBehaviour
@@ -25,6 +27,7 @@ public class ResetPassword : MonoBehaviour
     public TextMeshProUGUI emailText;
     public TextMeshProUGUI messageText;
 
+    private Coroutine messageCoroutine;
     private FirebaseAuth auth;
 
     void Start()
@@ -40,17 +43,16 @@ public class ResetPassword : MonoBehaviour
     public void OpenResetPanel()
     {
             resetPanel.SetActive(true);
-
             emailText.text = UserManager.Instance.Email;
-            currentPasswordInput.text = "";
-            newPasswordInput.text = "";
-            confirmPasswordInput.text = "";
-            messageText.text = "";
     }
 
     public void CloseResetPanel()
     {
         resetPanel.SetActive(false);
+        currentPasswordInput.text = "";
+        newPasswordInput.text = "";
+        confirmPasswordInput.text = "";
+        messageText.text = "";
     }
 
     void HandlePasswordReset()
@@ -85,6 +87,16 @@ public class ResetPassword : MonoBehaviour
             return;
         }
 
+        if (currentPassword == newPassword)
+        {
+            ShowMessage("New password cannot be the same as current password.", Color.red);
+
+            newPasswordInput.text = "";
+            confirmPasswordInput.text = "";
+
+            return;
+        }
+
         resetPasswordButton.interactable = false;
         ShowMessage("Processing request...", Color.yellow);
 
@@ -106,14 +118,15 @@ public class ResetPassword : MonoBehaviour
                     {
                         ShowMessage("Failed to update password. Try again.", Color.red);
                     }
+                    resetPasswordButton.interactable = true;
                 });
             }
             else
             {
                 ShowMessage("Current password is incorrect.", Color.red);
+                resetPasswordButton.interactable = true;
             }
-        });
-        resetPasswordButton.interactable = true;
+        });      
     }
 
     void ShowMessage(string message, Color color)
@@ -122,6 +135,18 @@ public class ResetPassword : MonoBehaviour
         {
             messageText.text = message;
             messageText.color = color;
+            messageText.gameObject.SetActive(true);
+
+            if (messageCoroutine != null) 
+                StopCoroutine(messageCoroutine);
+
+            messageCoroutine = StartCoroutine(HideMessageAfterDelay(3f));
         }      
+    }
+
+    IEnumerator HideMessageAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        messageText.gameObject.SetActive(false);
     }
 }
