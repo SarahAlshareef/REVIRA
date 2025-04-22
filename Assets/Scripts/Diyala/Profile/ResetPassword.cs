@@ -85,6 +85,9 @@ public class ResetPassword : MonoBehaviour
             return;
         }
 
+        resetPasswordButton.interactable = false;
+        ShowMessage("Processing request...", Color.yellow);
+
         var user = auth.CurrentUser;
         var credential = EmailAuthProvider.GetCredential(user.Email, currentPassword);
 
@@ -110,6 +113,7 @@ public class ResetPassword : MonoBehaviour
                 ShowMessage("Current password is incorrect.", Color.red);
             }
         });
+        resetPasswordButton.interactable = true;
     }
 
     void ShowMessage(string message, Color color)

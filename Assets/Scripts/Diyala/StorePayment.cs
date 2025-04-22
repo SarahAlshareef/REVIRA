@@ -1,7 +1,6 @@
 // Unity
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
 using TMPro;
 // Firebase
 using Firebase.Database;
@@ -126,6 +125,7 @@ public class StorePayment : MonoBehaviour
                                         StartCoroutine(AnimateBalance(UserManager.Instance.AccountBalance, newBalance));
                                         UserManager.Instance.UpdateAccountBalance(newBalance);
                                         VoucherSection.SetActive(false);
+                                        VoucherCodeInput.text = "";
 
                                         //dbReference.Child("REVIRA").Child("Voucher Code").Child(voucherKey).Child("used").SetValueAsync(true);
                                     }
