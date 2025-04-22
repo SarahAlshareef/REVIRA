@@ -1,12 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using Firebase.Database;
 using Firebase.Extensions;
 using TMPro;
-using System.Linq;
 
 public class AddressBookManager1 : MonoBehaviour
 {
@@ -29,41 +29,22 @@ public class AddressBookManager1 : MonoBehaviour
     {
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
         StartCoroutine(WaitForUserIdAndLoad());
+
         CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
+        formErrorMessageText.text = "";
 
-        formErrorMessageText.text = ""; // Hide error message at start
-
-        addNewAddressButton.onClick.AddListener(() =>
-        {
-            bool isActive = newAddressForm.activeSelf;
-            newAddressForm.SetActive(!isActive);
-
-            if (!isActive)
-            {
-                formErrorMessageText.text = ""; // Clear error when opening
-            }
-            else
-            {
-                ClearInputs(); // Clear inputs and errors when closing
-            }
-        });
-
+        addNewAddressButton.onClick.AddListener(ToggleNewAddressForm);
         saveButton.onClick.AddListener(SaveNewAddress);
-
-        nextButton.onClick.AddListener(() => {
-            SceneManager.LoadScene("Method");
-        });
-
-        backButton.onClick.AddListener(() => {
-            SceneManager.LoadScene("Promotional"); // Change to your desired previous scene name
-        });
+        nextButton.onClick.AddListener(() => SceneManager.LoadScene("Method"));
+        backButton.onClick.AddListener(() => SceneManager.LoadScene("Promotional"));
 
         nextButton.gameObject.SetActive(false);
     }
 
     IEnumerator WaitForUserIdAndLoad()
     {
-        while (string.IsNullOrEmpty(UserManager.Instance.UserId)) yield return null;
+        while (string.IsNullOrEmpty(UserManager.Instance.UserId))
+            yield return null;
         LoadAddresses();
     }
 
@@ -73,7 +54,8 @@ public class AddressBookManager1 : MonoBehaviour
         string userId = UserManager.Instance.UserId;
         var addressRef = dbReference.Child("REVIRA/Consumers").Child(userId).Child("AddressBook");
 
-        addressRef.GetValueAsync().ContinueWithOnMainThread(task => {
+        addressRef.GetValueAsync().ContinueWithOnMainThread(task =>
+        {
             if (task.IsCompleted && task.Result.Exists)
             {
                 foreach (var snap in task.Result.Children)
@@ -97,25 +79,27 @@ public class AddressBookManager1 : MonoBehaviour
 
     void ClearToggles()
     {
-        foreach (Transform child in toggleParent) Destroy(child.gameObject);
+        foreach (Transform child in toggleParent)
+            Destroy(child.gameObject);
         addressList.Clear();
         allToggles.Clear();
     }
 
     void CreateToggle(Address address, string key)
     {
-        GameObject go = Instantiate(addressTogglePrefab, toggleParent);
-        go.transform.Find("AddressText").GetComponent<TextMeshProUGUI>().text =
+        GameObject toggleGO = Instantiate(addressTogglePrefab, toggleParent);
+        toggleGO.transform.Find("AddressText").GetComponent<TextMeshProUGUI>().text =
             $"{address.addressName}, {address.city}, {address.district}, {address.street}, {address.building}, {address.phoneNumber}";
 
-        Toggle toggle = go.GetComponent<Toggle>();
-        Button deleteBtn = go.transform.Find("DeleteButton").GetComponent<Button>();
+        Toggle toggle = toggleGO.GetComponent<Toggle>();
+        Button deleteBtn = toggleGO.transform.Find("DeleteButton").GetComponent<Button>();
 
         toggle.isOn = false;
         toggle.group = toggleParent.GetComponent<ToggleGroup>();
         allToggles.Add(toggle);
 
-        toggle.onValueChanged.AddListener(isOn => {
+        toggle.onValueChanged.AddListener(isOn =>
+        {
             if (!isOn) return;
             allToggles.ForEach(t => { if (t != toggle) t.isOn = false; });
             SelectedAddress = address;
@@ -125,7 +109,48 @@ public class AddressBookManager1 : MonoBehaviour
         deleteBtn.onClick.AddListener(() => DeleteAddress(key));
     }
 
+    void ToggleNewAddressForm()
+    {
+        bool isActive = newAddressForm.activeSelf;
+        newAddressForm.SetActive(!isActive);
+
+        if (!isActive)
+            formErrorMessageText.text = "";
+        else
+            ClearInputs();
+    }
+
     void SaveNewAddress()
+    {
+        if (!IsAddressFormValid(out string error))
+        {
+            formErrorMessageText.text = error;
+            return;
+        }
+
+        Address newAddr = new(
+            addressNameInput.text.Trim(),
+            "Saudi Arabia",
+            cityInput.text.Trim(),
+            districtInput.text.Trim(),
+            streetInput.text.Trim(),
+            buildingInput.text.Trim(),
+            phoneNumberInput.text.Trim());
+
+        string path = $"REVIRA/Consumers/{UserManager.Instance.UserId}/AddressBook/Address{addressList.Count + 1}";
+
+        dbReference.Child(path).SetRawJsonValueAsync(JsonUtility.ToJson(newAddr)).ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCompleted)
+            {
+                newAddressForm.SetActive(false);
+                ClearInputs();
+                LoadAddresses();
+            }
+        });
+    }
+
+    bool IsAddressFormValid(out string error)
     {
         string name = addressNameInput.text.Trim();
         string city = cityInput.text.Trim();
@@ -136,33 +161,24 @@ public class AddressBookManager1 : MonoBehaviour
 
         if (new[] { name, city, district, street, building, phone }.Any(string.IsNullOrEmpty))
         {
-            formErrorMessageText.text = "Please fill in all fields.";
-            return;
+            error = "Please fill in all fields.";
+            return false;
         }
 
         if (!phone.StartsWith("05"))
         {
-            formErrorMessageText.text = "Phone number must start with '05'.";
-            return;
+            error = "Phone number must start with '05'.";
+            return false;
         }
 
         if (phone.Length != 10 || !phone.All(char.IsDigit))
         {
-            formErrorMessageText.text = "Phone number must be exactly 10 digits.";
-            return;
+            error = "Phone number must be exactly 10 digits.";
+            return false;
         }
 
-        Address newAddr = new(name, "Saudi Arabia", city, district, street, building, phone);
-        string path = $"REVIRA/Consumers/{UserManager.Instance.UserId}/AddressBook/Address{addressList.Count + 1}";
-
-        dbReference.Child(path).SetRawJsonValueAsync(JsonUtility.ToJson(newAddr)).ContinueWithOnMainThread(task => {
-            if (task.IsCompleted)
-            {
-                newAddressForm.SetActive(false);
-                ClearInputs();
-                LoadAddresses();
-            }
-        });
+        error = "";
+        return true;
     }
 
     void DeleteAddress(string key)
@@ -170,14 +186,17 @@ public class AddressBookManager1 : MonoBehaviour
         string userId = UserManager.Instance.UserId;
         var baseRef = dbReference.Child("REVIRA/Consumers").Child(userId).Child("AddressBook");
 
-        baseRef.Child(key).RemoveValueAsync().ContinueWithOnMainThread(task => {
-            if (task.IsCompleted) ShiftAddresses(baseRef, userId);
+        baseRef.Child(key).RemoveValueAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCompleted)
+                ShiftAddresses(baseRef, userId);
         });
     }
 
     void ShiftAddresses(DatabaseReference baseRef, string userId)
     {
-        baseRef.GetValueAsync().ContinueWithOnMainThread(task => {
+        baseRef.GetValueAsync().ContinueWithOnMainThread(task =>
+        {
             if (!task.IsCompleted || !task.Result.Exists)
             {
                 LoadAddresses();
@@ -188,7 +207,8 @@ public class AddressBookManager1 : MonoBehaviour
             foreach (var snap in task.Result.Children)
                 remaining.Add(JsonUtility.FromJson<Address>(snap.GetRawJsonValue()));
 
-            baseRef.RemoveValueAsync().ContinueWithOnMainThread(_ => {
+            baseRef.RemoveValueAsync().ContinueWithOnMainThread(_ =>
+            {
                 for (int i = 0; i < remaining.Count; i++)
                 {
                     string key = $"Address{i + 1}";
