@@ -5,7 +5,7 @@ using Firebase.Database;
 using Firebase.Extensions;
 using System;
 
-public class StorePromotionc : MonoBehaviour
+public class StorePromotional : MonoBehaviour
 {
     public TMP_InputField promoCodeInput;
     public Button applyButton;
