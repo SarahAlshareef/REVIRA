@@ -53,8 +53,14 @@ public class OrderDetailsManager : MonoBehaviour
             foreach (var item in data.Child("items").Children)
             {
                 string name = item.Child("productName").Value?.ToString();
-                string price = item.Child("price").Value?.ToString();
-                string discount = item.Child("discount").Value?.ToString();
+                string basePrice = item.Child("priceAfterDiscount").Value?.ToString() ?? "-";
+                string promoPrice = item.Child("priceAfterPromoDiscount").Value?.ToString() ?? basePrice;
+
+                float.TryParse(basePrice, out float baseP);
+                float.TryParse(promoPrice, out float promoP);
+                float discountAmount = baseP - promoP;
+                string discountDisplay = discountAmount > 0 ? "-" + discountAmount.ToString("0.##") : "-";
+
 
                 string size = "";
                 string quantity = "";
@@ -73,12 +79,14 @@ public class OrderDetailsManager : MonoBehaviour
                 productGO.transform.Find("Text (Product name)").GetComponent<TextMeshProUGUI>().text = name;
                 productGO.transform.Find("Text (Size)").GetComponent<TextMeshProUGUI>().text = size;
                 productGO.transform.Find("Text (Quantity)").GetComponent<TextMeshProUGUI>().text = quantity;
-                productGO.transform.Find("Text (Price)").GetComponent<TextMeshProUGUI>().text = price;
-                productGO.transform.Find("Text (Discount)").GetComponent<TextMeshProUGUI>().text = "-" + discount;
+                productGO.transform.Find("Text (Price)").GetComponent<TextMeshProUGUI>().text = basePrice;
+                productGO.transform.Find("Text (Discount").GetComponent<TextMeshProUGUI>().text = discountDisplay;
+                
             }
         }
     }
 }
+
 
 
 
