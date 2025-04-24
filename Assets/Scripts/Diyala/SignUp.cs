@@ -49,29 +49,23 @@ public class SignUp : MonoBehaviour
             }
         });
 
-        signUpButton?.onClick.AddListener(OnSignUpButtonClick);
+        signUpButton?.onClick.AddListener(() => StartCoroutine(SignUpProcess()));
         loginButton?.onClick.AddListener(GoToLoginScene);
     }
-    public void OnSignUpButtonClick()
+
+    public IEnumerator SignUpProcess()
     {
         if (!firebaseReady)
         {
             ShowError("Firebase is not initialized yet.");
-            return;
+            yield break;
         }
 
         string firstName = firstNameInput?.text.Trim();
         string lastName = lastNameInput?.text.Trim();
         string email = emailInput?.text.Trim();
-        string password = passwordInput?.text;
+        string password = passwordInput?.text.Trim();
 
-        if (ValidateInputs(firstName, lastName, email, password))
-        {
-            StartCoroutine(SignUpUser(firstName, lastName, email, password));
-        }
-    }
-    bool ValidateInputs(string firstName, string lastName, string email, string password)
-    {
         List<string> missingFields = new();
         if (string.IsNullOrWhiteSpace(firstName)) missingFields.Add("First Name");
         if (string.IsNullOrWhiteSpace(lastName)) missingFields.Add("Last Name");
@@ -81,12 +75,9 @@ public class SignUp : MonoBehaviour
         if (missingFields.Count > 0)
         {
             ShowError($"{string.Join(", ", missingFields)} {(missingFields.Count == 1 ? "is" : "are")} required.");
-            return false;
+            yield break;
         }
-        return true;
-    }
-    IEnumerator SignUpUser(string firstName, string lastName, string email, string password)
-    {
+
         if ( auth == null)
         {
             ShowError("Authentication service is not initiated.");
@@ -102,9 +93,15 @@ public class SignUp : MonoBehaviour
             yield break;
         }
  
-        if (auth.CurrentUser == null) yield break;
-        StartCoroutine(SaveUserToDatabase(auth.CurrentUser.UserId, firstName, lastName, email));             
+        if (auth.CurrentUser == null)
+        {
+            ShowError("User creation failed.");
+            yield break;
+        }
+
+        StartCoroutine(SaveUserToRealtimeDB(auth.CurrentUser.UserId, firstName, lastName, email));             
     }
+
     void HandleSignUpError(AggregateException exception)
     {
 
@@ -125,7 +122,7 @@ public class SignUp : MonoBehaviour
             ShowError("An unknown error occurred.");
         }
     }
-    IEnumerator SaveUserToDatabase(string userId, string firstName, string lastName, string email)
+    IEnumerator SaveUserToRealtimeDB(string userId, string firstName, string lastName, string email)
     {
         Dictionary<string, object> userData = new Dictionary<string, object>
         {
@@ -140,14 +137,16 @@ public class SignUp : MonoBehaviour
         yield return new WaitUntil(() => dbTask.IsCompleted);
 
         if (dbTask.Exception != null)
-            Debug.LogError("Failed to save user data: " + dbTask.Exception);
+            ShowError("Couldn't save user data. Please try again");
         else
             GoToLoginScene();
     }
+
     public void GoToLoginScene()
     {
         SceneManager.LoadScene("LoginScene");
     }
+
     void ShowError(string message)
     {
         if (errorText != null)
