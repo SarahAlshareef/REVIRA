@@ -94,7 +94,7 @@ public class VRProductClickHandler : MonoBehaviour
         {
             Button specBtn = specButtonObject.GetComponent<Button>();
             specBtn.onClick.RemoveAllListeners();
-            specBtn.onClick.AddListener(OnSpecButtonPressed);
+            specBtn.onClick.AddListener(OnPreviewSpecButtonClick);
         }
 
         if (closeButtonObject != null)
@@ -121,7 +121,7 @@ public class VRProductClickHandler : MonoBehaviour
             currentActiveHandler.StartPreview();
     }
 
-    public void OnSpecButtonPressed()
+    public void OnPreviewSpecButtonClick()
     {
         if (currentActiveHandler == null) return;
         if (vrCamera == null) return;
