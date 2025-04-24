@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using UnityEngine.SceneManagement;
 using Firebase.Database;
 using Firebase.Extensions;
 using System;
@@ -45,7 +44,12 @@ public class StorePromotionc : MonoBehaviour
     {
         PromotionalPanel?.SetActive(false);
         AddressPanel?.SetActive(true);
-        FindObjectOfType<MenuManagerVR>().HandleUIOpened(AddressPanel);
+
+        Transform cam = Camera.main.transform;
+        Vector3 targetPos = cam.position + cam.forward * 4.0f;
+
+        AddressPanel.transform.position = targetPos;
+        AddressPanel.transform.rotation = Quaternion.LookRotation(cam.forward, cam.up);
     }
 
     void Update()
