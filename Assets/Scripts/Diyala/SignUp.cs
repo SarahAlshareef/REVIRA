@@ -49,16 +49,16 @@ public class SignUp : MonoBehaviour
             }
         });
 
-        signUpButton?.onClick.AddListener(() => StartCoroutine(OnSignUpButtonClick()));
+        signUpButton?.onClick.AddListener(OnSignUpButtonClick);
         loginButton?.onClick.AddListener(GoToLoginScene);
     }
 
-    public IEnumerator OnSignUpButtonClick()
+    public void OnSignUpButtonClick()
     {
         if (!firebaseReady)
         {
             ShowError("Firebase is not initialized yet.");
-            yield break;
+            return;
         }
 
         string firstName = firstNameInput?.text.Trim();
@@ -75,31 +75,30 @@ public class SignUp : MonoBehaviour
         if (missingFields.Count > 0)
         {
             ShowError($"{string.Join(", ", missingFields)} {(missingFields.Count == 1 ? "is" : "are")} required.");
-            yield break;
+            return;
         }
 
         if ( auth == null)
         {
             ShowError("Authentication service is not initiated.");
-            yield break;
+            return;
         }
 
-        var signUpTask = auth.CreateUserWithEmailAndPasswordAsync(email, password);
-        yield return new WaitUntil(() => signUpTask.IsCompleted);
-
-        if (signUpTask.IsCanceled || signUpTask.IsFaulted)
+        var signUpTask = auth.CreateUserWithEmailAndPasswordAsync(email, password).ContinueWithOnMainThread(signUpTask =>
         {
-            HandleSignUpError(signUpTask.Exception);
-            yield break;
-        }
- 
-        if (auth.CurrentUser == null)
-        {
-            ShowError("User creation failed.");
-            yield break;
-        }
+            if (signUpTask.IsCanceled || signUpTask.IsFaulted)
+            {
+                HandleSignUpError(signUpTask.Exception);
+                return;
+            }
 
-        StartCoroutine(SaveUserToRealtimeDB(auth.CurrentUser.UserId, firstName, lastName, email));             
+            if (auth.CurrentUser == null)
+            {
+                ShowError("User creation failed.");
+                return;
+            }
+            StartCoroutine(SaveUserToRealtimeDB(auth.CurrentUser.UserId, firstName, lastName, email));
+        });                
     }
 
     void HandleSignUpError(AggregateException exception)
