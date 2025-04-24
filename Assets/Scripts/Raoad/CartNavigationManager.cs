@@ -1,18 +1,27 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class CartNavigationManager : MonoBehaviour 
+public class CartNavigationManager : MonoBehaviour
 {
-    
     [Header("UI Panels")]
-    public GameObject cartCanvas;                
+    public GameObject cartCanvas;
     public GameObject promotionalCodeCanvas;
 
     [Header("UI Button")]
-    public Button openCartButton;
+    public Button openCartButton;  
+
+    void Start()
+    {
+        if (openCartButton != null)
+        {
+            openCartButton.onClick.RemoveAllListeners();
+            openCartButton.onClick.AddListener(ShowCart);
+        }
+    }
+
     public void ShowCart()
     {
-        if( openCartButton != null)
+        if (cartCanvas != null)
         {
             cartCanvas.SetActive(true);
 
@@ -22,10 +31,8 @@ public class CartNavigationManager : MonoBehaviour
             cartCanvas.transform.position = targetPos;
             cartCanvas.transform.rotation = Quaternion.LookRotation(cam.forward, cam.up);
         }
-        
-
     }
-    
+
     public void ProceedToPromo()
     {
         if (cartCanvas != null)
@@ -33,7 +40,6 @@ public class CartNavigationManager : MonoBehaviour
 
         if (promotionalCodeCanvas != null)
         {
-
             promotionalCodeCanvas.SetActive(true);
 
             Transform cam = Camera.main.transform;
@@ -42,6 +48,5 @@ public class CartNavigationManager : MonoBehaviour
             promotionalCodeCanvas.transform.rotation = Quaternion.LookRotation(cam.forward, cam.up);
         }
     }
-
 }
 
