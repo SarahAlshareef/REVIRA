@@ -4,7 +4,6 @@ using TMPro;
 using Firebase.Database;
 using Firebase.Extensions;
 using System.Collections.Generic;
-using UnityEngine.SceneManagement;
 
 public class CartManager : MonoBehaviour
 {
@@ -13,11 +12,6 @@ public class CartManager : MonoBehaviour
     public Transform cartContent;
     public GameObject cartItemPrefab;
     public TextMeshProUGUI totalText;
-
-   // public GameObject promotionalCanvas;
-    public Button checkoutButton;
-   // public Button cartToggleButton;
-   // public Button closeCartButton;
 
     private string userId;
     private const string storeId = "storeID_123";
@@ -49,49 +43,8 @@ public class CartManager : MonoBehaviour
         LoadCartTotal();
         LoadCartItems();
 
-        //if (cartToggleButton != null)
-        //{
-        //    cartToggleButton.onClick.RemoveAllListeners();
-        //    cartToggleButton.onClick.AddListener(() =>
-        //    {
-        //        if (cartPanel != null)
-        //        {
-        //            cartPanel.SetActive(true);
-        //            FindObjectOfType<MenuManagerVR>().HandleUIOpened(cartPanel);
-        //        }
-        //    });
-        //}
-        //if (closeCartButton != null)
-        //{
-        //    closeCartButton.onClick.RemoveAllListeners();
-        //    closeCartButton.onClick.AddListener(() =>
-        //    {
-        //        if (cartPanel != null)
-        //        {
-                   
-        //            cartPanel.SetActive(false);
-        //            FindObjectOfType<MenuManagerVR>().HandleUIClosed();
-        //        }
-        //    });
-        //}
-
 
     }
-    public void OnEnable()
-    {
-        //if (promotionalCanvas != null)
-        if (checkoutButton != null)
-        {
-                    checkoutButton.onClick.RemoveAllListeners();
-                    checkoutButton.onClick.AddListener(() =>
-                    {
-                        SceneManager.LoadScene("Promotional");
-                    });
-
-                    //  promotionalCanvas.SetActive(true);
-                    // FindAnyObjectByType<MenuManagerVR>().HandleUIOpened(promotionalCanvas);
-                }
-        }
 
     public void LoadCartItems()
     {
@@ -265,21 +218,6 @@ public class CartManager : MonoBehaviour
             }
         });
     }
-    public void ToggleCartPanel()
-    {
-        bool isActive = cartPanel.activeSelf;
-        cartPanel.SetActive(!isActive);
-    }
-
-    public void showCartUI()
-    {
-        if (cartPanel != null)
-        {
-            cartPanel.SetActive(true);
-            FindObjectOfType<MenuManagerVR>().HandleUIOpened(cartPanel);
-        }
-    }
-   
 }
 
 

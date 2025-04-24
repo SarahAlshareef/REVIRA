@@ -4,16 +4,10 @@ using UnityEngine.UI;
 using Firebase.Database;
 using TMPro;
 using UnityEngine.SceneManagement;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
-using Firebase.Database;
-using TMPro;
+
 
 public class ProductCartManagerTwo : MonoBehaviour
-
 {
-
     private DatabaseReference dbReference;
     public TMP_Dropdown sizeDropdown, colorDropdown, quantityDropdown;
     public Button addToCartButton;
@@ -23,6 +17,7 @@ public class ProductCartManagerTwo : MonoBehaviour
     private UserManager userManager;
 
     private bool isAdding = false;
+    private bool firstClickDone = false;
 
 
     void Start()
@@ -80,6 +75,12 @@ public class ProductCartManagerTwo : MonoBehaviour
     public void AddToCart()
     {
         if (isAdding) return;
+
+        if (firstClickDone)
+        {
+            SceneManager.LoadScene("CartTest");
+            return;
+        }
 
         ValidateSelection();
         if (!string.IsNullOrEmpty(errorText.text)) return;
@@ -148,7 +149,10 @@ public class ProductCartManagerTwo : MonoBehaviour
                     if (updateTask.IsCompleted)
                     {
                         UpdateCartSummary(userID);
+                        firstClickDone = true;
+                        addToCartButton.interactable = true;
                         ShowSuccess("Product added successfully!");
+
                     }
                     else
                     {

@@ -24,7 +24,6 @@ public class OrderDetailsManager : MonoBehaviour
     public GameObject orderDetailsPanel;
 
     public static OrderDetailsManager Instance;
-
     void Awake()
     {
         Instance = this;
