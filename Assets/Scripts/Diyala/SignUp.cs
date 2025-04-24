@@ -49,11 +49,11 @@ public class SignUp : MonoBehaviour
             }
         });
 
-        signUpButton?.onClick.AddListener(() => StartCoroutine(SignUpProcess()));
+        signUpButton?.onClick.AddListener(() => StartCoroutine(OnSignUpButtonClick()));
         loginButton?.onClick.AddListener(GoToLoginScene);
     }
 
-    public IEnumerator SignUpProcess()
+    public IEnumerator OnSignUpButtonClick()
     {
         if (!firebaseReady)
         {

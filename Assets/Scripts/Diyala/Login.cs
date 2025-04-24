@@ -29,25 +29,21 @@ public class Login : MonoBehaviour
             }
         });
 
-        loginButton?.onClick.AddListener(OnLoginButtonClick);
+        loginButton?.onClick.AddListener(() => OnLoginButtonClick());
         signUpButton?.onClick.AddListener(() => SceneManager.LoadScene("SignUpScene"));
     }
-    public void OnLoginButtonClick()
+
+    public IEnumerator OnLoginButtonClick()
     {
         string email = emailInput?.text.Trim();
-        string password = passwordInput?.text;
+        string password = passwordInput?.text.Trim();
 
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
         {
             ShowError("Email and Password are required.");
+            yield break;
         }
-        else
-        {
-            StartCoroutine(LoginUser(email, password));
-        }
-    }
-    IEnumerator LoginUser(string email, string password)
-    {
+
         if (auth == null)
         {
             ShowError("Invalid email or password. Please try again.");
@@ -65,6 +61,7 @@ public class Login : MonoBehaviour
         if (auth.CurrentUser != null)
             StartCoroutine(FetchUserData(auth.CurrentUser.UserId));
     }
+
     IEnumerator FetchUserData(string userId)
     {
         var dbTask = FirebaseDatabase.DefaultInstance.RootReference.Child("REVIRA").Child("Consumers").Child(userId).GetValueAsync();
