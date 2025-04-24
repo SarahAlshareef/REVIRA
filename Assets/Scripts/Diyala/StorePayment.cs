@@ -179,7 +179,11 @@ public class StorePayment : MonoBehaviour
         PaymentPanel?.SetActive(false);
         ShipmentPanel?.SetActive(true);
 
-        FindObjectOfType<MenuManagerVR>().HandleUIOpened(ShipmentPanel);
+        Transform cam = Camera.main.transform;
+        Vector3 targetPos = cam.position + cam.forward * 4.0f;
+
+        ShipmentPanel.transform.position = targetPos;
+        ShipmentPanel.transform.rotation = Quaternion.LookRotation(cam.forward, cam.up);
     }
 
     void ShowError(TextMeshProUGUI errorText, string message)
