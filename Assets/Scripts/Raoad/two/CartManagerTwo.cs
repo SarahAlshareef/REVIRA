@@ -49,32 +49,6 @@ public class CartManagerTwo : MonoBehaviour
         LoadCartTotal();
         LoadCartItems();
 
-        //if (cartToggleButton != null)
-        //{
-        //    cartToggleButton.onClick.RemoveAllListeners();
-        //    cartToggleButton.onClick.AddListener(() =>
-        //    {
-        //        if (cartPanel != null)
-        //        {
-        //            cartPanel.SetActive(true);
-        //            FindObjectOfType<MenuManagerVR>().HandleUIOpened(cartPanel);
-        //        }
-        //    });
-        //}
-        //if (closeCartButton != null)
-        //{
-        //    closeCartButton.onClick.RemoveAllListeners();
-        //    closeCartButton.onClick.AddListener(() =>
-        //    {
-        //        if (cartPanel != null)
-        //        {
-
-        //            cartPanel.SetActive(false);
-        //            FindObjectOfType<MenuManagerVR>().HandleUIClosed();
-        //        }
-        //    });
-        //}
-
 
     }
     public void OnEnable()
@@ -276,7 +250,11 @@ public class CartManagerTwo : MonoBehaviour
         if (cartPanel != null)
         {
             cartPanel.SetActive(true);
-            FindObjectOfType<MenuManagerVR>().HandleUIOpened(cartPanel);
+            Transform cam = Camera.main.transform;
+            Vector3 targetPos = cam.position + cam.forward * 4.0f;
+            cartPanel.transform.position = targetPos;
+
+            cartPanel.transform.rotation = Quaternion.LookRotation(cam.forward, cam.up);
         }
     }
 
