@@ -29,11 +29,11 @@ public class Login : MonoBehaviour
             }
         });
 
-        loginButton?.onClick.AddListener(() => OnLoginButtonClick());
+        loginButton?.onClick.AddListener(OnLoginButtonClick);
         signUpButton?.onClick.AddListener(() => SceneManager.LoadScene("SignUpScene"));
     }
 
-    public IEnumerator OnLoginButtonClick()
+    public void OnLoginButtonClick()
     {
         string email = emailInput?.text.Trim();
         string password = passwordInput?.text.Trim();
@@ -41,25 +41,25 @@ public class Login : MonoBehaviour
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
         {
             ShowError("Email and Password are required.");
-            yield break;
+            return;
         }
 
         if (auth == null)
         {
             ShowError("Invalid email or password. Please try again.");
-            yield break;
+            return;
         }
 
-        var loginTask = auth.SignInWithEmailAndPasswordAsync(email, password);
-        yield return new WaitUntil(() => loginTask.IsCompleted);
-
-        if (loginTask.IsFaulted || loginTask.IsCanceled)
+        var loginTask = auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWithOnMainThread(loginTask =>
         {
-            ShowError("Invalid email or password. Please try again.");
-            yield break;
-        }
-        if (auth.CurrentUser != null)
-            StartCoroutine(FetchUserData(auth.CurrentUser.UserId));
+            if (loginTask.IsFaulted || loginTask.IsCanceled)
+            {
+                ShowError("Invalid email or password. Please try again.");
+                return;
+            }
+            if (auth.CurrentUser != null)
+                StartCoroutine(FetchUserData(auth.CurrentUser.UserId));
+        });
     }
 
     IEnumerator FetchUserData(string userId)
