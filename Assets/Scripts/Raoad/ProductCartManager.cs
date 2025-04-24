@@ -3,8 +3,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using Firebase.Database;
 using TMPro;
-using UnityEngine.SceneManagement;
-
 
 public class ProductCartManager : MonoBehaviour
 {
@@ -17,9 +15,7 @@ public class ProductCartManager : MonoBehaviour
     private UserManager userManager;
 
     private bool isAdding = false;
-    private bool firstClickDone = false;
-
-
+   
     void Start()
     {
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
@@ -67,26 +63,17 @@ public class ProductCartManager : MonoBehaviour
             return;
         }
         errorText.text = ("");
-        errorText.color = Color.red;
-       
+        errorText.color = Color.red;  
 
     }
-
     public void AddToCart()
     {
         if (isAdding) return;
-
-        if (firstClickDone)
-        {
-            SceneManager.LoadScene("CartTest");
-            return;
-        }
 
         ValidateSelection();
         if (!string.IsNullOrEmpty(errorText.text)) return;
 
         isAdding = true;
-        
 
         if (string.IsNullOrEmpty(userManager.UserId))
         {
@@ -149,7 +136,6 @@ public class ProductCartManager : MonoBehaviour
                     if (updateTask.IsCompleted)
                     {
                         UpdateCartSummary(userID);
-                        firstClickDone = true;
                         addToCartButton.interactable = true;
                         ShowSuccess("Product added successfully!");
                        
@@ -164,8 +150,6 @@ public class ProductCartManager : MonoBehaviour
             });
         });
     }
-
-    
     private void UpdateCartSummary(string userId)
     {
         dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").Child("cartItems").GetValueAsync().ContinueWith(task =>
@@ -196,7 +180,6 @@ public class ProductCartManager : MonoBehaviour
             }
         });
     }
-
     private void ReduceStock(string color, string size, int quantity, System.Action onSuccess)
     {
         string path = $"stores/storeID_123/products/{productsManager.productID}/colors/{color}/sizes/{size}";
@@ -223,7 +206,6 @@ public class ProductCartManager : MonoBehaviour
             }
         });
     }
-
     private void RemoveExpiredCartItems()
     {
         string userID = userManager.UserId;
@@ -244,7 +226,6 @@ public class ProductCartManager : MonoBehaviour
             }
         });
     }
-
     private void RestoreStock(string productID, DataSnapshot item)
     {
         foreach (var sizeEntry in item.Child("sizes").Children)
@@ -263,27 +244,23 @@ public class ProductCartManager : MonoBehaviour
             });
         }
     }
-
     private void ShowError(string message)
     {
         if (errorText != null)
         {
+            CancelInvoke("ClearError");  
+            errorText.color = Color.red;
             errorText.text = message;
-            CancelInvoke("ClearError");
-            Invoke("ClearError", 3f);
+            Invoke("ClearError", 3f);    
         }
-        
     }
     private void ShowSuccess(string message)
     {
         if (errorText != null)
         {
-           
-
+            CancelInvoke("ClearError");
             errorText.color = Color.green;
             errorText.text = message;
-
-            CancelInvoke(nameof(ClearError));
             Invoke(nameof(ClearError), 15f);
            
         }
@@ -294,7 +271,7 @@ public class ProductCartManager : MonoBehaviour
         {
             errorText.text = "";
             errorText.color= Color.red;
-            errorText.gameObject.SetActive(false);
+            
         }
     }
     private long GetUnixTimestamp()
@@ -302,4 +279,5 @@ public class ProductCartManager : MonoBehaviour
         return (long)(System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1))).TotalSeconds;
     }
 }
+
 
