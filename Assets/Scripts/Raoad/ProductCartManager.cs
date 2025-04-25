@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Firebase.Database;
 using TMPro;
+using System.Collections;
 
 public class ProductCartManager : MonoBehaviour
 {
@@ -10,12 +11,14 @@ public class ProductCartManager : MonoBehaviour
     public TMP_Dropdown sizeDropdown, colorDropdown, quantityDropdown;
     public Button addToCartButton;
     public TextMeshProUGUI errorText;
-    public TextMeshProUGUI successText;
+    
 
     private ProductsManager productsManager;
     private UserManager userManager;
+    private Coroutine cooldownCoroutine;
 
     private bool isAdding = false;
+    private bool hasAdded = false;
    
     void Start()
     {
@@ -70,6 +73,16 @@ public class ProductCartManager : MonoBehaviour
     public void AddToCart()
     {
         if (isAdding) return;
+
+        if (hasAdded) 
+        { 
+            ShowError("Product Added Successfully");
+            addToCartButton.interactable = false;
+            if (cooldownCoroutine != null)
+                StopCoroutine(cooldownCoroutine);
+            cooldownCoroutine = StartCoroutine(EnableButtonAfterDelay(5f));
+        return;
+        }
 
         ValidateSelection();
         if (!string.IsNullOrEmpty(errorText.text)) return;
@@ -132,15 +145,22 @@ public class ProductCartManager : MonoBehaviour
 
                 dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).UpdateChildrenAsync(cartItem).ContinueWith(updateTask =>
                 {
-                    isAdding = false;
 
+                    
                     if (updateTask.IsCompleted)
                     {
+                        isAdding = false;
                         UpdateCartSummary(userID);
-                        addToCartButton.interactable = true;
-                        Debug.Log("Before calling show success");
-                        ShowSuccess("Product added successfully!");
-                       
+                        hasAdded = true;
+
+                        if (cooldownCoroutine != null)
+                            StopCoroutine(cooldownCoroutine);
+
+                        cooldownCoroutine = StartCoroutine(EnableButtonAfterDelay(15f));
+
+
+
+
                     }
                     else
                     {
@@ -254,30 +274,16 @@ public class ProductCartManager : MonoBehaviour
             errorText.text = message;
             errorText.gameObject.SetActive(true);
             CancelInvoke(nameof(ClearMessage));
-            Invoke(nameof(ClearMessage), 3f);
+            Invoke(nameof(ClearMessage), 5f);
         }
+    }
+    private IEnumerator EnableButtonAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        addToCartButton.interactable = true;
+        hasAdded = false;
     }
 
-    private void ShowSuccess(string message)
-    {
-        Debug.Log("ShowSuccess trigerd");
-        if (successText != null)
-        {
-            successText.text = message;
-            successText.gameObject.SetActive(true);
-
-            CancelInvoke(nameof(ClearSuccess));
-            Invoke(nameof(ClearSuccess), 3f);
-        }
-    }
-    private void ClearSuccess()
-    {
-        if (successText != null)
-        {
-            successText.text = "";
-            successText.gameObject.SetActive(false);
-        }
-    }
 
     private void ClearMessage()
     {
@@ -292,5 +298,6 @@ public class ProductCartManager : MonoBehaviour
         return (long)(System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1))).TotalSeconds;
     }
 }
+
 
 
