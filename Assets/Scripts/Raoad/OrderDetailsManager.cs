@@ -38,11 +38,16 @@ public class OrderDetailsManager : MonoBehaviour
         orderDateText.text = data.Child("orderDate").Value?.ToString();
         statusText.text = data.Child("orderStatus").Value?.ToString();
         promoCodeText.text = data.Child("usedPromoCode").Value?.ToString() ?? "-";
-        deliveryText.text = data.Child("deliveryPrice").Value?.ToString();
-        deliveryCompanyText.text = data.Child("deliveryCompany").Value?.ToString();
-        totalText.text = data.Child("finalPrice").Value?.ToString();
 
-        
+        float.TryParse(data.Child("deliveryPrice").Value?.ToString(), out float deliveryP);
+        deliveryText.text = deliveryP.ToString("0.0");
+
+        deliveryCompanyText.text = data.Child("deliveryCompany").Value?.ToString();
+
+        float.TryParse(data.Child("finalPrice").Value?.ToString(), out float finalP);
+        totalText.text = finalP.ToString("0.0");
+
+
         string fullAddress = $"{data.Child("addressName").Value}, {data.Child("city").Value}, {data.Child("district").Value}, {data.Child("street").Value}, {data.Child("building").Value}, {data.Child("phoneNumber").Value}";
         addressText.text = fullAddress;
 
@@ -77,9 +82,9 @@ public class OrderDetailsManager : MonoBehaviour
                 productGO.transform.Find("Text (Product name)").GetComponent<TextMeshProUGUI>().text = name;
                 productGO.transform.Find("Text (Size)").GetComponent<TextMeshProUGUI>().text = size;
                 productGO.transform.Find("Text (Quantity)").GetComponent<TextMeshProUGUI>().text = quantity;
-                productGO.transform.Find("Text (Price)").GetComponent<TextMeshProUGUI>().text = basePrice;
-                productGO.transform.Find("Text (Discount)").GetComponent<TextMeshProUGUI>().text = discountDisplay;
-                
+                productGO.transform.Find("Text (Price)").GetComponent<TextMeshProUGUI>().text = baseP.ToString("0.0");
+                productGO.transform.Find("Text (Discount)").GetComponent<TextMeshProUGUI>().text = baseP != promoP ? promoP.ToString("0.0") : "0.0";
+
             }
         }
     }

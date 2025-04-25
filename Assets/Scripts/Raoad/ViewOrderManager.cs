@@ -70,7 +70,9 @@ public class ViewOrderManager : MonoBehaviour
                     item.transform.Find("Text (Id)").GetComponent<TextMeshProUGUI>().text = "#" + orderId;
                     item.transform.Find("Text (Date)").GetComponent<TextMeshProUGUI>().text = orderDate;
                     item.transform.Find("Text (Status)").GetComponent<TextMeshProUGUI>().text = status;
-                    item.transform.Find("Text (Total)").GetComponent<TextMeshProUGUI>().text = finalPrice;
+
+                    float.TryParse(finalPrice, out float priceVal);
+                    item.transform.Find("Text (Total)").GetComponent<TextMeshProUGUI>().text = priceVal.ToString("0.0");
 
                     Button viewButton = item.transform.Find("Button (view Details)").GetComponent<Button>();
                     viewButton.onClick.AddListener(() =>
