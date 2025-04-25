@@ -10,6 +10,7 @@ public class ProductCartManager : MonoBehaviour
     public TMP_Dropdown sizeDropdown, colorDropdown, quantityDropdown;
     public Button addToCartButton;
     public TextMeshProUGUI errorText;
+    public TextMeshProUGUI successText;
 
     private ProductsManager productsManager;
     private UserManager userManager;
@@ -35,7 +36,7 @@ public class ProductCartManager : MonoBehaviour
             quantityDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); });
 
         if (errorText != null)
-            errorText.text = "";
+            
 
         RemoveExpiredCartItems();
     }
@@ -137,6 +138,7 @@ public class ProductCartManager : MonoBehaviour
                     {
                         UpdateCartSummary(userID);
                         addToCartButton.interactable = true;
+                        Debug.Log("Before calling show success");
                         ShowSuccess("Product added successfully!");
                        
                     }
@@ -248,30 +250,41 @@ public class ProductCartManager : MonoBehaviour
     {
         if (errorText != null)
         {
-            CancelInvoke("ClearError");  
             errorText.color = Color.red;
             errorText.text = message;
-            Invoke("ClearError", 3f);    
+            errorText.gameObject.SetActive(true);
+            CancelInvoke(nameof(ClearMessage));
+            Invoke(nameof(ClearMessage), 3f);
         }
     }
+
     private void ShowSuccess(string message)
     {
-        if (errorText != null)
+        Debug.Log("ShowSuccess trigerd");
+        if (successText != null)
         {
-            CancelInvoke("ClearError");
-            errorText.color = Color.green;
-            errorText.text = message;
-            Invoke(nameof(ClearError), 15f);
-           
+            successText.text = message;
+            successText.gameObject.SetActive(true);
+
+            CancelInvoke(nameof(ClearSuccess));
+            Invoke(nameof(ClearSuccess), 3f);
         }
     }
-    private void ClearError()
+    private void ClearSuccess()
+    {
+        if (successText != null)
+        {
+            successText.text = "";
+            successText.gameObject.SetActive(false);
+        }
+    }
+
+    private void ClearMessage()
     {
         if (errorText != null)
         {
             errorText.text = "";
-            errorText.color= Color.red;
-            
+            errorText.gameObject.SetActive(false);
         }
     }
     private long GetUnixTimestamp()
