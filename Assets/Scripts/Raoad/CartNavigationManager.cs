@@ -9,6 +9,7 @@ public class CartNavigationManager : MonoBehaviour
 
     [Header("UI Button")]
     public Button openCartButton;  
+    public Button proceedToCheckoutButton;
 
     void Start()
     {
@@ -16,8 +17,15 @@ public class CartNavigationManager : MonoBehaviour
         {
             openCartButton.onClick.RemoveAllListeners();
             openCartButton.onClick.AddListener(ShowCart);
+
         }
-    }
+        if (proceedToCheckoutButton != null)
+        {
+            proceedToCheckoutButton.onClick.RemoveAllListeners();
+            proceedToCheckoutButton.onClick.AddListener(ProceedToPromo);
+        }
+
+        }
 
     public void ShowCart()
     {
