@@ -11,7 +11,7 @@ public class StorePromotional : MonoBehaviour
     public Button applyButton;
     public Button nextButton;
     public Button backToStoreButton;
-    public Button exitButton;
+    
     public TextMeshProUGUI messageText;
     public TextMeshProUGUI CoinText;
 
@@ -36,8 +36,9 @@ public class StorePromotional : MonoBehaviour
 
         applyButton.onClick.AddListener(ValidatePromoCode);
         nextButton.onClick.AddListener(GoToNextScene);
-        backToStoreButton.onClick.AddListener(() => Debug.Log("Back to Store Pressed"));
-        exitButton.onClick.AddListener(() => Debug.Log("Exit Pressed"));
+        backToStoreButton.onClick.AddListener(GoBackToStore);
+
+
     }
 
     void GoToNextScene()
@@ -50,6 +51,11 @@ public class StorePromotional : MonoBehaviour
 
         AddressPanel.transform.position = targetPos;
         AddressPanel.transform.rotation = Quaternion.LookRotation(cam.forward, cam.up);
+    }
+
+    void GoBackToStore()
+    {
+        PromotionalPanel?.SetActive(false);
     }
 
     void Update()
