@@ -100,7 +100,7 @@ public class MenuManagerVR : MonoBehaviour
         Transform cam = Camera.main.transform;
         Vector3 flatForward = new Vector3(cam.forward.x, 0, cam.forward.z).normalized;
         Vector3 targetPos = cam.position + flatForward * 2f;
-        targetPos.y = cam.position.y + 0.9f; // Fixed height
+        targetPos.y = cam.position.y + 1.8f; // Fixed height
         ui.transform.position = targetPos;
         ui.transform.rotation = Quaternion.LookRotation(flatForward);
     }

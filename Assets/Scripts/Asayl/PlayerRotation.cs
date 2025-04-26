@@ -124,8 +124,11 @@ public class PlayerRotation : MonoBehaviour
             yield return null;
 
             Transform cam = Camera.main.transform;
-            rotationPopupPanel.transform.rotation = Quaternion.LookRotation(cam.forward);
-            rotationPopupPanel.transform.position = cam.position + cam.forward * 2f + cam.up * 3.0f;
+            Vector3 flatForward = new Vector3(cam.forward.x, 0, cam.forward.z).normalized;
+            Vector3 targetPos = cam.position + flatForward * 2f;
+            targetPos.y = cam.position.y + 0.9f; // Fixed height
+            rotationPopupPanel.transform.position = targetPos;
+            rotationPopupPanel.transform.rotation = Quaternion.LookRotation(flatForward);
         }
     }
 

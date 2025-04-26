@@ -41,16 +41,24 @@ public class StorePromotional : MonoBehaviour
 
     }
 
-    void GoToNextScene()
+    public void GoToNextScene()
     {
-        PromotionalPanel?.SetActive(false);
-        AddressPanel?.SetActive(true);
+        if (PromotionalPanel != null)
+        {
+            PromotionalPanel.SetActive(false);
+        }
 
-        Transform cam = Camera.main.transform;
-        Vector3 targetPos = cam.position + cam.forward * 4.0f;
+        if (AddressPanel != null)
+        {
+            AddressPanel.SetActive(true);
 
-        AddressPanel.transform.position = targetPos;
-        AddressPanel.transform.rotation = Quaternion.LookRotation(cam.forward, cam.up);
+            Transform cam = Camera.main.transform;
+            Vector3 flatForward = new Vector3(cam.forward.x, 0, cam.forward.z).normalized;
+            Vector3 targetPos = cam.position + flatForward * 5f;
+            targetPos.y = cam.position.y + 0.8f; // Fixed height
+            AddressPanel.transform.position = targetPos;
+            AddressPanel.transform.rotation = Quaternion.LookRotation(flatForward);
+        }
     }
 
     void GoBackToStore()
@@ -58,7 +66,7 @@ public class StorePromotional : MonoBehaviour
         PromotionalPanel?.SetActive(false);
     }
 
-    void Update()
+   public void Update()
     {
         if (hasNewMessage)
         {
