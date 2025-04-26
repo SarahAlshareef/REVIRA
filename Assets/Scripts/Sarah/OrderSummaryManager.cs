@@ -110,7 +110,7 @@ public class OrderSummaryManager : MonoBehaviour
                 else
                 {
                     subtotalText.text = "0.00";
-                    discountText.text = "-0.00";
+                    discountText.text = "0.00";
                     deliveryChargesText.text = "0.00";
                     totalText.text = "0.00";
                 }

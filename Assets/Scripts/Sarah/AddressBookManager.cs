@@ -1,4 +1,3 @@
-// AddressBookManager (Cleaned Version)
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -52,6 +51,21 @@ public class AddressBookManager : MonoBehaviour
         target?.SetActive(true);
     }
 
+    void ShowPanelInFront(GameObject panel)
+    {
+        if (panel == null) return;
+
+        Transform cam = Camera.main.transform;
+        Vector3 flatForward = new Vector3(cam.forward.x, 0, cam.forward.z).normalized;
+        Vector3 targetPos = cam.position + flatForward * 5f;
+        targetPos.y = cam.position.y + 0.8f; // Fixed height
+
+        panel.transform.position = targetPos;
+        panel.transform.rotation = Quaternion.LookRotation(flatForward);
+
+        ShowOnlyPanel(panel);
+    }
+
     void SetupButtonListeners()
     {
         addNewAddressButton.onClick.AddListener(() => {
@@ -65,12 +79,12 @@ public class AddressBookManager : MonoBehaviour
         saveButton.onClick.AddListener(SaveNewAddress);
 
         nextButton.onClick.AddListener(() => {
-            ShowOnlyPanel(methodPanel);
+            ShowPanelInFront(methodPanel);
             CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
         });
 
         backButton.onClick.AddListener(() => {
-            ShowOnlyPanel(promotionalPanel);
+            ShowPanelInFront(promotionalPanel);
         });
     }
     #endregion
