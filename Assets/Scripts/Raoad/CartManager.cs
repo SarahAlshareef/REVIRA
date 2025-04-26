@@ -13,6 +13,8 @@ public class CartManager : MonoBehaviour
     public GameObject cartItemPrefab;
     public TextMeshProUGUI totalText;
 
+    //public GameObject emptyCartText;
+
     private string userId;
     private const string storeId = "storeID_123";
     private DatabaseReference dbRef;
@@ -58,13 +60,21 @@ public class CartManager : MonoBehaviour
 
         dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartItems").GetValueAsync().ContinueWithOnMainThread(cartTask =>
         {
-            if (!cartTask.IsCompleted || !cartTask.Result.Exists)
-            {
-                Debug.LogWarning("No cart items found.");
-                UpdateTotalUI();
-                return;
-            }
+            //DataSnapshot snapshot = cartTask.Result;
 
+            //if (!snapshot.Exists || snapshot.ChildrenCount == 0)
+            //{
+            //    Debug.Log("Cart Is Empty, Add product To Proceed");
+            //    emptyCartText.SetActive(true);
+            //    cartContent.gameObject.SetActive(false);
+            //    UpdateTotalUI();
+            //    return;
+            //}
+            //else
+            //{
+            //    emptyCartText.SetActive(false);
+            //    cartContent.gameObject.SetActive(true);
+            //}
             foreach (DataSnapshot itemSnapshot in cartTask.Result.Children)
             {
                 string productId = itemSnapshot.Key;
@@ -219,6 +229,7 @@ public class CartManager : MonoBehaviour
         });
     }
 }
+
 
 
 
