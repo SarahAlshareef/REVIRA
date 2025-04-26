@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 using TMPro;
 using UnityEngine.EventSystems;
 
@@ -23,13 +24,8 @@ public class PlayerRotation : MonoBehaviour
 
     void Start()
     {
-        if (rotationPopupPanel != null) { 
-            rotationPopupPanel.SetActive(true);
-
-            Transform cam = Camera.main.transform;
-            rotationPopupPanel.transform.rotation = Quaternion.LookRotation(cam.forward);
-            rotationPopupPanel.transform.position = Camera.main.transform.position + Camera.main.transform.forward * 2f + Camera.main.transform.up * 1.0f;
-        }
+        if (rotationPopupPanel != null)
+            rotationPopupPanel.SetActive(false); 
 
         if (snapButton != null)
             snapButton.onClick.AddListener(SetSnapRotation);
@@ -44,7 +40,7 @@ public class PlayerRotation : MonoBehaviour
             closeButton.onClick.AddListener(HidePopup);
 
         UpdateStatusText();
-}
+    }
 
     void Update()
     {
@@ -113,4 +109,24 @@ public class PlayerRotation : MonoBehaviour
         if (rotationPopupPanel != null)
             rotationPopupPanel.SetActive(true);
     }
+
+    public void ShowRotationPopup()
+    {
+        StartCoroutine(ShowRotationPopupCoroutine());
+    }
+
+    private IEnumerator ShowRotationPopupCoroutine()
+    {
+        if (rotationPopupPanel != null)
+        {
+            rotationPopupPanel.SetActive(true);
+
+            yield return null;
+
+            Transform cam = Camera.main.transform;
+            rotationPopupPanel.transform.rotation = Quaternion.LookRotation(cam.forward);
+            rotationPopupPanel.transform.position = cam.position + cam.forward * 2f + cam.up * 3.0f;
+        }
+    }
+
 }

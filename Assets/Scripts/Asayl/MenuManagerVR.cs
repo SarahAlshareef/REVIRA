@@ -7,12 +7,6 @@ public class MenuManagerVR : MonoBehaviour
     public GameObject menuUI;
     public GameObject dimmerCanvas;
 
-    [Header("Menu Buttons")]
-    public Button[] menuButtons; // Buttons inside the menu that block menu toggle
-
-    [Header("X Buttons (Close)")]
-    public Button[] closeButtons; // All X buttons across all UIs
-
     [Header("Movement Control")]
     public PlayerControlManager playerControlManager;
 
@@ -22,30 +16,20 @@ public class MenuManagerVR : MonoBehaviour
     [Header("Camera")]
     public Transform targetCamera;
 
+    [Header("External UI Panels")]
+    public GameObject[] allManagedUIs; // Cart UI, Checkout UIs, etc.
+
     private bool menuIsOpen = false;
     private bool blockMenuToggle = false;
 
     void Start()
     {
-        // Disable menu toggle when clicking any button in the menu
-        foreach (var btn in menuButtons)
-        {
-            btn.onClick.AddListener(() => blockMenuToggle = true);
-        }
-
-        // Restore everything when clicking X buttons
-        foreach (var btn in closeButtons)
-        {
-            btn.onClick.AddListener(() => ResetSession());
-        }
-
         menuUI.SetActive(false);
         dimmerCanvas.SetActive(false);
     }
 
     void Update()
     {
-        // Toggle menu with controller button
         if (OVRInput.GetDown(menuButton) && !blockMenuToggle)
         {
             if (!menuIsOpen)
@@ -54,12 +38,9 @@ public class MenuManagerVR : MonoBehaviour
                 CloseMenu();
         }
 
-        // Make dimmer follow camera
         if (dimmerCanvas.activeInHierarchy && targetCamera != null)
         {
-            Vector3 pos = targetCamera.position + targetCamera.forward * 1.5f;
-            pos.y = targetCamera.position.y;
-            dimmerCanvas.transform.position = pos;
+            dimmerCanvas.transform.position = targetCamera.position;
             dimmerCanvas.transform.rotation = targetCamera.rotation;
         }
     }
@@ -81,6 +62,29 @@ public class MenuManagerVR : MonoBehaviour
         menuUI.SetActive(false);
     }
 
+    public void OnMenuButtonClicked()
+    {
+        blockMenuToggle = true;
+        CloseMenu();
+
+        if (!dimmerCanvas.activeInHierarchy)
+        {
+            dimmerCanvas.SetActive(true);
+        }
+    }
+
+    public void OnCloseButtonClicked()
+    {
+        // Close all external UIs
+        foreach (var ui in allManagedUIs)
+        {
+            if (ui.activeInHierarchy)
+                ui.SetActive(false);
+        }
+
+        ResetSession();
+    }
+
     public void ResetSession()
     {
         menuIsOpen = false;
@@ -94,8 +98,10 @@ public class MenuManagerVR : MonoBehaviour
     void FaceMenuToPlayer(GameObject ui)
     {
         Transform cam = Camera.main.transform;
-        Vector3 targetPos = cam.position + cam.forward * 2.5f;
+        Vector3 flatForward = new Vector3(cam.forward.x, 0, cam.forward.z).normalized;
+        Vector3 targetPos = cam.position + flatForward * 2f;
+        targetPos.y = cam.position.y + 0.9f; // Fixed height
         ui.transform.position = targetPos;
-        ui.transform.rotation = Quaternion.LookRotation(cam.forward, cam.up);
+        ui.transform.rotation = Quaternion.LookRotation(flatForward);
     }
 }

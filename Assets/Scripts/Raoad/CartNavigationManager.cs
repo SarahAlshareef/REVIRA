@@ -34,10 +34,11 @@ public class CartNavigationManager : MonoBehaviour
             cartCanvas.SetActive(true);
 
             Transform cam = Camera.main.transform;
-            Vector3 targetPos = cam.position + cam.forward * 4.0f;
-
+            Vector3 flatForward = new Vector3(cam.forward.x, 0, cam.forward.z).normalized;
+            Vector3 targetPos = cam.position + flatForward * 5f;
+            targetPos.y = cam.position.y + 0.8f; // Fixed height
             cartCanvas.transform.position = targetPos;
-            cartCanvas.transform.rotation = Quaternion.LookRotation(cam.forward, cam.up);
+            cartCanvas.transform.rotation = Quaternion.LookRotation(flatForward);
         }
     }
 
@@ -51,9 +52,12 @@ public class CartNavigationManager : MonoBehaviour
             promotionalCodeCanvas.SetActive(true);
 
             Transform cam = Camera.main.transform;
-            Vector3 targetPos = cam.position + cam.forward * 4.0f;
+            Vector3 flatForward = new Vector3(cam.forward.x, 0, cam.forward.z).normalized;
+            Vector3 targetPos = cam.position + flatForward * 4f;
+            targetPos.y = cam.position.y + 0.9f; // Fixed height
             promotionalCodeCanvas.transform.position = targetPos;
-            promotionalCodeCanvas.transform.rotation = Quaternion.LookRotation(cam.forward, cam.up);
+            promotionalCodeCanvas.transform.rotation = Quaternion.LookRotation(flatForward);
+
         }
     }
 }
