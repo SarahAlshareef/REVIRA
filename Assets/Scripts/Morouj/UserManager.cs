@@ -54,7 +54,13 @@ public class UserManager : MonoBehaviour
     public void UpdateGender(string newGender)
     {
         Gender = newGender;
+
+        if (ProfileImageManager.Instance != null)
+        {
+            ProfileImageManager.Instance.UpdateAllProfileImages();
+        }
     }
+
 
     public void UpdatePhoneNumber(string newPhoneNumber)
     {

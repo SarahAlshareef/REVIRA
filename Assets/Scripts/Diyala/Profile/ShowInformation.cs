@@ -25,8 +25,11 @@ public class ShowInformation : MonoBehaviour
     [Header("Update Information Panel")]
     public Button backToViewButton;
 
-    [Header("Adresses")]
+    [Header("Addresses")]
     public AddressDisplayOnly addressScript;
+
+    [Header("Profile Picture")]
+    public Image profileImage;
 
     private string userId;
 
@@ -43,6 +46,8 @@ public class ShowInformation : MonoBehaviour
        
         closeProfileButton?.onClick.AddListener(CloseProfile);
         backToViewButton?.onClick.AddListener(ShowViewPanel);
+
+        ProfileImageManager.Instance.RegisterProfileImage(profileImage);
     }
 
     public void CloseProfilePanel()
