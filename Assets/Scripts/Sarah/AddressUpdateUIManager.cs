@@ -18,6 +18,11 @@ public class AddressUpdateUIManager : MonoBehaviour
     [Header("Managers")]
     public AddressUpdateManager addressUpdateManager; // Assign this in the Inspector
 
+    [Header("Navigation Buttons")]
+    public Button navButton1;
+    public Button navButton2;
+    public Button navButton3;
+
     void Start()
     {
         // Initial state
@@ -34,6 +39,11 @@ public class AddressUpdateUIManager : MonoBehaviour
 
         if (addressUpdateManager != null)
             addressUpdateManager.OnOpenAddressUpdatePanel();
+
+        // Disable navigation buttons
+        if (navButton1 != null) navButton1.interactable = false;
+        if (navButton2 != null) navButton2.interactable = false;
+        if (navButton3 != null) navButton3.interactable = false;
     }
 
     void BackToProfileDetails()
@@ -41,6 +51,11 @@ public class AddressUpdateUIManager : MonoBehaviour
         ClearInputs();
         profileDetailsPanel.SetActive(true);
         addressUpdatePanel.SetActive(false);
+
+        // Enable navigation buttons
+        if (navButton1 != null) navButton1.interactable = true;
+        if (navButton2 != null) navButton2.interactable = true;
+        if (navButton3 != null) navButton3.interactable = true;
     }
 
     void ClearInputs()
