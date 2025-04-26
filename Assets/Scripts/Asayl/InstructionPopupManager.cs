@@ -15,10 +15,13 @@ public class InstructionPopupManager : MonoBehaviour
     public void Start()
     {
         instructionPanel.SetActive(true);
-       
+
         Transform cam = Camera.main.transform;
-        instructionPanel.transform.rotation = Quaternion.LookRotation(cam.forward);
-        instructionPanel.transform.position = cam.position + cam.forward * 2f + cam.up * 3.0f;
+        Vector3 flatForward = new Vector3(cam.forward.x, 0, cam.forward.z).normalized;
+        Vector3 targetPos = cam.position + flatForward * 3.0f;
+        targetPos.y = cam.position.y + 2.5f; // Fixed height
+        instructionPanel.transform.position = targetPos;
+        instructionPanel.transform.rotation = Quaternion.LookRotation(flatForward);
 
         controlManager.LockControls();
 

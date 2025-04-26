@@ -53,8 +53,8 @@ public class CartNavigationManager : MonoBehaviour
 
             Transform cam = Camera.main.transform;
             Vector3 flatForward = new Vector3(cam.forward.x, 0, cam.forward.z).normalized;
-            Vector3 targetPos = cam.position + flatForward * 4f;
-            targetPos.y = cam.position.y + 0.9f; // Fixed height
+            Vector3 targetPos = cam.position + flatForward * 5f;
+            targetPos.y = cam.position.y + 0.8f; // Fixed height
             promotionalCodeCanvas.transform.position = targetPos;
             promotionalCodeCanvas.transform.rotation = Quaternion.LookRotation(flatForward);
 
