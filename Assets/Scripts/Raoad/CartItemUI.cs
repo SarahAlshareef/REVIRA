@@ -312,6 +312,9 @@ public class CartItemUI : MonoBehaviour
             yield break;
         }
 
+        
+        yield return new WaitForSeconds(0.2f); 
+
         using (UnityWebRequest request = UnityWebRequestTexture.GetTexture(url))
         {
             yield return request.SendWebRequest();
@@ -320,6 +323,7 @@ public class CartItemUI : MonoBehaviour
             {
                 Texture2D texture = DownloadHandlerTexture.GetContent(request);
                 productImage.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+                Debug.Log("Image loaded successfully!");
             }
             else
             {
@@ -327,7 +331,6 @@ public class CartItemUI : MonoBehaviour
             }
         }
     }
-
     private string GetSelectedColor() => colorDropdown.options[colorDropdown.value].text;
     private string GetSelectedSize() => sizeDropdown.options[sizeDropdown.value].text;
 }
