@@ -16,6 +16,7 @@ public class ProductCartManager : MonoBehaviour
     private ProductsManager productsManager;
     private UserManager userManager;
     private Coroutine cooldownCoroutine;
+    private CartManager cartManager;
 
     private bool isAdding = false;
     private bool hasAdded = false;
@@ -25,6 +26,7 @@ public class ProductCartManager : MonoBehaviour
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
         productsManager = FindObjectOfType<ProductsManager>();
         userManager = FindObjectOfType<UserManager>();
+        cartManager = FindObjectOfType<CartManager>();
 
         if (addToCartButton != null)
             addToCartButton.onClick.AddListener(AddToCart);
@@ -151,6 +153,7 @@ public class ProductCartManager : MonoBehaviour
                     {
                         isAdding = false;
                         UpdateCartSummary(userID);
+                        cartManager?.LoadCartItems();
                         hasAdded = true;
 
                         if (cooldownCoroutine != null)
