@@ -298,7 +298,7 @@ public class CartItemUI : MonoBehaviour
 
     private IEnumerator LoadImage(string url)
     {
-        if (!string.IsNullOrEmpty(url))
+        if (string.IsNullOrEmpty(url))
         {
             Debug.LogWarning("No image Url provided");
             yield break;
