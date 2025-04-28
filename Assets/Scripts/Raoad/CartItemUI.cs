@@ -299,23 +299,32 @@ public class CartItemUI : MonoBehaviour
     private IEnumerator LoadImage(string url)
     {
         Debug.Log("Trying to load image: " + url);
+
         if (string.IsNullOrEmpty(url))
         {
             Debug.LogWarning("No image URL provided.");
             yield break;
         }
 
-        UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
+        if (productImage == null)
         {
-            Texture2D tex = DownloadHandlerTexture.GetContent(request);
-            productImage.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+            Debug.LogError("Product Image component is not assigned.");
+            yield break;
         }
-        else
+
+        using (UnityWebRequest request = UnityWebRequestTexture.GetTexture(url))
         {
-            Debug.LogError("Image load failed: " + request.error);
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                Texture2D texture = DownloadHandlerTexture.GetContent(request);
+                productImage.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+            }
+            else
+            {
+                Debug.LogError("Failed to load image: " + request.error);
+            }
         }
     }
 
