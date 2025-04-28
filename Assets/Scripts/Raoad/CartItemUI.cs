@@ -298,6 +298,11 @@ public class CartItemUI : MonoBehaviour
 
     private IEnumerator LoadImage(string url)
     {
+        if (!string.IsNullOrEmpty(url))
+        {
+            Debug.LogWarning("No image Url provided");
+            yield break;
+        }
         UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
         yield return request.SendWebRequest();
 

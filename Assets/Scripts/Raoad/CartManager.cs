@@ -44,6 +44,7 @@ public class CartManager : MonoBehaviour
 
         LoadCartTotal();
         LoadCartItems();
+        SetupCartListener();
 
 
     }
@@ -227,6 +228,20 @@ public class CartManager : MonoBehaviour
                 dbRef.Child(path).SetValueAsync(currentStock + qty);
             }
         });
+    }
+    private void SetupCartListener()
+    {
+        dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartItems").ValueChanged += (object sender, ValueChangedEventArgs e) =>
+        {
+            if (e.DatabaseError != null)
+            {
+                Debug.LogError("Failed to listen for cart changes: " + e.DatabaseError.Message);
+                return;
+            }
+
+            Debug.Log("Cart updated, reloading items...");
+            LoadCartItems();
+        };
     }
 }
 
