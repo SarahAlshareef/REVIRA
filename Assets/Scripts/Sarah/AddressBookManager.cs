@@ -61,7 +61,7 @@ public class AddressBookManager : MonoBehaviour
         targetPos.y = cam.position.y + 0.8f; // Fixed height
 
         panel.transform.position = targetPos;
-        panel.transform.rotation = Quaternion.LookRotation(flatForward);
+        panel.transform.rotation = Quaternion.LookRotation(flatForward, Vector3.up);
 
         ShowOnlyPanel(panel);
     }

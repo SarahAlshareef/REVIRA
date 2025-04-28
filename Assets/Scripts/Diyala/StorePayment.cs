@@ -184,7 +184,7 @@ public class StorePayment : MonoBehaviour
         Vector3 targetPos = cam.position + flatForward * 5f;
         targetPos.y = cam.position.y + 0.8f; // Fixed height
         ShipmentPanel.transform.position = targetPos;
-        ShipmentPanel.transform.rotation = Quaternion.LookRotation(flatForward);
+        ShipmentPanel.transform.rotation = Quaternion.Euler(0f, cam.eulerAngles.y, 0f);
     }
 
     void ShowError(TextMeshProUGUI errorText, string message)

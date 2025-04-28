@@ -57,7 +57,7 @@ public class StorePromotional : MonoBehaviour
             Vector3 targetPos = cam.position + flatForward * 5f;
             targetPos.y = cam.position.y + 0.8f; // Fixed height
             AddressPanel.transform.position = targetPos;
-            AddressPanel.transform.rotation = Quaternion.LookRotation(flatForward);
+            AddressPanel.transform.rotation = Quaternion.LookRotation(flatForward, Vector3.up);
         }
     }
 

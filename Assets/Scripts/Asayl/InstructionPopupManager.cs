@@ -21,7 +21,7 @@ public class InstructionPopupManager : MonoBehaviour
         Transform cam = Camera.main.transform;
         Vector3 flatForward = new Vector3(cam.forward.x, 0, cam.forward.z).normalized;
         Vector3 targetPos = cam.position + flatForward * 3.0f;
-        targetPos.y = cam.position.y + 2.9f; // Fixed height
+        targetPos.y = cam.position.y + 3.5f; // Fixed height
         instructionPanel.transform.position = targetPos;
         instructionPanel.transform.rotation = Quaternion.LookRotation(flatForward);
 

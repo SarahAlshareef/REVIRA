@@ -128,10 +128,13 @@ public class StoreDelivery : MonoBehaviour
         PaymentPanel?.SetActive(true);
 
         // ⁄—÷ »«‰· «·œ›⁄ √„«„ «·ﬂ«„Ì—«
+
         Transform cam = Camera.main.transform;
-        Vector3 targetPos = cam.position + cam.forward * 4.0f;
+        Vector3 flatForward = new Vector3(cam.forward.x, 0, cam.forward.z).normalized;
+        Vector3 targetPos = cam.position + flatForward * 5f;
+        targetPos.y = cam.position.y + 0.8f; // Fixed height
         PaymentPanel.transform.position = targetPos;
-        PaymentPanel.transform.rotation = Quaternion.LookRotation(cam.forward, cam.up);
+        PaymentPanel.transform.rotation = Quaternion.Euler(0f, cam.eulerAngles.y, 0f);
     }
 
     void GoToPreviousStep()
@@ -140,10 +143,13 @@ public class StoreDelivery : MonoBehaviour
         AddressPanel?.SetActive(true);
 
         // ⁄—÷ »«‰· «·⁄‰Ê«‰ √„«„ «·ﬂ«„Ì—«
+
         Transform cam = Camera.main.transform;
-        Vector3 targetPos = cam.position + cam.forward * 4.0f;
+        Vector3 flatForward = new Vector3(cam.forward.x, 0, cam.forward.z).normalized;
+        Vector3 targetPos = cam.position + flatForward * 5f;
+        targetPos.y = cam.position.y + 0.8f; // Fixed height
         AddressPanel.transform.position = targetPos;
-        AddressPanel.transform.rotation = Quaternion.LookRotation(cam.forward, cam.up);
+        AddressPanel.transform.rotation = Quaternion.Euler(0f, cam.eulerAngles.y, 0f);
     }
 
     

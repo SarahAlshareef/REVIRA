@@ -242,14 +242,16 @@ public class VRBallClickHandler : MonoBehaviour
 
     void ReturnBallToShelf()
     {
-        footballObject.transform.position = originalPosition;
-        footballObject.transform.rotation = originalRotation;
-
-        if (originalScale != Vector3.zero)
+        if (footballObject != null)
+        {
+            footballObject.transform.position = originalPosition;
+            footballObject.transform.rotation = originalRotation;
             footballObject.transform.localScale = originalScale;
+        }
 
         DisableInteraction();
     }
+
 
     void EnableInteraction()
     {

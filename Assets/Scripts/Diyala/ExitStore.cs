@@ -25,7 +25,7 @@ public class ExitStore : MonoBehaviour
         Transform cam = Camera.main.transform;
         Vector3 flatForward = new Vector3(cam.forward.x, 0, cam.forward.z).normalized;
         Vector3 targetPos = cam.position + flatForward * 3.0f;
-        targetPos.y = cam.position.y + 4.0f; // Fixed height
+        targetPos.y = cam.position.y + 5.0f; // Fixed height
         popupPanel.transform.position = targetPos;
         popupPanel.transform.rotation = Quaternion.LookRotation(flatForward);
     }

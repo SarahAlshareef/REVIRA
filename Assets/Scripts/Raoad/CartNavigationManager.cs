@@ -38,7 +38,7 @@ public class CartNavigationManager : MonoBehaviour
             Vector3 targetPos = cam.position + flatForward * 5f;
             targetPos.y = cam.position.y + 0.8f; // Fixed height
             cartCanvas.transform.position = targetPos;
-            cartCanvas.transform.rotation = Quaternion.LookRotation(flatForward);
+            cartCanvas.transform.rotation = Quaternion.Euler(0f, cam.eulerAngles.y, 0f);
         }
     }
 
@@ -56,7 +56,7 @@ public class CartNavigationManager : MonoBehaviour
             Vector3 targetPos = cam.position + flatForward * 5f;
             targetPos.y = cam.position.y + 0.8f; // Fixed height
             promotionalCodeCanvas.transform.position = targetPos;
-            promotionalCodeCanvas.transform.rotation = Quaternion.LookRotation(flatForward);
+            promotionalCodeCanvas.transform.rotation = Quaternion.Euler(0f, cam.eulerAngles.y, 0f);
 
         }
     }
