@@ -126,7 +126,7 @@ public class PlayerRotation : MonoBehaviour
             Transform cam = Camera.main.transform;
             Vector3 flatForward = new Vector3(cam.forward.x, 0, cam.forward.z).normalized;
             Vector3 targetPos = cam.position + flatForward * 3.0f;
-            targetPos.y = cam.position.y + 0.7f; // Fixed height
+            targetPos.y = cam.position.y + 0.4f; // Fixed height
             rotationPopupPanel.transform.position = targetPos;
             rotationPopupPanel.transform.rotation = Quaternion.LookRotation(flatForward);
         }
