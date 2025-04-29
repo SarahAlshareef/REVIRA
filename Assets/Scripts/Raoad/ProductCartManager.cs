@@ -234,23 +234,47 @@ public class ProductCartManager : MonoBehaviour
     private void RemoveExpiredCartItems()
     {
         string userID = userManager.UserId;
-        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").GetValueAsync().ContinueWith(task =>
+        DatabaseReference cartItemsRef = dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems");
+
+        cartItemsRef.GetValueAsync().ContinueWith(task =>
         {
             if (task.IsCompleted && task.Result.Exists)
             {
                 long currentTimestamp = GetUnixTimestamp();
+                List<string> expiredItems = new();
+
                 foreach (var item in task.Result.Children)
                 {
-                    if (item.Child("expiresAt").Value != null && long.Parse(item.Child("expiresAt").Value.ToString()) < currentTimestamp)
+                    if (item.Child("expiresAt").Value != null &&
+                        long.Parse(item.Child("expiresAt").Value.ToString()) < currentTimestamp)
                     {
                         string productID = item.Key;
-                        dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).RemoveValueAsync();
+                        expiredItems.Add(productID);
                         RestoreStock(productID, item);
                     }
+                }
+
+                if (expiredItems.Count > 0)
+                {
+                    foreach (string id in expiredItems)
+                    {
+                        cartItemsRef.Child(id).RemoveValueAsync();
+                    }
+
+                 
+                    cartItemsRef.GetValueAsync().ContinueWith(checkTask =>
+                    {
+                        if (checkTask.IsCompleted && (!checkTask.Result.Exists || checkTask.Result.ChildrenCount == 0))
+                        {
+                            dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").RemoveValueAsync();
+                        }
+                    });
                 }
             }
         });
     }
+
+
     private void RestoreStock(string productID, DataSnapshot item)
     {
         foreach (var sizeEntry in item.Child("sizes").Children)

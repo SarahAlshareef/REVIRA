@@ -13,7 +13,8 @@ public class CartManager : MonoBehaviour
     public GameObject cartItemPrefab;
     public TextMeshProUGUI totalText;
 
-    //public GameObject emptyCartText;
+    public GameObject emptyCartText;
+    public GameObject scrollView;
 
     private string userId;
     private const string storeId = "storeID_123";
@@ -24,6 +25,8 @@ public class CartManager : MonoBehaviour
 
     private float totalPrice = 0;
     private int totalItems = 0;
+
+    private bool isLoadingCart = false;
 
     void Start()
     {
@@ -44,39 +47,51 @@ public class CartManager : MonoBehaviour
 
         LoadCartTotal();
         LoadCartItems();
-        SetupCartListener();
+        //SetupCartListener();
 
 
     }
 
     public void LoadCartItems()
     {
+        if (isLoadingCart) return;
+        isLoadingCart = true;
+
         foreach (Transform child in cartContent)
-        {
             Destroy(child.gameObject);
-        }
 
         itemTotals.Clear();
         currentTotal = 0f;
 
         dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartItems").GetValueAsync().ContinueWithOnMainThread(cartTask =>
         {
-            //DataSnapshot snapshot = cartTask.Result;
+            var snapshot = cartTask.Result;
 
-            //if (!snapshot.Exists || snapshot.ChildrenCount == 0)
-            //{
-            //    Debug.Log("Cart Is Empty, Add product To Proceed");
-            //    emptyCartText.SetActive(true);
-            //    cartContent.gameObject.SetActive(false);
-            //    UpdateTotalUI();
-            //    return;
-            //}
-            //else
-            //{
-            //    emptyCartText.SetActive(false);
-            //    cartContent.gameObject.SetActive(true);
-            //}
-            foreach (DataSnapshot itemSnapshot in cartTask.Result.Children)
+            if (!snapshot.Exists || snapshot.ChildrenCount == 0)
+            {
+                Debug.Log("Cart is empty.");
+
+                if (emptyCartText != null)
+                    emptyCartText.SetActive(true);
+
+                if (scrollView != null)
+                    scrollView.SetActive(false);
+
+                totalText.text = "0";
+                isLoadingCart = false;
+                return;
+            }
+
+            if (emptyCartText != null)
+                emptyCartText.SetActive(false);
+
+            if (scrollView != null)
+                scrollView.SetActive(true);
+
+            int productsToLoad = (int)snapshot.ChildrenCount;
+            int productsLoaded = 0;
+
+            foreach (DataSnapshot itemSnapshot in snapshot.Children)
             {
                 string productId = itemSnapshot.Key;
                 string selectedColor = itemSnapshot.Child("color")?.Value?.ToString() ?? "";
@@ -98,6 +113,9 @@ public class CartManager : MonoBehaviour
                     if (!productTask.IsCompleted || !productTask.Result.Exists)
                     {
                         Debug.LogWarning($"Product {productId} not found in store.");
+                        productsLoaded++;
+                        if (productsLoaded >= productsToLoad)
+                            isLoadingCart = false;
                         return;
                     }
 
@@ -146,6 +164,10 @@ public class CartManager : MonoBehaviour
                     itemTotals[productId] = itemTotal;
 
                     UpdateTotalUI();
+
+                    productsLoaded++;
+                    if (productsLoaded >= productsToLoad)
+                        isLoadingCart = false;
                 });
             }
         });
