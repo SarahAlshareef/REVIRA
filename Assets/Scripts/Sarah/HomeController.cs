@@ -6,7 +6,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class HomeController : MonoBehaviour, IPointerClickHandler
+public class HomeController : MonoBehaviour
 {
     public Button StoreSelect;
     public TextMeshProUGUI WelcomeText;
@@ -23,10 +23,7 @@ public class HomeController : MonoBehaviour, IPointerClickHandler
         CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
     }
 
-    public void OnPointerClick(PointerEventData eventData)
-    {
-        OpenStoreSelection();
-    }
+   
 
     public void OpenStoreSelection()
     {
