@@ -16,8 +16,10 @@ public class CartManager : MonoBehaviour
     public GameObject emptyCartText;
     public GameObject scrollView;
 
+    public TextMeshProUGUI CoinsText;
     private string userId;
     private const string storeId = "storeID_123";
+
     private DatabaseReference dbRef;
 
     private Dictionary<string, float> itemTotals = new();
@@ -44,6 +46,7 @@ public class CartManager : MonoBehaviour
 
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
         userId = UserManager.Instance.UserId;
+        CoinsText.text = UserManager.Instance.AccountBalance.ToString("F2");
 
         LoadCartTotal();
         LoadCartItems();
