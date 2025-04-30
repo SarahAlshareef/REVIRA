@@ -47,7 +47,7 @@ public class CartManager : MonoBehaviour
 
         LoadCartTotal();
         LoadCartItems();
-        //SetupCartListener();
+        SetupCartListener();
 
 
     }
