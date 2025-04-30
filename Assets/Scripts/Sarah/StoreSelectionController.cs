@@ -1,8 +1,6 @@
 using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -19,31 +17,41 @@ public class StoreSelectionController : MonoBehaviour
 
     public TextMeshProUGUI CoinText;
 
+    // New feature buttons
+    public Button featureButton1;
+    public Button featureButton2;
+    public Button featureButton3;
 
+    // Under Construction popup
+    public GameObject underConstructionPopup;
+    public Button backFromUnderConstruction;
 
     void Start()
     {
-
-        // Assign button click events
         Enter.onClick.AddListener(ShowStorePopUp);
         EnterConfirmation.onClick.AddListener(EnterStore);
         CancelEnter.onClick.AddListener(HideStorePopUp);
         Home.onClick.AddListener(BackToHome);
-        Logout.onClick.AddListener(LogoutToMainMenu);
+
+        featureButton1.onClick.AddListener(ShowUnderConstruction);
+        featureButton2.onClick.AddListener(ShowUnderConstruction);
+        featureButton3.onClick.AddListener(ShowUnderConstruction);
+        backFromUnderConstruction.onClick.AddListener(HideUnderConstruction);
 
         CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
 
-        storePopup.SetActive(false); // Hide pop-up intially 
+        storePopup.SetActive(false);
+        underConstructionPopup.SetActive(false);
     }
 
     public void ShowStorePopUp()
     {
-        storePopup.SetActive(true); // Show pop-up
+        storePopup.SetActive(true);
     }
 
     public void HideStorePopUp()
     {
-        storePopup.SetActive(false); // Hide pop-up
+        storePopup.SetActive(false);
     }
 
     public void EnterStore()
@@ -56,9 +64,13 @@ public class StoreSelectionController : MonoBehaviour
         SceneManager.LoadScene("Lolo");
     }
 
-    public void LogoutToMainMenu()
+    public void ShowUnderConstruction()
     {
-        SceneManager.LoadScene("MainMenu");
+        underConstructionPopup.SetActive(true);
     }
-   
+
+    public void HideUnderConstruction()
+    {
+        underConstructionPopup.SetActive(false);
+    }
 }
