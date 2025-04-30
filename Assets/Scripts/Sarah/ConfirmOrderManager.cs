@@ -28,14 +28,14 @@ public class ConfirmOrderManager : MonoBehaviour
 
     void OnConfirmOrder()
     {
-        var address = AddressBookManager1.SelectedAddress;
+        var address = AddressBookManager.SelectedAddress;
 
         if (address == null)
         {
             if (errorText != null)
                 errorText.text = "Please select a delivery address before confirming the order.";
 
-            Debug.LogError("No address selected. Please ensure an address is selected before confirming the order. This is managed by the AddressBookManager1 class.");
+            Debug.LogError("No address selected. Please ensure an address is selected before confirming the order. This is managed by the AddressBookManager class.");
             return;
         }
 
@@ -69,7 +69,7 @@ public class ConfirmOrderManager : MonoBehaviour
         string orderDate = DateTime.Now.ToString("yyyy-MM-dd hh:mm tt");
         long timestamp = DateTimeOffset.Now.ToUnixTimeSeconds();
 
-        var address = AddressBookManager1.SelectedAddress;
+        var address = AddressBookManager.SelectedAddress;
 
         Dictionary<string, object> orderData = new()
         {
