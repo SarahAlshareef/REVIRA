@@ -38,6 +38,7 @@ public class AddressBookManager : MonoBehaviour
         formErrorMessageText.text = "";
         SetupButtonListeners();
         nextButton.gameObject.SetActive(false);
+        CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
     }
     #endregion
 
