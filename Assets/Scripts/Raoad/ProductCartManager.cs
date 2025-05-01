@@ -41,6 +41,7 @@ public class ProductCartManager : MonoBehaviour
             quantityDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); });
 
         if (errorText != null)
+            errorText.gameObject.SetActive(false);
             
 
         RemoveExpiredCartItems();
@@ -69,25 +70,25 @@ public class ProductCartManager : MonoBehaviour
             return;
         }
         errorText.text = ("");
-        errorText.color = Color.red;  
+        errorText.gameObject.SetActive (false);
 
     }
     public void AddToCart()
     {
         if (isAdding) return;
 
-        if (hasAdded) 
-        { 
-            ShowError("Product Added Successfully");
+        ValidateSelection();
+        if (!string.IsNullOrEmpty(errorText.text)) return;
+
+        if (hasAdded)
+        {
+            ShowError("Product Added Successfully.");
             addToCartButton.interactable = false;
             if (cooldownCoroutine != null)
                 StopCoroutine(cooldownCoroutine);
             cooldownCoroutine = StartCoroutine(EnableButtonAfterDelay(5f));
-        return;
+            return;
         }
-
-        ValidateSelection();
-        if (!string.IsNullOrEmpty(errorText.text)) return;
 
         isAdding = true;
 
@@ -95,7 +96,6 @@ public class ProductCartManager : MonoBehaviour
         {
             ShowError("User not logged in.");
             isAdding = false;
-            
             return;
         }
 
@@ -104,7 +104,6 @@ public class ProductCartManager : MonoBehaviour
         {
             ShowError("Product data is missing.");
             isAdding = false;
-            
             return;
         }
 
@@ -123,7 +122,6 @@ public class ProductCartManager : MonoBehaviour
         {
             ShowError("This product is out of stock.");
             isAdding = false;
-            
             return;
         }
 
@@ -147,8 +145,6 @@ public class ProductCartManager : MonoBehaviour
 
                 dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).UpdateChildrenAsync(cartItem).ContinueWith(updateTask =>
                 {
-
-                    
                     if (updateTask.IsCompleted)
                     {
                         isAdding = false;
@@ -160,16 +156,11 @@ public class ProductCartManager : MonoBehaviour
                             StopCoroutine(cooldownCoroutine);
 
                         cooldownCoroutine = StartCoroutine(EnableButtonAfterDelay(15f));
-
-
-
-
                     }
                     else
                     {
-                        Debug.LogError("failled to add");
+                        Debug.LogError("Failed to add product.");
                         ShowError("Failed to add product. Try again.");
-                        
                     }
                 });
             });
