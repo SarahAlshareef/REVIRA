@@ -97,7 +97,27 @@ public class SignUp : MonoBehaviour
                 ShowError("User creation failed.");
                 return;
             }
-            StartCoroutine(SaveUserToRealtimeDB(auth.CurrentUser.UserId, firstName, lastName, email));
+
+            string userId = auth.CurrentUser.UserId;
+            Dictionary<string, object> userData = new()
+            {
+                { "userId", userId },
+                { "firstName", firstName },
+                { "lastName", lastName },
+                { "email", email },
+                { "accountBalance", 0 }
+            };
+
+            var dbTask = dbReference.Child("REVIRA").Child("Consumers").Child(userId).SetValueAsync(userData);
+            dbTask.ContinueWithOnMainThread(saveTask =>
+            {
+                if (saveTask.IsFaulted || saveTask.IsCanceled)
+                {
+                    ShowError("Failed to save user data: " + saveTask.Exception?.Message);
+                    return;
+                }
+                GoToLoginScene();
+            });
         });                
     }
 
@@ -120,25 +140,6 @@ public class SignUp : MonoBehaviour
         {
             ShowError("An unknown error occurred.");
         }
-    }
-    IEnumerator SaveUserToRealtimeDB(string userId, string firstName, string lastName, string email)
-    {
-        Dictionary<string, object> userData = new Dictionary<string, object>
-        {
-            { "userId", userId },
-            { "firstName", firstName },
-            { "lastName", lastName },
-            { "email", email },
-            { "accountBalance", 0 }
-        };
-
-        var dbTask = dbReference.Child("REVIRA").Child("Consumers").Child(userId).SetValueAsync(userData);
-        yield return new WaitUntil(() => dbTask.IsCompleted);
-
-        if (dbTask.Exception != null)
-            ShowError("Couldn't save user data. Please try again");
-        else
-            GoToLoginScene();
     }
 
     public void GoToLoginScene()
