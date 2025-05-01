@@ -19,6 +19,9 @@ public class MenuManagerVR : MonoBehaviour
     [Header("External UI Panels")]
     public GameObject[] allManagedUIs; // Cart UI, Checkout UIs, etc.
 
+    [Header("Profile Picture")]
+    public Image profileImage;
+
     private bool menuIsOpen = false;
     private bool blockMenuToggle = false;
 
@@ -26,6 +29,7 @@ public class MenuManagerVR : MonoBehaviour
     {
         menuUI.SetActive(false);
         dimmerCanvas.SetActive(false);
+        ProfileImageManager.Instance.RegisterProfileImage(profileImage);
     }
 
     void Update()

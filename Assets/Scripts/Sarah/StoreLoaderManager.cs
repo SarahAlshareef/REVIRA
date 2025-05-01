@@ -21,6 +21,9 @@ public class StoreLoaderManager : MonoBehaviour
     public GameObject constructionPopupPrefab;
     public Canvas mainCanvas;
 
+    public TextMeshProUGUI CoinText;
+    public Button Home;
+
     private Dictionary<string, StoreData> storeDataDict = new();
 
     void Start()
@@ -34,6 +37,9 @@ public class StoreLoaderManager : MonoBehaviour
                 LoadStoresFromFirebase();
             }
         });
+
+        Home.onClick.AddListener(BackToHome);
+        CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
     }
 
     void LoadStoresFromFirebase()
@@ -187,5 +193,10 @@ public class StoreLoaderManager : MonoBehaviour
         public string ImageUrl;
         public string SceneName;
         public bool IsUnderConstruction;
+    }
+
+    public void BackToHome()
+    {
+        SceneManager.LoadScene("Lolo");
     }
 }
