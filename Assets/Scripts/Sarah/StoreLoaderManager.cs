@@ -27,32 +27,30 @@ public class StoreLoaderManager : MonoBehaviour
     private Dictionary<string, StoreData> storeDataDict = new();
 
     void Start()
-{
-    FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
     {
-        if (task.Result == Firebase.DependencyStatus.Available)
+        FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
         {
-            FirebaseApp app = FirebaseApp.DefaultInstance;
+            if (task.Result == Firebase.DependencyStatus.Available)
+            {
+                FirebaseApp app = FirebaseApp.DefaultInstance;
 
-            // Always force new references
-            FirebaseDatabase.DefaultInstance.GoOffline();  // force refresh
-            FirebaseDatabase.DefaultInstance.GoOnline();
+                FirebaseDatabase.DefaultInstance.GoOffline();  // force refresh
+                FirebaseDatabase.DefaultInstance.GoOnline();
 
-            dbRef = FirebaseDatabase.DefaultInstance.GetReference("REVIRA/stores");
-            storage = FirebaseStorage.DefaultInstance;
+                dbRef = FirebaseDatabase.DefaultInstance.GetReference("REVIRA/stores");
+                storage = FirebaseStorage.DefaultInstance;
 
-            StartCoroutine(DelayedFirebaseLoad());
-        }
-        else
-        {
-            Debug.LogError("Firebase is not available.");
-        }
-    });
+                StartCoroutine(DelayedFirebaseLoad());
+            }
+            else
+            {
+                Debug.LogError("Firebase is not available.");
+            }
+        });
 
-    Home.onClick.AddListener(BackToHome);
-    CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
-}
-
+        Home.onClick.AddListener(BackToHome);
+        CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
+    }
 
     IEnumerator DelayedFirebaseLoad()
     {
@@ -87,8 +85,6 @@ public class StoreLoaderManager : MonoBehaviour
                         else if (bool.TryParse(rawFlag.ToString(), out bool parsed))
                             isUnderConstruction = parsed;
                     }
-
-                    Debug.Log($"Loaded Store: {name}, UnderConstruction: {isUnderConstruction}");
 
                     StoreData data = new StoreData
                     {
@@ -155,6 +151,23 @@ public class StoreLoaderManager : MonoBehaviour
 
         if (enterBtn != null) enterBtn.onClick.AddListener(() => SceneManager.LoadScene(data.SceneName));
         if (cancelBtn != null) cancelBtn.onClick.AddListener(() => Destroy(popup));
+    }
+
+   
+    public void ShowPopupFromInspector()
+    {
+        if (storeDataDict.Count > 0)
+        {
+            foreach (var store in storeDataDict.Values)
+            {
+                ShowPopup(store); // show the first store found
+                break;
+            }
+        }
+        else
+        {
+            Debug.LogWarning("No store data loaded yet.");
+        }
     }
 
     void ShowConstructionPopup()

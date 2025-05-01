@@ -34,7 +34,7 @@ public class MenuManagerVR : MonoBehaviour
         menuUI.SetActive(false);
         dimmerCanvas.SetActive(false);
         ProfileImageManager.Instance.RegisterProfileImage(profileImage);
-        welcomeText.text = $"{UserManager.Instance.FirstName} {UserManager.Instance.LastName}";
+        welcomeText.text = $"Hi, {UserManager.Instance.FirstName} {UserManager.Instance.LastName}";
         CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
     }
 
