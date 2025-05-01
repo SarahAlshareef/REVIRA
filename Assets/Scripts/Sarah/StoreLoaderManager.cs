@@ -55,11 +55,11 @@ public class StoreLoaderManager : MonoBehaviour
                     string imageUrl = storeDict["image"].ToString();
                     string sceneName = storeDict["scene"].ToString();
 
-                    // FIXED: Safe boolean parsing
+                    // Safe and correct way to parse bool
                     bool isUnderConstruction = false;
-                    if (storeDict.ContainsKey("isUnderConstruction"))
+                    if (storeDict.TryGetValue("isUnderConstruction", out object rawFlag))
                     {
-                        bool.TryParse(storeDict["isUnderConstruction"].ToString(), out isUnderConstruction);
+                        isUnderConstruction = rawFlag is bool b && b;
                     }
 
                     Debug.Log($"Loaded Store: {name}, UnderConstruction: {isUnderConstruction}");
@@ -108,16 +108,6 @@ public class StoreLoaderManager : MonoBehaviour
 
         GameObject popup = Instantiate(storePopupPrefab, mainCanvas.transform);
 
-        RectTransform rt = popup.GetComponent<RectTransform>();
-        if (rt != null)
-        {
-            rt.localScale = Vector3.one;
-            rt.anchoredPosition = Vector2.zero;
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-        }
-
         Transform popupWindow = popup.transform.Find("pop up window");
         if (popupWindow == null) return;
 
@@ -147,20 +137,9 @@ public class StoreLoaderManager : MonoBehaviour
 
         GameObject popup = Instantiate(constructionPopupPrefab, mainCanvas.transform);
 
-        RectTransform rt = popup.GetComponent<RectTransform>();
-        if (rt != null)
-        {
-            rt.localScale = Vector3.one;
-            rt.anchoredPosition = Vector2.zero;
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-        }
-
         Canvas.ForceUpdateCanvases();
         LayoutRebuilder.ForceRebuildLayoutImmediate(popup.GetComponent<RectTransform>());
 
-        // Look for any button named "BackButton" inside the popup
         Button[] allButtons = popup.GetComponentsInChildren<Button>(true);
         foreach (var btn in allButtons)
         {
@@ -172,7 +151,6 @@ public class StoreLoaderManager : MonoBehaviour
             }
         }
     }
-
 
     IEnumerator LoadImage(string firebaseUrl, Image targetImage)
     {
