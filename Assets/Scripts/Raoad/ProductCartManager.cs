@@ -41,44 +41,45 @@ public class ProductCartManager : MonoBehaviour
             quantityDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); });
 
         if (errorText != null)
-            errorText.gameObject.SetActive(false);
+            errorText.text = "";
             
 
         RemoveExpiredCartItems();
     }
 
-    public void ValidateSelection()
+    public bool ValidateSelection()
     {
-        string selectedColor = colorDropdown.options[colorDropdown.value].text;
-        if (selectedColor == "Select Color")
+        string color = colorDropdown.options[colorDropdown.value].text;
+        if (color == "Select Color")
         {
-            ShowError("Please select a color.");
-            return;
+            errorText.text = "Please select a color.";
+            errorText.gameObject.SetActive(true);
+            return false;
         }
 
-        string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
-        if (selectedSize == "Select Size")
+        string size = sizeDropdown.options[sizeDropdown.value].text;
+        if (size == "Select Size")
         {
-            ShowError("Please select a size.");
-            return;
+            errorText.text = "Please select a size.";
+            errorText.gameObject.SetActive(true);
+            return false;
         }
 
-        string selectedQuantity = quantityDropdown.options[quantityDropdown.value].text;
-        if (selectedQuantity == "Select Quantity")
+        string quantity = quantityDropdown.options[quantityDropdown.value].text;
+        if (quantity == "Select Quantity")
         {
-            ShowError("Please select a quantity.");
-            return;
+            errorText.text = "Please select a quantity.";
+            errorText.gameObject.SetActive(true);
+            return false;
         }
-        errorText.text = ("");
-        errorText.gameObject.SetActive (false);
 
+        errorText.text = "";
+        errorText.gameObject.SetActive(false);
+        return true;
     }
     public void AddToCart()
     {
         if (isAdding) return;
-
-        ValidateSelection();
-        if (!string.IsNullOrEmpty(errorText.text)) return;
 
         if (hasAdded)
         {
@@ -89,6 +90,9 @@ public class ProductCartManager : MonoBehaviour
             cooldownCoroutine = StartCoroutine(EnableButtonAfterDelay(5f));
             return;
         }
+
+        
+        if (!ValidateSelection()) return;
 
         isAdding = true;
 
@@ -125,6 +129,7 @@ public class ProductCartManager : MonoBehaviour
             return;
         }
 
+        
         ReduceStock(selectedColor, selectedSize, quantity, () =>
         {
             dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).Child("sizes").Child(selectedSize).GetValueAsync().ContinueWith(task =>
@@ -132,7 +137,7 @@ public class ProductCartManager : MonoBehaviour
                 int existingQuantity = task.IsCompleted && task.Result.Exists ? int.Parse(task.Result.Value.ToString()) : 0;
                 int newQuantity = existingQuantity + quantity;
 
-                Dictionary<string, object> cartItem = new Dictionary<string, object>
+                Dictionary<string, object> cartItem = new()
             {
                 { "productID", productID },
                 { "productName", productName },
@@ -151,15 +156,10 @@ public class ProductCartManager : MonoBehaviour
                         UpdateCartSummary(userID);
                         cartManager?.LoadCartItems();
                         hasAdded = true;
-
-                        if (cooldownCoroutine != null)
-                            StopCoroutine(cooldownCoroutine);
-
-                        cooldownCoroutine = StartCoroutine(EnableButtonAfterDelay(15f));
                     }
                     else
                     {
-                        Debug.LogError("Failed to add product.");
+                        isAdding = false;
                         ShowError("Failed to add product. Try again.");
                     }
                 });
