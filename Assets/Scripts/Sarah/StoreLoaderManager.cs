@@ -18,6 +18,7 @@ public class StoreLoaderManager : MonoBehaviour
     public GameObject storePagePrefab;
     public Transform scrollContent;
     public GameObject storePopupPrefab;
+    public GameObject constructionPopupPrefab;
     public Canvas mainCanvas;
 
     private Dictionary<string, StoreData> storeDataDict = new();
@@ -26,8 +27,7 @@ public class StoreLoaderManager : MonoBehaviour
     {
         FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
         {
-            var dependencyStatus = task.Result;
-            if (dependencyStatus == Firebase.DependencyStatus.Available)
+            if (task.Result == Firebase.DependencyStatus.Available)
             {
                 dbRef = FirebaseDatabase.DefaultInstance.GetReference("REVIRA/stores");
                 storage = FirebaseStorage.DefaultInstance;
@@ -55,13 +55,23 @@ public class StoreLoaderManager : MonoBehaviour
                     string imageUrl = storeDict["image"].ToString();
                     string sceneName = storeDict["scene"].ToString();
 
+                    // FIXED: Safe boolean parsing
+                    bool isUnderConstruction = false;
+                    if (storeDict.ContainsKey("isUnderConstruction"))
+                    {
+                        bool.TryParse(storeDict["isUnderConstruction"].ToString(), out isUnderConstruction);
+                    }
+
+                    Debug.Log($"Loaded Store: {name}, UnderConstruction: {isUnderConstruction}");
+
                     StoreData data = new StoreData
                     {
                         StoreId = storeId,
                         Name = name,
                         Description = description,
                         ImageUrl = imageUrl,
-                        SceneName = sceneName
+                        SceneName = sceneName,
+                        IsUnderConstruction = isUnderConstruction
                     };
 
                     storeDataDict[storeId] = data;
@@ -74,7 +84,6 @@ public class StoreLoaderManager : MonoBehaviour
     void CreateStorePage(StoreData data)
     {
         GameObject page = Instantiate(storePagePrefab, scrollContent);
-
         Image storeImage = page.transform.Find("StoreImage").GetComponent<Image>();
         Button selectButton = page.transform.Find("SelectButton").GetComponent<Button>();
 
@@ -82,7 +91,14 @@ public class StoreLoaderManager : MonoBehaviour
 
         selectButton.onClick.AddListener(() =>
         {
-            ShowPopup(data);
+            if (data.IsUnderConstruction)
+            {
+                ShowConstructionPopup();
+            }
+            else
+            {
+                ShowPopup(data);
+            }
         });
     }
 
@@ -91,7 +107,16 @@ public class StoreLoaderManager : MonoBehaviour
         if (storePopupPrefab == null || mainCanvas == null) return;
 
         GameObject popup = Instantiate(storePopupPrefab, mainCanvas.transform);
-        if (popup == null) return;
+
+        RectTransform rt = popup.GetComponent<RectTransform>();
+        if (rt != null)
+        {
+            rt.localScale = Vector3.one;
+            rt.anchoredPosition = Vector2.zero;
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+        }
 
         Transform popupWindow = popup.transform.Find("pop up window");
         if (popupWindow == null) return;
@@ -115,6 +140,39 @@ public class StoreLoaderManager : MonoBehaviour
         enterBtn.onClick.AddListener(() => SceneManager.LoadScene(data.SceneName));
         cancelBtn.onClick.AddListener(() => Destroy(popup));
     }
+
+    void ShowConstructionPopup()
+    {
+        if (constructionPopupPrefab == null || mainCanvas == null) return;
+
+        GameObject popup = Instantiate(constructionPopupPrefab, mainCanvas.transform);
+
+        RectTransform rt = popup.GetComponent<RectTransform>();
+        if (rt != null)
+        {
+            rt.localScale = Vector3.one;
+            rt.anchoredPosition = Vector2.zero;
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+        }
+
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(popup.GetComponent<RectTransform>());
+
+        // Look for any button named "BackButton" inside the popup
+        Button[] allButtons = popup.GetComponentsInChildren<Button>(true);
+        foreach (var btn in allButtons)
+        {
+            if (btn.name == "BackButton")
+            {
+                btn.onClick.RemoveAllListeners();
+                btn.onClick.AddListener(() => Destroy(popup));
+                break;
+            }
+        }
+    }
+
 
     IEnumerator LoadImage(string firebaseUrl, Image targetImage)
     {
@@ -150,5 +208,6 @@ public class StoreLoaderManager : MonoBehaviour
         public string Description;
         public string ImageUrl;
         public string SceneName;
+        public bool IsUnderConstruction;
     }
 }
