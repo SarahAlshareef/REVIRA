@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using TMPro;
+using UnityEngine;
 using UnityEngine.UI;
 
 public class MenuManagerVR : MonoBehaviour
@@ -22,6 +23,8 @@ public class MenuManagerVR : MonoBehaviour
     [Header("Profile Picture")]
     public Image profileImage;
 
+    public TextMeshProUGUI CoinText;
+
     private bool menuIsOpen = false;
     private bool blockMenuToggle = false;
 
@@ -30,6 +33,7 @@ public class MenuManagerVR : MonoBehaviour
         menuUI.SetActive(false);
         dimmerCanvas.SetActive(false);
         ProfileImageManager.Instance.RegisterProfileImage(profileImage);
+        CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
     }
 
     void Update()
