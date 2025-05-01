@@ -39,6 +39,15 @@ public class ConfirmOrderManager : MonoBehaviour
             return;
         }
 
+        if (string.IsNullOrEmpty(DeliveryManager.DeliveryCompany))
+        {
+            if (errorText != null)
+                errorText.text = "Please select a delivery method before confirming the order.";
+
+            Debug.LogError("No delivery method selected. Ensure a delivery method is selected before proceeding.");
+            return;
+        }
+
         GetNextOrderId(orderId =>
         {
             BuildOrderData(orderId, orderData =>
