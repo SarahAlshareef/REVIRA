@@ -22,6 +22,8 @@ public class ConfirmOrderManager : MonoBehaviour
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
         userId = UserManager.Instance.UserId;
 
+        Debug.Log("[ConfirmOrderManager] Initialized. UserID: " + userId);
+
         confirmButton.onClick.AddListener(OnConfirmOrder);
         cancelButton.onClick.AddListener(() => confirmationPopup.SetActive(false));
     }
@@ -30,28 +32,37 @@ public class ConfirmOrderManager : MonoBehaviour
     {
         var address = AddressBookManager.SelectedAddress;
 
+        Debug.Log("[ConfirmOrderManager] OnConfirmOrder triggered.");
+
         if (address == null)
         {
+            Debug.LogError("[ConfirmOrderManager] No address selected.");
             if (errorText != null)
                 errorText.text = "Please select a delivery address before confirming the order.";
-
-            Debug.LogError("No address selected. Please ensure an address is selected before confirming the order. This is managed by the AddressBookManager class.");
             return;
         }
+
+        Debug.Log("[ConfirmOrderManager] Address selected: " + address.addressName);
 
         if (string.IsNullOrEmpty(DeliveryManager.DeliveryCompany))
         {
+            Debug.LogError("[ConfirmOrderManager] No delivery method selected.");
             if (errorText != null)
                 errorText.text = "Please select a delivery method before confirming the order.";
-
-            Debug.LogError("No delivery method selected. Ensure a delivery method is selected before proceeding.");
             return;
         }
 
+        Debug.Log("[ConfirmOrderManager] Delivery company: " + DeliveryManager.DeliveryCompany);
+        Debug.Log("[ConfirmOrderManager] Delivery price: " + DeliveryManager.DeliveryPrice);
+        Debug.Log("[ConfirmOrderManager] Final total: " + OrderSummaryManager.FinalTotal);
+
         GetNextOrderId(orderId =>
         {
+            Debug.Log("[ConfirmOrderManager] Generated order ID: " + orderId);
+
             BuildOrderData(orderId, orderData =>
             {
+                Debug.Log("[ConfirmOrderManager] Order data built. Submitting...");
                 SubmitOrder(orderId, orderData);
             });
         });
@@ -66,6 +77,11 @@ public class ConfirmOrderManager : MonoBehaviour
             {
                 nextOrderNumber = (int)task.Result.ChildrenCount + 1;
             }
+            else if (task.IsFaulted)
+            {
+                Debug.LogError("[ConfirmOrderManager] Error fetching order history: " + task.Exception);
+            }
+
             callback?.Invoke("Order" + nextOrderNumber);
         });
     }
@@ -77,7 +93,6 @@ public class ConfirmOrderManager : MonoBehaviour
         float deliveryPrice = DeliveryManager.DeliveryPrice;
         string orderDate = DateTime.Now.ToString("yyyy-MM-dd hh:mm tt");
         long timestamp = DateTimeOffset.Now.ToUnixTimeSeconds();
-
         var address = AddressBookManager.SelectedAddress;
 
         Dictionary<string, object> orderData = new()
@@ -113,9 +128,11 @@ public class ConfirmOrderManager : MonoBehaviour
         {
             if (!cartTask.IsCompleted || !cartTask.Result.Exists)
             {
-                Debug.LogError("Failed to load cart items.");
+                Debug.LogError("[ConfirmOrderManager] Failed to load cart items or cart is empty.");
                 return;
             }
+
+            Debug.Log("[ConfirmOrderManager] Cart items loaded.");
 
             Dictionary<string, object> items = new();
             int totalProducts = (int)cartTask.Result.ChildrenCount;
@@ -145,7 +162,6 @@ public class ConfirmOrderManager : MonoBehaviour
                     if (productTask.IsCompleted && productTask.Result.Exists)
                     {
                         var productSnapshot = productTask.Result;
-
                         bool hasDiscount = Convert.ToBoolean(productSnapshot.Child("discount").Child("exists").Value);
                         float discountPercent = Convert.ToSingle(productSnapshot.Child("discount").Child("percentage").Value);
 
@@ -181,6 +197,7 @@ public class ConfirmOrderManager : MonoBehaviour
 
                     if (processed == totalProducts)
                     {
+                        Debug.Log("[ConfirmOrderManager] All cart items processed. Finalizing order data.");
                         orderData["items"] = items;
                         callback?.Invoke(orderData);
                     }
@@ -197,6 +214,8 @@ public class ConfirmOrderManager : MonoBehaviour
         {
             if (task.IsCompleted)
             {
+                Debug.Log("[ConfirmOrderManager] Order successfully saved to Firebase.");
+
                 float newBalance = UserManager.Instance.AccountBalance - OrderSummaryManager.FinalTotal;
                 dbRef.Child($"REVIRA/Consumers/{userId}/accountBalance").SetValueAsync(newBalance);
                 UserManager.Instance.UpdateAccountBalance(newBalance);
@@ -209,7 +228,7 @@ public class ConfirmOrderManager : MonoBehaviour
             }
             else
             {
-                Debug.LogError("Failed to save order: " + task.Exception);
+                Debug.LogError("[ConfirmOrderManager] Failed to save order: " + task.Exception);
             }
         });
     }
