@@ -58,7 +58,10 @@ public class Login : MonoBehaviour
                 return;
             }
             if (auth.CurrentUser != null)
-                StartCoroutine(FetchUserData(auth.CurrentUser.UserId));
+            {
+                SceneManager.LoadScene("Lolo");
+                StartCoroutine(FetchUserData(auth.CurrentUser.UserId));  
+            }                       
         });
     }
 
@@ -84,7 +87,6 @@ public class Login : MonoBehaviour
         string phone = snapshot.Child("phoneNumber").Exists ? snapshot.Child("phoneNumber").Value.ToString() : "Not Added";
 
         UserManager.Instance.SetUserData(userId, firstName, lastName, email, accountBalance, gender, phone);
-        SceneManager.LoadScene("Lolo");
     }
 
     void ShowError(string message)
