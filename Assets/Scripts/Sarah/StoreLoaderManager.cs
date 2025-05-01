@@ -32,9 +32,20 @@ public class StoreLoaderManager : MonoBehaviour
         {
             if (task.Result == Firebase.DependencyStatus.Available)
             {
+                FirebaseApp app = FirebaseApp.DefaultInstance;
+
+                // Always force new references
+                FirebaseDatabase.DefaultInstance.GoOffline();  // force refresh
+                FirebaseDatabase.DefaultInstance.GoOnline();
+
                 dbRef = FirebaseDatabase.DefaultInstance.GetReference("REVIRA/stores");
                 storage = FirebaseStorage.DefaultInstance;
-                LoadStoresFromFirebase();
+
+                StartCoroutine(DelayedFirebaseLoad());
+            }
+            else
+            {
+                Debug.LogError("Firebase is not available.");
             }
         });
 
@@ -42,11 +53,18 @@ public class StoreLoaderManager : MonoBehaviour
         CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
     }
 
+
+    IEnumerator DelayedFirebaseLoad()
+    {
+        yield return new WaitForSeconds(0.5f); // Allow Firebase more time after initialization
+        LoadStoresFromFirebase();
+    }
+
     void LoadStoresFromFirebase()
     {
         dbRef.GetValueAsync().ContinueWithOnMainThread(task =>
         {
-            if (task.IsCompleted)
+            if (task.IsCompleted && task.Result != null)
             {
                 DataSnapshot snapshot = task.Result;
 
@@ -61,11 +79,13 @@ public class StoreLoaderManager : MonoBehaviour
                     string imageUrl = storeDict["image"].ToString();
                     string sceneName = storeDict["scene"].ToString();
 
-                    // Safe and correct way to parse bool
                     bool isUnderConstruction = false;
                     if (storeDict.TryGetValue("isUnderConstruction", out object rawFlag))
                     {
-                        isUnderConstruction = rawFlag is bool b && b;
+                        if (rawFlag is bool b)
+                            isUnderConstruction = b;
+                        else if (bool.TryParse(rawFlag.ToString(), out bool parsed))
+                            isUnderConstruction = parsed;
                     }
 
                     Debug.Log($"Loaded Store: {name}, UnderConstruction: {isUnderConstruction}");
@@ -83,6 +103,10 @@ public class StoreLoaderManager : MonoBehaviour
                     storeDataDict[storeId] = data;
                     CreateStorePage(data);
                 }
+            }
+            else
+            {
+                Debug.LogError("Failed to load stores from Firebase.");
             }
         });
     }
@@ -118,23 +142,19 @@ public class StoreLoaderManager : MonoBehaviour
         if (popupWindow == null) return;
 
         var nameField = popupWindow.Find("StoreName")?.GetComponent<TextMeshProUGUI>();
-        if (nameField == null) return;
-        nameField.text = data.Name;
+        if (nameField != null) nameField.text = data.Name;
 
         var descriptionField = popupWindow.Find("Description")?.GetComponent<TextMeshProUGUI>();
-        if (descriptionField == null) return;
-        descriptionField.text = data.Description;
+        if (descriptionField != null) descriptionField.text = data.Description;
 
         Image popupImage = popupWindow.Find("StoreImage")?.GetComponent<Image>();
-        if (popupImage == null) return;
-        StartCoroutine(LoadImage(data.ImageUrl, popupImage));
+        if (popupImage != null) StartCoroutine(LoadImage(data.ImageUrl, popupImage));
 
         Button enterBtn = popupWindow.Find("Enter effect button (3)/EnterButton")?.GetComponent<Button>();
         Button cancelBtn = popupWindow.Find("cancel effect button (4)/CancelButton")?.GetComponent<Button>();
-        if (enterBtn == null || cancelBtn == null) return;
 
-        enterBtn.onClick.AddListener(() => SceneManager.LoadScene(data.SceneName));
-        cancelBtn.onClick.AddListener(() => Destroy(popup));
+        if (enterBtn != null) enterBtn.onClick.AddListener(() => SceneManager.LoadScene(data.SceneName));
+        if (cancelBtn != null) cancelBtn.onClick.AddListener(() => Destroy(popup));
     }
 
     void ShowConstructionPopup()
@@ -169,17 +189,22 @@ public class StoreLoaderManager : MonoBehaviour
         yield return new WaitUntil(() => task.IsCompleted);
 
         if (task.Exception != null)
+        {
+            Debug.LogError($"Image download failed: {task.Exception}");
             yield break;
+        }
 
         UnityWebRequest request = UnityWebRequestTexture.GetTexture(task.Result.ToString());
         yield return request.SendWebRequest();
 
         if (request.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError($"Web request failed: {request.error}");
             yield break;
+        }
 
         Texture2D texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
-        if (texture == null)
-            yield break;
+        if (texture == null) yield break;
 
         Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
         targetImage.sprite = sprite;
