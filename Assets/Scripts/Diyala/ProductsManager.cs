@@ -31,20 +31,13 @@ public class ProductsManager : MonoBehaviour
 
     [Header("Buttons")]
     public Button closePopup;
-    //public Button openPopup;
 
-    // Declare Product Data
     public Dictionary<string, Dictionary<string, int>> productColorsAndSizes;
 
+
     // Getter & Setter
-    public ProductData GetProductData()
-    {
-        return product;
-    }
-    public void SetProductData(ProductData newProduct)
-    {
-        product = newProduct;
-    }
+    public ProductData GetProductData() { return product; }
+    public void SetProductData(ProductData newProduct) { product = newProduct; }
 
     public void Start()
     {
@@ -52,27 +45,21 @@ public class ProductsManager : MonoBehaviour
         {
             if (task.Result == Firebase.DependencyStatus.Available)
             {
-                Debug.Log("Firebase is ready to use.");
                 dbReference = FirebaseDatabase.DefaultInstance.RootReference;
                 LoadProductData();
             }
         });
 
         productPopup?.SetActive(false);
-
-        //openPopup?.onClick.AddListener(OpenProductPopup);
-
         closePopup?.onClick.AddListener(CloseProductPopup);
 
         colorDropdown?.onValueChanged.AddListener((index) => UpdateSizeDropdown());
-
         sizeDropdown?.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
-
     }
     
     public void LoadProductData()
     {
-        // Fetch product data from Firebase
+
         dbReference.Child("REVIRA").Child("stores").Child(storeID).Child("products").Child(productID)
             .GetValueAsync().ContinueWithOnMainThread(task =>
             {
@@ -81,7 +68,6 @@ public class ProductsManager : MonoBehaviour
                     DataSnapshot snapshot = task.Result;
                     if (snapshot.Exists)
                     {
-                        // fetch data from Firebase and save them in ProductData
                         product = new ProductData()
                         {
                             name = snapshot.Child("name").Value.ToString(),
@@ -89,7 +75,6 @@ public class ProductsManager : MonoBehaviour
                             description = snapshot.Child("description").Value.ToString(),
                             image = snapshot.Child("image").Value.ToString(),
 
-                            // fetch data from Firebase and save them in DiscountData
                             discount = new DiscountData()
                             {
                                 exists = bool.Parse(snapshot.Child("discount").Child("exists").Value.ToString()),
@@ -97,12 +82,31 @@ public class ProductsManager : MonoBehaviour
                             }
                         };
 
+                        if (productPrice != null)
+                        {
+                            if (product.discount.exists && product.discount.percentage > 0)
+                            {
+                                float newPrice = product.price - (product.price * (product.discount.percentage / 100));
+
+                                productPrice.fontStyle = FontStyles.Strikethrough;
+                                productPrice?.SetText($"{product.price:F2}");
+                                discountedPrice?.SetText($"{newPrice:F2}");
+                                discountedPrice?.gameObject.SetActive(true);
+                                discountTag?.SetActive(true);
+                            }
+                            else
+                            {
+                                productPrice.fontStyle = FontStyles.Normal;
+                                productPrice?.SetText($"{product.price:F2}");
+                                discountedPrice?.gameObject.SetActive(false);
+                                discountTag?.SetActive(false);
+                            }
+                        }
+
                         productColorsAndSizes = new Dictionary<string, Dictionary<string, int>>();
 
-                        // Load colors and sizes
                         if (snapshot.HasChild("colors"))
                         {
-                            product.sizes = new Dictionary<string, int>();
                             foreach (var colorNode in snapshot.Child("colors").Children)
                             {
                                 string colorName = colorNode.Key;
@@ -116,22 +120,11 @@ public class ProductsManager : MonoBehaviour
                             }
                         }
 
-                        // Product name
                         productName?.SetText(product.name);
-
-                        // Product price
-                        productPrice?.SetText($"{product.price:F2}");
-
-                        // Product description
                         productDescription?.SetText(product.description);
 
-                        // Product image
                         StartCoroutine(LoadImageFromURL(product.image));
-
-                        UpdatePriceAndDiscount();
-
                         UpdateColorDropdown();
-
                         UpdateSizeDropdown();
                     }
                     else
@@ -145,6 +138,7 @@ public class ProductsManager : MonoBehaviour
                 }
             });
     }
+
     IEnumerator LoadImageFromURL(string url)
     {
         if (productImage == null)
@@ -163,7 +157,9 @@ public class ProductsManager : MonoBehaviour
                 productImage.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
             }
             else
+            {
                 Debug.LogError("Failed to load image: " + request.error);
+            }
         }
     }
 
@@ -205,58 +201,40 @@ public class ProductsManager : MonoBehaviour
 
         List<string> quantities = new List<string> { "Select Quantity" };
 
-        // Get selected color and size
         string selectedColor = colorDropdown.options[colorDropdown.value].text;
         string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
 
         if (selectedColor != "Select Color" && selectedSize != "Select Size" && productColorsAndSizes.ContainsKey(selectedColor)
             && productColorsAndSizes[selectedColor].ContainsKey(selectedSize))
         {
-            // Get available stock
-            int availableStock = productColorsAndSizes[selectedColor][selectedSize];
 
-            // Set max selectable quantity (min of 5 or available stock)
+            int availableStock = productColorsAndSizes[selectedColor][selectedSize];
             int maxSelectable = Mathf.Min(5, availableStock);
 
-            for (int i = 1; i <= maxSelectable; i++)
+            if (maxSelectable == 0)
             {
-                quantities.Add(i.ToString());
+                quantities.Add("Out of Stock");
+            }
+            else
+            {
+                for (int i = 1; i <= maxSelectable; i++)
+                {
+                    quantities.Add(i.ToString());
+                }
             }
         }
+
         quantityDropdown.ClearOptions();
         quantityDropdown.AddOptions(quantities);
         quantityDropdown.SetValueWithoutNotify(0);
         quantityDropdown.RefreshShownValue();
     }
 
-    public void UpdatePriceAndDiscount()
-    {
-        if (product.discount.exists && product.discount.percentage > 0)
-        {
-            float newPrice = product.price - (product.price * (product.discount.percentage / 100));
-
-            productPrice?.SetText($"{product.price:F2}");
-            if (productPrice != null)
-                productPrice.fontStyle = FontStyles.Strikethrough;
-
-            discountedPrice?.SetText($"{newPrice:F2}");
-            discountedPrice?.gameObject.SetActive(true);
-            discountTag?.SetActive(true);
-        }
-        else
-        {
-            productPrice?.SetText($"{product.price:F2}");
-            if (productPrice != null)
-                productPrice.fontStyle = FontStyles.Normal;
-
-            discountedPrice?.gameObject.SetActive(false);
-            discountTag?.SetActive(false);
-        }
-    }
     public void OpenProductPopup()
     {
         productPopup?.SetActive(true);
     }
+
     public void CloseProductPopup()
     {
         productPopup?.SetActive(false);
@@ -265,7 +243,11 @@ public class ProductsManager : MonoBehaviour
         productPrice?.SetText("");
         discountedPrice?.SetText("");
         productDescription?.SetText("");
-        productImage.sprite = null;
+
+        if (productImage != null)
+        {
+            productImage.sprite = null;
+        }
 
         colorDropdown?.ClearOptions();
         sizeDropdown?.ClearOptions();
@@ -285,6 +267,7 @@ public class ProductsManager : MonoBehaviour
     public DiscountData discount;
     public Dictionary<string, int> sizes;
 }
+
 public class DiscountData
 {
     public bool exists;
