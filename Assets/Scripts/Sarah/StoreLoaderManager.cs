@@ -27,31 +27,31 @@ public class StoreLoaderManager : MonoBehaviour
     private Dictionary<string, StoreData> storeDataDict = new();
 
     void Start()
+{
+    FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
     {
-        FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
+        if (task.Result == Firebase.DependencyStatus.Available)
         {
-            if (task.Result == Firebase.DependencyStatus.Available)
-            {
-                FirebaseApp app = FirebaseApp.DefaultInstance;
+            FirebaseApp app = FirebaseApp.DefaultInstance;
 
-                // Always force new references
-                FirebaseDatabase.DefaultInstance.GoOffline();  // force refresh
-                FirebaseDatabase.DefaultInstance.GoOnline();
+            // Always force new references
+            FirebaseDatabase.DefaultInstance.GoOffline();  // force refresh
+            FirebaseDatabase.DefaultInstance.GoOnline();
 
-                dbRef = FirebaseDatabase.DefaultInstance.GetReference("REVIRA/stores");
-                storage = FirebaseStorage.DefaultInstance;
+            dbRef = FirebaseDatabase.DefaultInstance.GetReference("REVIRA/stores");
+            storage = FirebaseStorage.DefaultInstance;
 
-                StartCoroutine(DelayedFirebaseLoad());
-            }
-            else
-            {
-                Debug.LogError("Firebase is not available.");
-            }
-        });
+            StartCoroutine(DelayedFirebaseLoad());
+        }
+        else
+        {
+            Debug.LogError("Firebase is not available.");
+        }
+    });
 
-        Home.onClick.AddListener(BackToHome);
-        CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
-    }
+    Home.onClick.AddListener(BackToHome);
+    CoinText.text = UserManager.Instance.AccountBalance.ToString("F2");
+}
 
 
     IEnumerator DelayedFirebaseLoad()
@@ -132,7 +132,7 @@ public class StoreLoaderManager : MonoBehaviour
         });
     }
 
-    void ShowPopup(StoreData data)
+    public void ShowPopup(StoreData data)
     {
         if (storePopupPrefab == null || mainCanvas == null) return;
 
@@ -210,7 +210,7 @@ public class StoreLoaderManager : MonoBehaviour
         targetImage.sprite = sprite;
     }
 
-    class StoreData
+    public class StoreData
     {
         public string StoreId;
         public string Name;
