@@ -129,6 +129,14 @@ public class OrderSummaryManager : MonoBehaviour
         UpdateSummaryUI(promoDiscountAmount);
     }
 
+    public void RefreshSummaryWithDelivery(float newDeliveryPrice)
+    {
+        delivery = newDeliveryPrice;
+        total = (PromotionalManager.DiscountedTotal > 0 ? PromotionalManager.DiscountedTotal : subtotal) + delivery;
+        FinalTotal = total;
+        UpdateSummaryUI(promoDiscountAmount);
+    }
+
     void UpdateSummaryUI(float discountedAmount)
     {
         subtotalText.text = subtotal.ToString("F2");

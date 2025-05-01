@@ -113,6 +113,12 @@ public class StoreDelivery : MonoBehaviour
         DeliveryManager.DeliveryCompany = companyName;
         DeliveryManager.DeliveryPrice = info.price;
         DeliveryManager.DeliveryDuration = info.duration;
+
+        if (OrderSummaryManager.Instance != null)
+        {
+            OrderSummaryManager.Instance.RefreshSummaryWithDelivery(DeliveryManager.DeliveryPrice);
+        }
+
     }
 
     void GoToNextStep()
