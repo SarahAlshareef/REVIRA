@@ -3,8 +3,6 @@ using UnityEngine.UI;
 using TMPro;
 using Firebase.Database;
 using Firebase.Extensions;
-using UnityEngine.Networking;
-using System.Collections;
 using System.Collections.Generic;
 using System;
 
@@ -24,9 +22,6 @@ public class CartItemUI : MonoBehaviour
     [Header("Optional Visuals")]
     public GameObject lineImage;
     public GameObject redRiyalImage;
-
-    [Header("Fallback Image")]
-    public Sprite placeholderImage;
 
     private string userId, productId, storeId = "storeID_123";
     private float basePrice, discountPercentage;
@@ -66,7 +61,8 @@ public class CartItemUI : MonoBehaviour
 
         productNameText.text = name;
 
-        StartCoroutine(LoadImage(imageUrl));
+        // Queue image loading using static loader
+        ImageLoader.EnqueueImageLoad(imageUrl, productImage);
 
         PopulateColorDropdown(selectedColor);
         PopulateSizeDropdown(selectedColor, selectedSize);
@@ -87,7 +83,6 @@ public class CartItemUI : MonoBehaviour
         removeButton.onClick.AddListener(DeleteItemFromCart);
 
         DisplayPrice();
-
         cartManager?.UpdateItemTotal(productId, lastKnownItemTotal, quantity);
 
         initialized = true;
@@ -96,16 +91,17 @@ public class CartItemUI : MonoBehaviour
     private void DisplayPrice()
     {
         int currentQty = int.Parse(quantityDropdown.options[quantityDropdown.value].text);
-        float currentUnitPrice = discountPercentage > 0
-            ? basePrice - (basePrice * discountPercentage / 100f)
-            : basePrice;
-
+        float currentUnitPrice = basePrice;
         float finalPrice = currentUnitPrice * currentQty;
 
         if (discountPercentage > 0)
         {
+            currentUnitPrice = basePrice - (basePrice * discountPercentage / 100f);
+            finalPrice = currentUnitPrice * currentQty;
+
             originalPriceText.text = (basePrice * currentQty).ToString("F1");
             discountedPriceText.text = finalPrice.ToString("F1");
+
             originalPriceText.gameObject.SetActive(true);
             discountedPriceText.gameObject.SetActive(true);
             lineImage?.SetActive(true);
@@ -114,6 +110,7 @@ public class CartItemUI : MonoBehaviour
         else
         {
             originalPriceText.text = finalPrice.ToString("F1");
+
             originalPriceText.gameObject.SetActive(true);
             discountedPriceText.gameObject.SetActive(false);
             lineImage?.SetActive(false);
@@ -148,13 +145,17 @@ public class CartItemUI : MonoBehaviour
     private void PopulateQuantityDropdown(string color, string size, int selectedQty)
     {
         quantityDropdown.ClearOptions();
+
         if (!stockData.ContainsKey(color) || !stockData[color].ContainsKey(size)) return;
 
         int maxQty = Mathf.Min(stockData[color][size], 5);
         List<string> quantities = new();
-        for (int i = 1; i <= maxQty; i++) quantities.Add(i.ToString());
+
+        for (int i = 1; i <= maxQty; i++)
+            quantities.Add(i.ToString());
 
         quantityDropdown.AddOptions(quantities);
+
         int index = quantities.IndexOf(selectedQty.ToString());
         quantityDropdown.value = index >= 0 ? index : 0;
         quantityDropdown.RefreshShownValue();
@@ -166,6 +167,7 @@ public class CartItemUI : MonoBehaviour
         if (!stockData.ContainsKey(color) || stockData[color].Count == 0) return;
 
         string size = new List<string>(stockData[color].Keys)[0];
+
         PopulateSizeDropdown(color, size);
         PopulateQuantityDropdown(color, size, 1);
         SaveChangesToFirebase();
@@ -175,6 +177,7 @@ public class CartItemUI : MonoBehaviour
     {
         string color = GetSelectedColor();
         string size = GetSelectedSize();
+
         PopulateQuantityDropdown(color, size, 1);
         SaveChangesToFirebase();
     }
@@ -187,6 +190,7 @@ public class CartItemUI : MonoBehaviour
         if (newQuantity == previousQty) return;
 
         int quantityDifference = newQuantity - previousQty;
+
         float unitPrice = discountPercentage > 0
             ? basePrice - (basePrice * discountPercentage / 100f)
             : basePrice;
@@ -219,6 +223,8 @@ public class CartItemUI : MonoBehaviour
 
         dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartItems/{productId}")
             .UpdateChildrenAsync(updateData);
+
+        DisplayPrice();
     }
 
     private void UpdateFirebaseSizeAndTotal()
@@ -239,7 +245,7 @@ public class CartItemUI : MonoBehaviour
             .UpdateChildrenAsync(updateData);
     }
 
-    private void DeleteItemFromCart()
+    public void DeleteItemFromCart()
     {
         string color = GetSelectedColor();
         string size = GetSelectedSize();
@@ -249,7 +255,11 @@ public class CartItemUI : MonoBehaviour
 
         cartRef.Child("cartItems").GetValueAsync().ContinueWithOnMainThread(task =>
         {
-            if (task.IsFaulted || !task.Result.Exists) return;
+            if (task.IsFaulted || !task.Result.Exists)
+            {
+                Debug.LogWarning("Failed to retrieve cart items.");
+                return;
+            }
 
             int itemCount = 0;
             foreach (var _ in task.Result.Children) itemCount++;
@@ -279,34 +289,6 @@ public class CartItemUI : MonoBehaviour
                 });
             }
         });
-    }
-
-    private IEnumerator LoadImage(string url)
-    {
-        if (string.IsNullOrEmpty(url))
-        {
-            Debug.LogWarning("[CartItemUI] No image URL provided.");
-            if (placeholderImage != null)
-                productImage.sprite = placeholderImage;
-            yield break;
-        }
-
-        using (UnityWebRequest request = UnityWebRequestTexture.GetTexture(url))
-        {
-            yield return request.SendWebRequest();
-
-            if (request.result == UnityWebRequest.Result.Success)
-            {
-                Texture2D texture = DownloadHandlerTexture.GetContent(request);
-                productImage.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-            }
-            else
-            {
-                Debug.LogWarning("[CartItemUI] Failed to load image, using placeholder.");
-                if (placeholderImage != null)
-                    productImage.sprite = placeholderImage;
-            }
-        }
     }
 
     private string GetSelectedColor() => colorDropdown.options[colorDropdown.value].text;
