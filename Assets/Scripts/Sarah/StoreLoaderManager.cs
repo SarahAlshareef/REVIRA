@@ -34,6 +34,7 @@ public class StoreLoaderManager : MonoBehaviour
             {
                 FirebaseApp app = FirebaseApp.DefaultInstance;
 
+                // Always force new references
                 FirebaseDatabase.DefaultInstance.GoOffline();  // force refresh
                 FirebaseDatabase.DefaultInstance.GoOnline();
 
@@ -86,6 +87,8 @@ public class StoreLoaderManager : MonoBehaviour
                             isUnderConstruction = parsed;
                     }
 
+                    Debug.Log($"Loaded Store: {name}, UnderConstruction: {isUnderConstruction}");
+
                     StoreData data = new StoreData
                     {
                         StoreId = storeId,
@@ -111,11 +114,11 @@ public class StoreLoaderManager : MonoBehaviour
     {
         GameObject page = Instantiate(storePagePrefab, scrollContent);
         Image storeImage = page.transform.Find("StoreImage").GetComponent<Image>();
-        Button selectButton = page.transform.Find("SelectButton").GetComponent<Button>();
+        Button SelectStoreButton = page.transform.Find("SelectButton").GetComponent<Button>();
 
         StartCoroutine(LoadImage(data.ImageUrl, storeImage));
 
-        selectButton.onClick.AddListener(() =>
+        SelectStoreButton.onClick.AddListener(() =>
         {
             if (data.IsUnderConstruction)
             {
@@ -123,12 +126,12 @@ public class StoreLoaderManager : MonoBehaviour
             }
             else
             {
-                ShowPopup(data);
+                ShowSelectedStorePopup(data);
             }
         });
     }
 
-    public void ShowPopup(StoreData data)
+    void ShowSelectedStorePopup(StoreData data)
     {
         if (storePopupPrefab == null || mainCanvas == null) return;
 
@@ -146,28 +149,19 @@ public class StoreLoaderManager : MonoBehaviour
         Image popupImage = popupWindow.Find("StoreImage")?.GetComponent<Image>();
         if (popupImage != null) StartCoroutine(LoadImage(data.ImageUrl, popupImage));
 
-        Button enterBtn = popupWindow.Find("Enter effect button (3)/EnterButton")?.GetComponent<Button>();
-        Button cancelBtn = popupWindow.Find("cancel effect button (4)/CancelButton")?.GetComponent<Button>();
+        Button enterButton = popupWindow.Find("Enter effect button (3)/EnterButton")?.GetComponent<Button>();
+        Button cancelButton = popupWindow.Find("cancel effect button (4)/CancelButton")?.GetComponent<Button>();
 
-        if (enterBtn != null) enterBtn.onClick.AddListener(() => SceneManager.LoadScene(data.SceneName));
-        if (cancelBtn != null) cancelBtn.onClick.AddListener(() => Destroy(popup));
+        if (enterButton != null)
+            enterButton.onClick.AddListener(() => EnterStore(data.SceneName));
+
+        if (cancelButton != null)
+            cancelButton.onClick.AddListener(() => Destroy(popup));
     }
 
-   
-    public void ShowPopupFromInspector()
+    void EnterStore(string sceneName)
     {
-        if (storeDataDict.Count > 0)
-        {
-            foreach (var store in storeDataDict.Values)
-            {
-                ShowPopup(store); // show the first store found
-                break;
-            }
-        }
-        else
-        {
-            Debug.LogWarning("No store data loaded yet.");
-        }
+        SceneManager.LoadScene(sceneName);
     }
 
     void ShowConstructionPopup()
@@ -223,7 +217,7 @@ public class StoreLoaderManager : MonoBehaviour
         targetImage.sprite = sprite;
     }
 
-    public class StoreData
+    class StoreData
     {
         public string StoreId;
         public string Name;
