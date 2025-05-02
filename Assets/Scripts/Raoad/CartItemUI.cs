@@ -25,7 +25,7 @@ public class CartItemUI : MonoBehaviour
     public GameObject lineImage;
     public GameObject redRiyalImage;
 
-    [Header("Fallback Image (Optional)")]
+    [Header("Fallback Image")]
     public Sprite placeholderImage;
 
     private string userId, productId, storeId = "storeID_123";
@@ -65,6 +65,7 @@ public class CartItemUI : MonoBehaviour
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
 
         productNameText.text = name;
+
         StartCoroutine(LoadImage(imageUrl));
 
         PopulateColorDropdown(selectedColor);
@@ -95,17 +96,16 @@ public class CartItemUI : MonoBehaviour
     private void DisplayPrice()
     {
         int currentQty = int.Parse(quantityDropdown.options[quantityDropdown.value].text);
-        float currentUnitPrice = basePrice;
+        float currentUnitPrice = discountPercentage > 0
+            ? basePrice - (basePrice * discountPercentage / 100f)
+            : basePrice;
+
         float finalPrice = currentUnitPrice * currentQty;
 
         if (discountPercentage > 0)
         {
-            currentUnitPrice = basePrice - (basePrice * discountPercentage / 100f);
-            finalPrice = currentUnitPrice * currentQty;
-
             originalPriceText.text = (basePrice * currentQty).ToString("F1");
             discountedPriceText.text = finalPrice.ToString("F1");
-
             originalPriceText.gameObject.SetActive(true);
             discountedPriceText.gameObject.SetActive(true);
             lineImage?.SetActive(true);
@@ -114,7 +114,6 @@ public class CartItemUI : MonoBehaviour
         else
         {
             originalPriceText.text = finalPrice.ToString("F1");
-
             originalPriceText.gameObject.SetActive(true);
             discountedPriceText.gameObject.SetActive(false);
             lineImage?.SetActive(false);
@@ -149,17 +148,13 @@ public class CartItemUI : MonoBehaviour
     private void PopulateQuantityDropdown(string color, string size, int selectedQty)
     {
         quantityDropdown.ClearOptions();
-
         if (!stockData.ContainsKey(color) || !stockData[color].ContainsKey(size)) return;
 
         int maxQty = Mathf.Min(stockData[color][size], 5);
         List<string> quantities = new();
-
-        for (int i = 1; i <= maxQty; i++)
-            quantities.Add(i.ToString());
+        for (int i = 1; i <= maxQty; i++) quantities.Add(i.ToString());
 
         quantityDropdown.AddOptions(quantities);
-
         int index = quantities.IndexOf(selectedQty.ToString());
         quantityDropdown.value = index >= 0 ? index : 0;
         quantityDropdown.RefreshShownValue();
@@ -171,7 +166,6 @@ public class CartItemUI : MonoBehaviour
         if (!stockData.ContainsKey(color) || stockData[color].Count == 0) return;
 
         string size = new List<string>(stockData[color].Keys)[0];
-
         PopulateSizeDropdown(color, size);
         PopulateQuantityDropdown(color, size, 1);
         SaveChangesToFirebase();
@@ -181,7 +175,6 @@ public class CartItemUI : MonoBehaviour
     {
         string color = GetSelectedColor();
         string size = GetSelectedSize();
-
         PopulateQuantityDropdown(color, size, 1);
         SaveChangesToFirebase();
     }
@@ -194,7 +187,6 @@ public class CartItemUI : MonoBehaviour
         if (newQuantity == previousQty) return;
 
         int quantityDifference = newQuantity - previousQty;
-
         float unitPrice = discountPercentage > 0
             ? basePrice - (basePrice * discountPercentage / 100f)
             : basePrice;
@@ -227,8 +219,6 @@ public class CartItemUI : MonoBehaviour
 
         dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartItems/{productId}")
             .UpdateChildrenAsync(updateData);
-
-        DisplayPrice();
     }
 
     private void UpdateFirebaseSizeAndTotal()
@@ -259,11 +249,7 @@ public class CartItemUI : MonoBehaviour
 
         cartRef.Child("cartItems").GetValueAsync().ContinueWithOnMainThread(task =>
         {
-            if (task.IsFaulted || !task.Result.Exists)
-            {
-                Debug.LogWarning("Failed to retrieve cart items.");
-                return;
-            }
+            if (task.IsFaulted || !task.Result.Exists) return;
 
             int itemCount = 0;
             foreach (var _ in task.Result.Children) itemCount++;
@@ -297,19 +283,11 @@ public class CartItemUI : MonoBehaviour
 
     private IEnumerator LoadImage(string url)
     {
-        Debug.Log("[CartItemUI] Attempting to load image: " + url);
-
         if (string.IsNullOrEmpty(url))
         {
             Debug.LogWarning("[CartItemUI] No image URL provided.");
             if (placeholderImage != null)
                 productImage.sprite = placeholderImage;
-            yield break;
-        }
-
-        if (productImage == null)
-        {
-            Debug.LogError("[CartItemUI] Product Image is not assigned.");
             yield break;
         }
 
@@ -321,11 +299,10 @@ public class CartItemUI : MonoBehaviour
             {
                 Texture2D texture = DownloadHandlerTexture.GetContent(request);
                 productImage.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-                Debug.Log("[CartItemUI] Image loaded successfully.");
             }
             else
             {
-                Debug.LogError("[CartItemUI] Failed to load image: " + request.error);
+                Debug.LogWarning("[CartItemUI] Failed to load image, using placeholder.");
                 if (placeholderImage != null)
                     productImage.sprite = placeholderImage;
             }
