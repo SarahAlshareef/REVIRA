@@ -34,6 +34,7 @@ public class ProductsManager : MonoBehaviour
 
     public Dictionary<string, Dictionary<string, int>> productColorsAndSizes;
 
+    public VRProductClickHandler vrHandler;
 
     // Getter & Setter
     public ProductData GetProductData() { return product; }
@@ -56,7 +57,24 @@ public class ProductsManager : MonoBehaviour
         colorDropdown?.onValueChanged.AddListener((index) => UpdateSizeDropdown());
         sizeDropdown?.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
     }
-    
+
+    public void OnPreviewProductSpecClick()
+    {
+        if (productPopup != null)
+        {
+            ProductIdentifie identifier = vrHandler.productObject.GetComponent<ProductIdentifie>();
+            if (identifier == null) return;
+
+            storeID = identifier.StoreID;
+            productID = identifier.ProductID;
+            LoadProductData();
+
+            vrHandler.SpecificationPopupTrasform(productPopup);
+
+            productPopup.SetActive(true);
+        }                 
+    }
+
     public void LoadProductData()
     {
 
@@ -228,11 +246,6 @@ public class ProductsManager : MonoBehaviour
         quantityDropdown.AddOptions(quantities);
         quantityDropdown.SetValueWithoutNotify(0);
         quantityDropdown.RefreshShownValue();
-    }
-
-    public void OpenProductPopup()
-    {
-        productPopup?.SetActive(true);
     }
 
     public void CloseProductPopup()
