@@ -59,7 +59,21 @@ public class ProductsManager : MonoBehaviour
 
     public void OnPreviewSpecificationClick()
     {
-        productPopup?.SetActive(true);
+        ProductIdentifie idenrifier = GetComponent<ProductIdentifie>();
+        storeID = idenrifier.StoreID;
+        productID = idenrifier.ProductID;
+
+        LoadProductData();
+
+        GameObject cam = GameObject.Find("CenterEyeAnchor");
+        if (cam != null && productPopup != null)
+        {
+            Transform vrCamera = cam.transform;
+            Vector3 frontOffset = vrCamera.forward * 1.4f;
+            productPopup.transform.position = vrCamera.position + frontOffset;
+            productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
+        }
+        productPopup?.SetActive(true);      
     }
 
     public void LoadProductData()
