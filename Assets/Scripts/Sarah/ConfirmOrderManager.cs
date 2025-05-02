@@ -63,7 +63,7 @@ public class ConfirmOrderManager : MonoBehaviour
             BuildOrderData(orderId, orderData =>
             {
                 Debug.Log("[ConfirmOrderManager] Order data built. Submitting...");
-                ConfirmOrder(orderId, orderData);
+                SubmitOrder(orderId, orderData);
             });
         });
     }
@@ -206,7 +206,7 @@ public class ConfirmOrderManager : MonoBehaviour
         });
     }
 
-    void ConfirmOrder(string orderId, Dictionary<string, object> orderData)
+    void SubmitOrder(string orderId, Dictionary<string, object> orderData)
     {
         string orderPath = $"REVIRA/Consumers/{userId}/OrderHistory/{orderId}";
 
