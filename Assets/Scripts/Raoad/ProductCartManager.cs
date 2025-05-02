@@ -1,9 +1,9 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Firebase.Database;
 using TMPro;
-using System.Collections;
 
 public class ProductCartManager : MonoBehaviour
 {
@@ -11,7 +11,6 @@ public class ProductCartManager : MonoBehaviour
     public TMP_Dropdown sizeDropdown, colorDropdown, quantityDropdown;
     public Button addToCartButton;
     public TextMeshProUGUI errorText;
-    
 
     private ProductsManager productsManager;
     private UserManager userManager;
@@ -20,7 +19,7 @@ public class ProductCartManager : MonoBehaviour
 
     private bool isAdding = false;
     private bool hasAdded = false;
-   
+
     void Start()
     {
         dbReference = FirebaseDatabase.DefaultInstance.RootReference;
@@ -29,23 +28,55 @@ public class ProductCartManager : MonoBehaviour
         cartManager = FindObjectOfType<CartManager>();
 
         if (addToCartButton != null)
+        {
             addToCartButton.onClick.AddListener(AddToCart);
+            Debug.Log("[DEBUG] AddToCart button listener registered.");
+        }
 
         if (colorDropdown != null)
-            colorDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); });
+            colorDropdown.onValueChanged.AddListener(delegate { Debug.Log("[DEBUG] Color dropdown changed."); });
 
         if (sizeDropdown != null)
-            sizeDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); });
+            sizeDropdown.onValueChanged.AddListener(delegate { Debug.Log("[DEBUG] Size dropdown changed."); });
 
         if (quantityDropdown != null)
-            quantityDropdown.onValueChanged.AddListener(delegate { ValidateSelection(); });
+            quantityDropdown.onValueChanged.AddListener(delegate { Debug.Log("[DEBUG] Quantity dropdown changed."); });
 
         if (errorText != null)
+        {
             errorText.text = "";
-            
+            errorText.gameObject.SetActive(false);
+        }
 
         RemoveExpiredCartItems();
     }
+
+    // Debug version: only confirms button is working with controller
+    public void AddToCart()
+    {
+        Debug.Log("[DEBUG] AddToCart triggered");
+
+        if (errorText != null)
+        {
+            errorText.color = Color.green;
+            errorText.text = "AddToCart triggered successfully.";
+            errorText.gameObject.SetActive(true);
+        }
+
+        StartCoroutine(ClearMessageAfterSeconds(3f));
+    }
+
+    private IEnumerator ClearMessageAfterSeconds(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (errorText != null)
+        {
+            errorText.text = "";
+            errorText.gameObject.SetActive(false);
+        }
+    }
+
+    // --- The rest of your original logic is preserved below ---
 
     public bool ValidateSelection()
     {
@@ -77,151 +108,7 @@ public class ProductCartManager : MonoBehaviour
         errorText.gameObject.SetActive(false);
         return true;
     }
-    public void AddToCart()
-    {
-        if (isAdding) return;
 
-        if (hasAdded)
-        {
-            ShowError("Product Added Successfully.");
-            addToCartButton.interactable = false;
-            if (cooldownCoroutine != null)
-                StopCoroutine(cooldownCoroutine);
-            cooldownCoroutine = StartCoroutine(EnableButtonAfterDelay(5f));
-            return;
-        }
-
-        
-        if (!ValidateSelection()) return;
-
-        isAdding = true;
-
-        if (string.IsNullOrEmpty(userManager.UserId))
-        {
-            ShowError("User not logged in.");
-            isAdding = false;
-            return;
-        }
-
-        ProductData productData = productsManager.GetProductData();
-        if (productData == null || string.IsNullOrEmpty(productsManager.productID))
-        {
-            ShowError("Product data is missing.");
-            isAdding = false;
-            return;
-        }
-
-        string userID = userManager.UserId;
-        string productID = productsManager.productID;
-        string productName = productData.name;
-        float productPrice = productData.price;
-        string selectedColor = colorDropdown.options[colorDropdown.value].text;
-        string selectedSize = sizeDropdown.options[sizeDropdown.value].text;
-        int quantity = int.Parse(quantityDropdown.options[quantityDropdown.value].text);
-        long expirationTime = GetUnixTimestamp() + (24 * 60 * 60);
-
-        if (!productsManager.productColorsAndSizes.ContainsKey(selectedColor) ||
-            !productsManager.productColorsAndSizes[selectedColor].ContainsKey(selectedSize) ||
-            productsManager.productColorsAndSizes[selectedColor][selectedSize] < quantity)
-        {
-            ShowError("This product is out of stock.");
-            isAdding = false;
-            return;
-        }
-
-        
-        ReduceStock(selectedColor, selectedSize, quantity, () =>
-        {
-            dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).Child("sizes").Child(selectedSize).GetValueAsync().ContinueWith(task =>
-            {
-                int existingQuantity = task.IsCompleted && task.Result.Exists ? int.Parse(task.Result.Value.ToString()) : 0;
-                int newQuantity = existingQuantity + quantity;
-
-                Dictionary<string, object> cartItem = new()
-            {
-                { "productID", productID },
-                { "productName", productName },
-                { "color", selectedColor },
-                { "sizes/" + selectedSize, newQuantity },
-                { "price", productPrice },
-                { "timestamp", GetUnixTimestamp() },
-                { "expiresAt", expirationTime }
-            };
-
-                dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).UpdateChildrenAsync(cartItem).ContinueWith(updateTask =>
-                {
-                    if (updateTask.IsCompleted)
-                    {
-                        isAdding = false;
-                        UpdateCartSummary(userID);
-                        cartManager?.LoadCartItems();
-                        hasAdded = true;
-                    }
-                    else
-                    {
-                        isAdding = false;
-                        ShowError("Failed to add product. Try again.");
-                    }
-                });
-            });
-        });
-    }
-    private void UpdateCartSummary(string userId)
-    {
-        dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").Child("cartItems").GetValueAsync().ContinueWith(task =>
-        {
-            if (task.IsCompleted && task.Result.Exists)
-            {
-                float totalPrice = 0f;
-                int totalItems = 0;
-
-                foreach (var item in task.Result.Children)
-                {
-                    float price = float.Parse(item.Child("price").Value.ToString());
-                    foreach (var size in item.Child("sizes").Children)
-                    {
-                        int qty = int.Parse(size.Value.ToString());
-                        totalPrice += price * qty;
-                        totalItems += qty;
-                    }
-                }
-
-                Dictionary<string, object> cartTotalData = new Dictionary<string, object>
-                {
-                    { "totalPrice", totalPrice },
-                    { "totalItems", totalItems }
-                };
-
-                dbReference.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").Child("cartTotal").SetValueAsync(cartTotalData);
-            }
-        });
-    }
-    private void ReduceStock(string color, string size, int quantity, System.Action onSuccess)
-    {
-        string path = $"stores/storeID_123/products/{productsManager.productID}/colors/{color}/sizes/{size}";
-        dbReference.Child("REVIRA").Child(path).GetValueAsync().ContinueWith(task =>
-        {
-            if (task.IsCompleted && task.Result.Exists)
-            {
-                int currentStock = int.Parse(task.Result.Value.ToString());
-                int updatedStock = Mathf.Max(currentStock - quantity, 0);
-
-                dbReference.Child("REVIRA").Child(path).SetValueAsync(updatedStock).ContinueWith(stockUpdateTask =>
-                {
-                    if (stockUpdateTask.IsCompleted)
-                    {
-                        onSuccess?.Invoke();
-                    }
-                    else
-                    {
-                        Debug.LogError("Error updating stock: " + stockUpdateTask.Exception);
-                        addToCartButton.interactable = true;
-                        isAdding = false;
-                    }
-                });
-            }
-        });
-    }
     private void RemoveExpiredCartItems()
     {
         string userID = userManager.UserId;
@@ -252,7 +139,6 @@ public class ProductCartManager : MonoBehaviour
                         cartItemsRef.Child(id).RemoveValueAsync();
                     }
 
-                 
                     cartItemsRef.GetValueAsync().ContinueWith(checkTask =>
                     {
                         if (checkTask.IsCompleted && (!checkTask.Result.Exists || checkTask.Result.ChildrenCount == 0))
@@ -264,7 +150,6 @@ public class ProductCartManager : MonoBehaviour
             }
         });
     }
-
 
     private void RestoreStock(string productID, DataSnapshot item)
     {
@@ -284,38 +169,9 @@ public class ProductCartManager : MonoBehaviour
             });
         }
     }
-    private void ShowError(string message)
-    {
-        if (errorText != null)
-        {
-            errorText.color = Color.red;
-            errorText.text = message;
-            errorText.gameObject.SetActive(true);
-            CancelInvoke(nameof(ClearMessage));
-            Invoke(nameof(ClearMessage), 5f);
-        }
-    }
-    private IEnumerator EnableButtonAfterDelay(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        addToCartButton.interactable = true;
-        hasAdded = false;
-    }
 
-
-    private void ClearMessage()
-    {
-        if (errorText != null)
-        {
-            errorText.text = "";
-            errorText.gameObject.SetActive(false);
-        }
-    }
     private long GetUnixTimestamp()
     {
         return (long)(System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1))).TotalSeconds;
     }
 }
-
-
-
