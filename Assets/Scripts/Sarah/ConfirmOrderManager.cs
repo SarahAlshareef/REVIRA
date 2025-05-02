@@ -16,13 +16,12 @@ public class ConfirmOrderManager : MonoBehaviour
 
     private DatabaseReference dbRef;
     private string userId;
+    private bool orderSubmitted = false;
 
     void Start()
     {
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
         userId = UserManager.Instance.UserId;
-
-        Debug.Log("[ConfirmOrderManager] Initialized. UserID: " + userId);
 
         confirmButton.onClick.AddListener(OnConfirmOrder);
         cancelButton.onClick.AddListener(() => confirmationPopup.SetActive(false));
@@ -30,40 +29,34 @@ public class ConfirmOrderManager : MonoBehaviour
 
     void OnConfirmOrder()
     {
+        if (orderSubmitted) return;
+
         var address = AddressBookManager.SelectedAddress;
-
-        Debug.Log("[ConfirmOrderManager] OnConfirmOrder triggered.");
-
         if (address == null)
         {
-            Debug.LogError("[ConfirmOrderManager] No address selected.");
-            if (errorText != null)
-                errorText.text = "Please select a delivery address before confirming the order.";
+            errorText.text = "Please select a delivery address before confirming the order.";
             return;
         }
-
-        Debug.Log("[ConfirmOrderManager] Address selected: " + address.addressName);
 
         if (string.IsNullOrEmpty(DeliveryManager.DeliveryCompany))
         {
-            Debug.LogError("[ConfirmOrderManager] No delivery method selected.");
-            if (errorText != null)
-                errorText.text = "Please select a delivery method before confirming the order.";
+            errorText.text = "Please select a delivery method before confirming the order.";
             return;
         }
 
-        Debug.Log("[ConfirmOrderManager] Delivery company: " + DeliveryManager.DeliveryCompany);
-        Debug.Log("[ConfirmOrderManager] Delivery price: " + DeliveryManager.DeliveryPrice);
-        Debug.Log("[ConfirmOrderManager] Final total: " + OrderSummaryManager.FinalTotal);
-
         GetNextOrderId(orderId =>
         {
-            Debug.Log("[ConfirmOrderManager] Generated order ID: " + orderId);
-
             BuildOrderData(orderId, orderData =>
             {
-                Debug.Log("[ConfirmOrderManager] Order data built. Submitting...");
-                SubmitOrder(orderId, orderData);
+                if (orderData.ContainsKey("items") && ((Dictionary<string, object>)orderData["items"]).Count > 0)
+                {
+                    SubmitOrder(orderId, orderData);
+                }
+                else
+                {
+                    Debug.LogError("[ConfirmOrderManager] No valid items to submit.");
+                    errorText.text = "Cart items are invalid or missing.";
+                }
             });
         });
     }
@@ -74,13 +67,7 @@ public class ConfirmOrderManager : MonoBehaviour
         {
             int nextOrderNumber = 1;
             if (task.IsCompleted && task.Result.Exists)
-            {
                 nextOrderNumber = (int)task.Result.ChildrenCount + 1;
-            }
-            else if (task.IsFaulted)
-            {
-                Debug.LogError("[ConfirmOrderManager] Error fetching order history: " + task.Exception);
-            }
 
             callback?.Invoke("Order" + nextOrderNumber);
         });
@@ -128,80 +115,81 @@ public class ConfirmOrderManager : MonoBehaviour
         {
             if (!cartTask.IsCompleted || !cartTask.Result.Exists)
             {
-                Debug.LogError("[ConfirmOrderManager] Failed to load cart items or cart is empty.");
+                callback.Invoke(orderData);
                 return;
             }
 
-            Debug.Log("[ConfirmOrderManager] Cart items loaded.");
-
             Dictionary<string, object> items = new();
-            int totalProducts = (int)cartTask.Result.ChildrenCount;
+            int total = (int)cartTask.Result.ChildrenCount;
             int processed = 0;
 
             foreach (var item in cartTask.Result.Children)
             {
                 string productId = item.Key;
-                var productDict = (Dictionary<string, object>)item.Value;
-                float originalPrice = Convert.ToSingle(productDict["price"]);
-                string selectedColor = productDict["color"].ToString();
-
-                string selectedSize = "";
-                int quantity = 1;
-                foreach (var size in (Dictionary<string, object>)productDict["sizes"])
+                if (!item.HasChild("price") || !item.HasChild("productName") || !item.HasChild("sizes") || !item.HasChild("color"))
                 {
-                    selectedSize = size.Key;
-                    quantity = Convert.ToInt32(size.Value);
+                    Debug.LogWarning("[ConfirmOrderManager] Skipping malformed cart item: " + productId);
+                    processed++;
+                    if (processed == total) Finalize();
+                    continue;
+                }
+
+                float price = float.Parse(item.Child("price").Value.ToString());
+                string name = item.Child("productName").Value.ToString();
+                string color = item.Child("color").Value.ToString();
+
+                string size = "";
+                int quantity = 1;
+                foreach (var sizeEntry in item.Child("sizes").Children)
+                {
+                    size = sizeEntry.Key;
+                    quantity = int.Parse(sizeEntry.Value.ToString());
                     break;
                 }
 
                 dbRef.Child($"REVIRA/stores/storeID_123/products/{productId}").GetValueAsync().ContinueWithOnMainThread(productTask =>
                 {
-                    float priceAfterDiscount = originalPrice;
-                    float priceAfterPromo = originalPrice;
+                    float priceAfterDiscount = price;
+                    float priceAfterPromo = price;
 
                     if (productTask.IsCompleted && productTask.Result.Exists)
                     {
-                        var productSnapshot = productTask.Result;
-                        bool hasDiscount = Convert.ToBoolean(productSnapshot.Child("discount").Child("exists").Value);
-                        float discountPercent = Convert.ToSingle(productSnapshot.Child("discount").Child("percentage").Value);
-
-                        if (hasDiscount)
-                            priceAfterDiscount = originalPrice * (1f - discountPercent / 100f);
-
-                        if (PromotionalManager.ProductDiscounts.TryGetValue(productId, out DiscountInfo promoInfo))
+                        var p = productTask.Result;
+                        if (p.HasChild("discount") && p.Child("discount").Child("exists").Value.ToString() == "True")
                         {
-                            priceAfterPromo = promoInfo.finalPrice / quantity;
+                            float d = float.Parse(p.Child("discount").Child("percentage").Value.ToString());
+                            priceAfterDiscount = price - (price * d / 100f);
                         }
+
+                        if (PromotionalManager.ProductDiscounts.TryGetValue(productId, out DiscountInfo promo))
+                            priceAfterPromo = promo.finalPrice / quantity;
                         else
-                        {
                             priceAfterPromo = priceAfterDiscount;
-                        }
                     }
 
                     float totalPrice = priceAfterPromo * quantity;
 
-                    Dictionary<string, object> itemData = new()
+                    items[productId] = new Dictionary<string, object>
                     {
                         {"productID", productId},
-                        {"productName", productDict["productName"]},
-                        {"originalPrice", originalPrice},
+                        {"productName", name},
+                        {"originalPrice", price},
                         {"priceAfterDiscount", priceAfterDiscount},
                         {"priceAfterPromoDiscount", priceAfterPromo},
                         {"totalPrice", totalPrice},
-                        {"color", selectedColor},
-                        {"sizes", new Dictionary<string, object> { { selectedSize, quantity } } }
+                        {"color", color},
+                        {"sizes", new Dictionary<string, object> { { size, quantity } } }
                     };
 
-                    items[productId] = itemData;
                     processed++;
-
-                    if (processed == totalProducts)
-                    {
-                        Debug.Log("[ConfirmOrderManager] All cart items processed. Finalizing order data.");
-                        orderData["items"] = items;
-                        callback?.Invoke(orderData);
-                    }
+                    if (processed == total) Finalize();
                 });
+            }
+
+            void Finalize()
+            {
+                orderData["items"] = items;
+                callback?.Invoke(orderData);
             }
         });
     }
@@ -212,23 +200,21 @@ public class ConfirmOrderManager : MonoBehaviour
 
         dbRef.Child(orderPath).SetValueAsync(orderData).ContinueWithOnMainThread(task =>
         {
-            if (task.IsCompleted)
+            if (task.IsCompletedSuccessfully)
             {
-                Debug.Log("[ConfirmOrderManager] Order successfully saved to Firebase.");
-
                 float newBalance = UserManager.Instance.AccountBalance - OrderSummaryManager.FinalTotal;
                 dbRef.Child($"REVIRA/Consumers/{userId}/accountBalance").SetValueAsync(newBalance);
                 UserManager.Instance.UpdateAccountBalance(newBalance);
 
-                dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartItems").RemoveValueAsync();
-                dbRef.Child($"REVIRA/Consumers/{userId}/cart/cartTotal").RemoveValueAsync();
+                dbRef.Child($"REVIRA/Consumers/{userId}/cart").RemoveValueAsync();
 
                 confirmationPopup.SetActive(false);
                 successPopup.SetActive(true);
+                orderSubmitted = true;
             }
             else
             {
-                Debug.LogError("[ConfirmOrderManager] Failed to save order: " + task.Exception);
+                Debug.LogError("[ConfirmOrderManager] Failed to submit order: " + task.Exception);
             }
         });
     }

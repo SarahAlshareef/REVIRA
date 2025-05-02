@@ -39,7 +39,6 @@ public class OrderSummaryManager : MonoBehaviour
     public static float FinalTotal { get; private set; }
     public static OrderSummaryManager Instance { get; private set; }
 
-    
     public float Subtotal => subtotal;
 
     void Start()
@@ -56,7 +55,7 @@ public class OrderSummaryManager : MonoBehaviour
 
     void LoadOrderData()
     {
-        dbRef.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").Child("cartItems")
+        dbRef.Child("REVIRA/Consumers").Child(userId).Child("cart/cartItems")
             .GetValueAsync().ContinueWithOnMainThread(cartTask =>
             {
                 if (cartTask.IsCompleted && cartTask.Result.Exists)
@@ -71,6 +70,16 @@ public class OrderSummaryManager : MonoBehaviour
                     foreach (var item in cartTask.Result.Children)
                     {
                         string productId = item.Key;
+
+                        if (!item.HasChild("price") || !item.HasChild("productName") || !item.HasChild("sizes"))
+                        {
+                            Debug.LogWarning("Skipping malformed cart item: " + productId);
+                            productsProcessed++;
+                            if (productsProcessed == productsToProcess)
+                                FetchPromoAndDelivery();
+                            continue;
+                        }
+
                         string productName = item.Child("productName").Value.ToString();
                         float originalPrice = float.Parse(item.Child("price").Value.ToString());
 
@@ -120,7 +129,7 @@ public class OrderSummaryManager : MonoBehaviour
     void FetchPromoAndDelivery()
     {
         float promoTotal = PromotionalManager.DiscountedTotal;
-        promoDiscountAmount = PromotionalManager.UsedPromoCode != "" ? subtotal - promoTotal : 0f;
+        promoDiscountAmount = !string.IsNullOrEmpty(PromotionalManager.UsedPromoCode) ? subtotal - promoTotal : 0f;
 
         delivery = DeliveryManager.DeliveryPrice;
         total = (promoTotal > 0 ? promoTotal : subtotal) + delivery;
