@@ -25,6 +25,9 @@ public class CartItemUI : MonoBehaviour
     public GameObject lineImage;
     public GameObject redRiyalImage;
 
+    [Header("Fallback Image")]
+    public Sprite placeholderImage;
+
     private string userId, productId, storeId = "storeID_123";
     private float basePrice, discountPercentage;
     private int quantity;
@@ -62,7 +65,7 @@ public class CartItemUI : MonoBehaviour
         dbRef = FirebaseDatabase.DefaultInstance.RootReference;
 
         productNameText.text = name;
-        StartCoroutine(LoadImage(imageUrl));
+        StartCoroutine(LoadImageWithRetry(imageUrl));
 
         PopulateColorDropdown(selectedColor);
         PopulateSizeDropdown(selectedColor, selectedSize);
@@ -84,11 +87,8 @@ public class CartItemUI : MonoBehaviour
 
         DisplayPrice();
 
-        
         if (cartManager != null)
-        {
             cartManager.UpdateItemTotal(productId, lastKnownItemTotal, quantity);
-        }
 
         initialized = true;
     }
@@ -296,62 +296,49 @@ public class CartItemUI : MonoBehaviour
         });
     }
 
-    private IEnumerator LoadImage(string url)
+    private IEnumerator LoadImageWithRetry(string url, int retries = 2, float delay = 0.5f)
     {
-        Debug.Log("Trying to load image: " + url);
-
         if (string.IsNullOrEmpty(url))
         {
-            Debug.LogWarning("No image URL provided.");
+            Debug.LogWarning("[CartItemUI] Image URL is empty.");
+            productImage.sprite = placeholderImage;
             yield break;
         }
 
-        if (productImage == null)
+        for (int attempt = 0; attempt <= retries; attempt++)
         {
-            Debug.LogError("Product Image component is not assigned.");
-            yield break;
-        }
-
-        
-        yield return new WaitForSeconds(0.2f); 
-
-        using (UnityWebRequest request = UnityWebRequestTexture.GetTexture(url))
-        {
-            yield return request.SendWebRequest();
-
-            if (request.result == UnityWebRequest.Result.Success)
+            using (UnityWebRequest request = UnityWebRequestTexture.GetTexture(url))
             {
-                Texture2D texture = DownloadHandlerTexture.GetContent(request);
-                productImage.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-                Debug.Log("Image loaded successfully!");
-            }
-            else
-            {
-                Debug.LogError("Failed to load image: " + request.error);
+                yield return request.SendWebRequest();
+
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    Texture2D texture = DownloadHandlerTexture.GetContent(request);
+                    productImage.sprite = Sprite.Create(
+                        texture,
+                        new Rect(0, 0, texture.width, texture.height),
+                        new Vector2(0.5f, 0.5f)
+                    );
+                    yield break;
+                }
+                else
+                {
+                    Debug.LogWarning($"[CartItemUI] Attempt {attempt + 1} failed to load image: {url} - {request.error}");
+
+                    if (attempt == retries)
+                    {
+                        Debug.LogError("[CartItemUI] Failed to load image. Showing placeholder.");
+                        productImage.sprite = placeholderImage;
+                    }
+                    else
+                    {
+                        yield return new WaitForSeconds(delay * (attempt + 1));
+                    }
+                }
             }
         }
     }
+
     private string GetSelectedColor() => colorDropdown.options[colorDropdown.value].text;
     private string GetSelectedSize() => sizeDropdown.options[sizeDropdown.value].text;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
