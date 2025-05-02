@@ -55,29 +55,19 @@ public class ProductCartManager : MonoBehaviour
     {
         Debug.Log("[DEBUG] AddToCart triggered");
 
-        if (isAdding)
-        {
-            Debug.Log("[DEBUG] Add already in progress.");
-            return;
-        }
+        if (isAdding) return;
 
         if (hasAdded)
         {
-            Debug.Log("[DEBUG] Skipping AddToCart because it was just added.");
             ShowError("Product was already added. Please wait a few seconds.");
             return;
         }
 
-        if (!ValidateSelection())
-        {
-            Debug.Log("[DEBUG] Validation failed.");
-            return;
-        }
+        if (!ValidateSelection()) return;
 
         if (string.IsNullOrEmpty(userManager.UserId))
         {
             ShowError("User not logged in.");
-            Debug.Log("[DEBUG] No user ID found.");
             return;
         }
 
@@ -85,7 +75,6 @@ public class ProductCartManager : MonoBehaviour
         if (productData == null || string.IsNullOrEmpty(productsManager.productID))
         {
             ShowError("Product data is missing.");
-            Debug.Log("[DEBUG] Product data or ID missing.");
             return;
         }
 
@@ -103,7 +92,6 @@ public class ProductCartManager : MonoBehaviour
             productsManager.productColorsAndSizes[selectedColor][selectedSize] < quantity)
         {
             ShowError("This product is out of stock.");
-            Debug.Log("[DEBUG] Product stock insufficient.");
             return;
         }
 
@@ -116,16 +104,25 @@ public class ProductCartManager : MonoBehaviour
                 int existingQuantity = task.IsCompleted && task.Result.Exists ? int.Parse(task.Result.Value.ToString()) : 0;
                 int newQuantity = existingQuantity + quantity;
 
+                Dictionary<string, object> sizesData = new()
+                {
+                    { selectedSize, newQuantity }
+                };
+
                 Dictionary<string, object> cartItem = new()
                 {
                     { "productID", productID },
                     { "productName", productName },
                     { "color", selectedColor },
-                    { "sizes/" + selectedSize, newQuantity },
+                    { "sizes", sizesData },
                     { "price", productPrice },
                     { "timestamp", GetUnixTimestamp() },
                     { "expiresAt", expirationTime }
                 };
+
+                Debug.Log($"[DEBUG] Writing to Firebase: REVIRA/Consumers/{userID}/cart/cartItems/{productID}");
+                foreach (var kvp in cartItem)
+                    Debug.Log($"[DEBUG] cartItem[{kvp.Key}] = {kvp.Value}");
 
                 dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").Child("cartItems").Child(productID).UpdateChildrenAsync(cartItem).ContinueWith(updateTask =>
                 {
@@ -275,16 +272,12 @@ public class ProductCartManager : MonoBehaviour
                 if (expiredItems.Count > 0)
                 {
                     foreach (string id in expiredItems)
-                    {
                         cartItemsRef.Child(id).RemoveValueAsync();
-                    }
 
                     cartItemsRef.GetValueAsync().ContinueWith(checkTask =>
                     {
                         if (checkTask.IsCompleted && (!checkTask.Result.Exists || checkTask.Result.ChildrenCount == 0))
-                        {
                             dbReference.Child("REVIRA").Child("Consumers").Child(userID).Child("cart").RemoveValueAsync();
-                        }
                     });
                 }
             }
