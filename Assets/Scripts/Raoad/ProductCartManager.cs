@@ -45,9 +45,9 @@ public class ProductCartManager : MonoBehaviour
 
     public void AddToCart()
     {
-        if (isAdding || hasAdded)
+        if (isAdding)
         {
-            ShowError("Please wait before adding again.");
+            ShowError("Please wait, adding in progress...");
             return;
         }
 
@@ -86,33 +86,18 @@ public class ProductCartManager : MonoBehaviour
 
         ReduceStock(selectedColor, selectedSize, quantity, () =>
         {
-            DatabaseReference itemRef = dbReference.Child("REVIRA/Consumers").Child(userID).Child("cart/cartItems").Child(productID);
+            var sizeRef = dbReference.Child("REVIRA/Consumers").Child(userID)
+                .Child("cart/cartItems").Child(productID).Child("sizes").Child(selectedSize);
 
-            itemRef.GetValueAsync().ContinueWithOnMainThread(task =>
+            sizeRef.GetValueAsync().ContinueWithOnMainThread(task =>
             {
-                Dictionary<string, object> sizes = new();
-                int updatedQty = quantity;
+                int existingQty = 0;
+                if (task.IsCompleted && task.Result.Exists)
+                    int.TryParse(task.Result.Value.ToString(), out existingQty);
 
-                if (task.Result.Exists)
-                {
-                    var existing = task.Result;
-                    if (existing.HasChild("sizes") && existing.Child("sizes").HasChild(selectedSize))
-                    {
-                        int.TryParse(existing.Child("sizes").Child(selectedSize).Value.ToString(), out int currentQty);
-                        updatedQty += currentQty;
-                    }
+                int newQty = existingQty + quantity;
 
-                    foreach (var s in existing.Child("sizes").Children)
-                    {
-                        string sizeKey = s.Key;
-                        if (sizeKey != selectedSize)
-                            sizes[sizeKey] = int.Parse(s.Value.ToString());
-                    }
-                }
-
-                sizes[selectedSize] = updatedQty;
-
-                Dictionary<string, object> updates = new()
+                Dictionary<string, object> update = new()
                 {
                     { "productID", productID },
                     { "productName", productData.name },
@@ -120,30 +105,30 @@ public class ProductCartManager : MonoBehaviour
                     { "price", productData.price },
                     { "timestamp", GetUnixTimestamp() },
                     { "expiresAt", expirationTime },
-                    { "sizes", sizes }
+                    { $"sizes/{selectedSize}", newQty }
                 };
 
-                itemRef.UpdateChildrenAsync(updates).ContinueWithOnMainThread(updateTask =>
-                {
-                    isAdding = false;
-
-                    if (updateTask.IsCompletedSuccessfully)
+                dbReference.Child("REVIRA/Consumers").Child(userID).Child("cart/cartItems")
+                    .Child(productID).UpdateChildrenAsync(update).ContinueWithOnMainThread(updateTask =>
                     {
-                        hasAdded = true;
-                        ShowSuccess("Product added to cart.");
-                        UpdateCartSummary(userID, () =>
+                        isAdding = false;
+
+                        if (updateTask.IsCompletedSuccessfully)
                         {
-                            cartManager?.LoadCartItems();
-                        });
-
-                        cooldownCoroutine = StartCoroutine(EnableButtonAfterDelay(5f));
-                    }
-                    else
-                    {
-                        Debug.LogError("Firebase update failed: " + updateTask.Exception);
-                        ShowError("Failed to add to cart.");
-                    }
-                });
+                            hasAdded = true;
+                            ShowSuccess("Product added to cart.");
+                            UpdateCartSummary(userID, () =>
+                            {
+                                cartManager?.LoadCartItems();
+                            });
+                            cooldownCoroutine = StartCoroutine(EnableButtonAfterDelay(3f));
+                        }
+                        else
+                        {
+                            Debug.LogError("Failed to add to cart: " + updateTask.Exception);
+                            ShowError("Failed to add to cart.");
+                        }
+                    });
             });
         });
     }
