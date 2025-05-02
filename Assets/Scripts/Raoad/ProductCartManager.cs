@@ -18,7 +18,7 @@ public class ProductCartManager : MonoBehaviour
     private CartManager cartManager;
 
     private bool isAdding = false;
-    private bool hasAdded = false;
+    // private bool hasAdded = false; // Temporarily unused
 
     void Start()
     {
@@ -51,32 +51,25 @@ public class ProductCartManager : MonoBehaviour
         RemoveExpiredCartItems();
     }
 
-    // Debug version: only confirms button is working with controller
     public void AddToCart()
     {
         Debug.Log("[DEBUG] AddToCart triggered");
 
+        if (!ValidateSelection())
+        {
+            Debug.Log("[DEBUG] Validation failed. Please select all options.");
+            return;
+        }
+
         if (errorText != null)
         {
             errorText.color = Color.green;
-            errorText.text = "AddToCart triggered successfully.";
+            errorText.text = "AddToCart validated successfully.";
             errorText.gameObject.SetActive(true);
         }
 
         StartCoroutine(ClearMessageAfterSeconds(3f));
     }
-
-    private IEnumerator ClearMessageAfterSeconds(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        if (errorText != null)
-        {
-            errorText.text = "";
-            errorText.gameObject.SetActive(false);
-        }
-    }
-
-    // --- The rest of your original logic is preserved below ---
 
     public bool ValidateSelection()
     {
@@ -107,6 +100,16 @@ public class ProductCartManager : MonoBehaviour
         errorText.text = "";
         errorText.gameObject.SetActive(false);
         return true;
+    }
+
+    private IEnumerator ClearMessageAfterSeconds(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (errorText != null)
+        {
+            errorText.text = "";
+            errorText.gameObject.SetActive(false);
+        }
     }
 
     private void RemoveExpiredCartItems()
