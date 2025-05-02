@@ -37,7 +37,6 @@ public class VRProductClickHandler : MonoBehaviour
     public GameObject specCanvas;               // Reference to specification canvas to check if open
 
     public static VRProductClickHandler currentActiveHandler;
-    public ProductsManager productManager;
 
     void Start()
     {
@@ -95,7 +94,7 @@ public class VRProductClickHandler : MonoBehaviour
         {
             Button specBtn = specButtonObject.GetComponent<Button>();
             specBtn.onClick.RemoveAllListeners();
-            specBtn.onClick.AddListener(productManager.OnPreviewProductSpecClick);
+            specBtn.onClick.AddListener(OnPreviewSpecButtonClick);
         }
 
         if (closeButtonObject != null)
@@ -122,7 +121,7 @@ public class VRProductClickHandler : MonoBehaviour
             currentActiveHandler.StartPreview();
     }
 
-    public void SpecificationPopupTrasform(GameObject SpecPopup)
+    public void OnPreviewSpecButtonClick()
     {
         if (currentActiveHandler == null) return;
         if (vrCamera == null) return;
@@ -131,10 +130,24 @@ public class VRProductClickHandler : MonoBehaviour
         productPopup.transform.position = vrCamera.position + popupOffset;
         productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
 
+        ProductIdentifie identifier = productObject.GetComponent<ProductIdentifie>();
+        if (identifier == null) return;
 
-        Vector3 frontOffset = vrCamera.forward * 1.4f;
-        SpecPopup.transform.position = vrCamera.position + frontOffset;
-        SpecPopup.transform.rotation = Quaternion.LookRotation(SpecPopup.transform.position - vrCamera.position);
+        ProductsManager products = FindObjectOfType<ProductsManager>();
+        if (products == null) return;
+
+        products.storeID = identifier.StoreID;
+        products.productID = identifier.ProductID;
+        products.LoadProductData();
+
+        if (products.productPopup != null)
+        {
+            Vector3 frontOffset = vrCamera.forward * 1.4f;
+            products.productPopup.transform.position = vrCamera.position + frontOffset;
+            products.productPopup.transform.rotation = Quaternion.LookRotation(products.productPopup.transform.position - vrCamera.position);
+        }
+
+        products.OpenProductPopup();
 
         ReturnProductToShelf();
         isPreviewing = false;

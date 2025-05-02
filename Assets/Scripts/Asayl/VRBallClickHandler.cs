@@ -36,7 +36,6 @@ public class VRBallClickHandler : MonoBehaviour
     private bool isHeld = false;
 
     public static VRBallClickHandler currentActiveHandler;
-    public ProductsManager productManager;
 
     [Header("Ball Interaction")]
     public float previewScale = 0.65f;
@@ -128,7 +127,7 @@ public class VRBallClickHandler : MonoBehaviour
         {
             Button specBtn = specButtonObject.GetComponent<Button>();
             specBtn.onClick.RemoveAllListeners();
-            specBtn.onClick.AddListener(productManager.OnPreviewProductSpecClick);
+            specBtn.onClick.AddListener(OnSpecButtonPressed);
         }
 
         if (closeButtonObject != null)
@@ -150,6 +149,37 @@ public class VRBallClickHandler : MonoBehaviour
 
         if (currentActiveHandler != null)
             currentActiveHandler.StartPreview();
+    }
+
+    public void OnSpecButtonPressed()
+    {
+        if (currentActiveHandler == null || vrCamera == null) return;
+
+        Vector3 popupOffset = vrCamera.right * 0.6f + vrCamera.forward * 0.3f;
+        productPopup.transform.position = vrCamera.position + popupOffset;
+        productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
+
+        ProductIdentifie identifier = footballObject.GetComponent<ProductIdentifie>();
+        if (identifier == null) return;
+
+        ProductsManager products = FindObjectOfType<ProductsManager>();
+        if (products == null) return;
+
+        products.storeID = identifier.StoreID;
+        products.productID = identifier.ProductID;
+        products.LoadProductData();
+
+        if (products.productPopup != null)
+        {
+            Vector3 frontOffset = vrCamera.forward * 1.4f;
+            products.productPopup.transform.position = vrCamera.position + frontOffset;
+            products.productPopup.transform.rotation = Quaternion.LookRotation(products.productPopup.transform.position - vrCamera.position);
+        }
+
+        products.OpenProductPopup();
+
+        ReturnBallToShelf();
+        isPreviewing = false;
     }
 
     void StartPreview()
