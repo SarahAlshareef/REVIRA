@@ -210,21 +210,24 @@ public class AddressBookManager : MonoBehaviour
         toggle.group = toggleParent.GetComponent<ToggleGroup>();
         allToggles.Add(toggle);
 
-        toggle.onValueChanged.AddListener(isOn => {
-            if (isOn)
-            {
-                allToggles.ForEach(t => { if (t != toggle) t.isOn = false; });
-                SelectedAddress = address;
-            }
-            else if (!allToggles.Any(t => t.isOn))
-            {
-                SelectedAddress = null;
-            }
-
-            nextButton.gameObject.SetActive(SelectedAddress != null);
-        });
+        toggle.onValueChanged.AddListener(isOn => SelectDeliveryAddress(isOn, toggle, address));
 
         deleteBtn.onClick.AddListener(() => DeleteAddress(key));
+    }
+
+    void SelectDeliveryAddress(bool isOn, Toggle toggle, Address address)
+    {
+        if (isOn)
+        {
+            allToggles.ForEach(t => { if (t != toggle) t.isOn = false; });
+            SelectedAddress = address;
+        }
+        else if (!allToggles.Any(t => t.isOn))
+        {
+            SelectedAddress = null;
+        }
+
+        nextButton.gameObject.SetActive(SelectedAddress != null);
     }
 
     void ClearToggles()
