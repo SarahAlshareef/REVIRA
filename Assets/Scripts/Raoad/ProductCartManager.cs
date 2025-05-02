@@ -86,23 +86,48 @@ public class ProductCartManager : MonoBehaviour
 
         ReduceStock(selectedColor, selectedSize, quantity, () =>
         {
-            var cartItem = new Dictionary<string, object>
-            {
-                { "productID", productID },
-                { "productName", productData.name },
-                { "color", selectedColor },
-                { "price", productData.price },
-                { "timestamp", GetUnixTimestamp() },
-                { "expiresAt", expirationTime },
-                { "sizes", new Dictionary<string, object> { { selectedSize, quantity } } }
-            };
+            DatabaseReference itemRef = dbReference.Child("REVIRA/Consumers").Child(userID).Child("cart/cartItems").Child(productID);
 
-            dbReference.Child("REVIRA/Consumers").Child(userID).Child("cart/cartItems").Child(productID)
-                .SetValueAsync(cartItem).ContinueWithOnMainThread(task =>
+            itemRef.GetValueAsync().ContinueWithOnMainThread(task =>
+            {
+                Dictionary<string, object> sizes = new();
+                int updatedQty = quantity;
+
+                if (task.Result.Exists)
+                {
+                    var existing = task.Result;
+                    if (existing.HasChild("sizes") && existing.Child("sizes").HasChild(selectedSize))
+                    {
+                        int.TryParse(existing.Child("sizes").Child(selectedSize).Value.ToString(), out int currentQty);
+                        updatedQty += currentQty;
+                    }
+
+                    foreach (var s in existing.Child("sizes").Children)
+                    {
+                        string sizeKey = s.Key;
+                        if (sizeKey != selectedSize)
+                            sizes[sizeKey] = int.Parse(s.Value.ToString());
+                    }
+                }
+
+                sizes[selectedSize] = updatedQty;
+
+                Dictionary<string, object> updates = new()
+                {
+                    { "productID", productID },
+                    { "productName", productData.name },
+                    { "color", selectedColor },
+                    { "price", productData.price },
+                    { "timestamp", GetUnixTimestamp() },
+                    { "expiresAt", expirationTime },
+                    { "sizes", sizes }
+                };
+
+                itemRef.UpdateChildrenAsync(updates).ContinueWithOnMainThread(updateTask =>
                 {
                     isAdding = false;
 
-                    if (task.IsCompletedSuccessfully)
+                    if (updateTask.IsCompletedSuccessfully)
                     {
                         hasAdded = true;
                         ShowSuccess("Product added to cart.");
@@ -115,10 +140,11 @@ public class ProductCartManager : MonoBehaviour
                     }
                     else
                     {
-                        Debug.LogError("Firebase set failed: " + task.Exception);
+                        Debug.LogError("Firebase update failed: " + updateTask.Exception);
                         ShowError("Failed to add to cart.");
                     }
                 });
+            });
         });
     }
 
