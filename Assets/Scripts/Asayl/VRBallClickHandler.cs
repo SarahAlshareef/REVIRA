@@ -176,7 +176,7 @@ public class VRBallClickHandler : MonoBehaviour
             products.productPopup.transform.rotation = Quaternion.LookRotation(products.productPopup.transform.position - vrCamera.position);
         }
 
-        products.OpenProductPopup();
+        products.OnPreviewSpecificationClick();
 
         ReturnBallToShelf();
         isPreviewing = false;

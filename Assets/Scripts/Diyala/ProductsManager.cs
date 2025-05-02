@@ -56,7 +56,12 @@ public class ProductsManager : MonoBehaviour
         colorDropdown?.onValueChanged.AddListener((index) => UpdateSizeDropdown());
         sizeDropdown?.onValueChanged.AddListener((index) => UpdateQuantityDropdown());
     }
-    
+
+    public void OnPreviewSpecificationClick()
+    {
+        productPopup?.SetActive(true);
+    }
+
     public void LoadProductData()
     {
 
@@ -228,11 +233,6 @@ public class ProductsManager : MonoBehaviour
         quantityDropdown.AddOptions(quantities);
         quantityDropdown.SetValueWithoutNotify(0);
         quantityDropdown.RefreshShownValue();
-    }
-
-    public void OpenProductPopup()
-    {
-        productPopup?.SetActive(true);
     }
 
     public void CloseProductPopup()

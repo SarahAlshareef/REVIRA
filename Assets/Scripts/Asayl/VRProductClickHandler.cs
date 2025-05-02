@@ -147,7 +147,7 @@ public class VRProductClickHandler : MonoBehaviour
             products.productPopup.transform.rotation = Quaternion.LookRotation(products.productPopup.transform.position - vrCamera.position);
         }
 
-        products.OpenProductPopup();
+        products.OnPreviewSpecificationClick();
 
         ReturnProductToShelf();
         isPreviewing = false;
