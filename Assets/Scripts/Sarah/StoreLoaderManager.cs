@@ -126,12 +126,12 @@ public class StoreLoaderManager : MonoBehaviour
             }
             else
             {
-                ShowSelectedStorePopup(data);
+                SelectStore(data);
             }
         });
     }
 
-    void ShowSelectedStorePopup(StoreData data)
+    void SelectStore(StoreData data)
     {
         if (storePopupPrefab == null || mainCanvas == null) return;
 
