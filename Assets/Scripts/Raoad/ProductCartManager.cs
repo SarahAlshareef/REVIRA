@@ -19,6 +19,7 @@ public class ProductCartManager : MonoBehaviour
     private CartManager cartManager;
 
     private bool isAdding = false;
+    private bool hasAdded = false;
 
     void Start()
     {
@@ -47,7 +48,12 @@ public class ProductCartManager : MonoBehaviour
 
     public void AddToCart()
     {
-        if (isAdding || !addToCartButton.interactable) return;
+        if (isAdding || hasAdded)
+        {
+            ShowError("Please wait before adding again.");
+            return;
+        }
+
         if (!ValidateSelection()) return;
 
         string userID = userManager?.UserId;
@@ -80,37 +86,50 @@ public class ProductCartManager : MonoBehaviour
         }
 
         isAdding = true;
-        addToCartButton.interactable = false;
 
         ReduceStock(selectedColor, selectedSize, quantity, () =>
         {
-            var cartItem = new Dictionary<string, object>
-            {
-                { "productID", productID },
-                { "productName", productData.name },
-                { "color", selectedColor },
-                { "price", productData.price },
-                { "timestamp", GetUnixTimestamp() },
-                { "expiresAt", expirationTime },
-                { "sizes", new Dictionary<string, object> { { selectedSize, quantity } } }
-            };
-
-            dbReference.Child("REVIRA/Consumers").Child(userID).Child("cart/cartItems").Child(productID)
-                .SetValueAsync(cartItem).ContinueWithOnMainThread(task =>
+            dbReference.Child("REVIRA/Consumers").Child(userID).Child("cart/cartItems")
+                .Child(productID).Child("sizes").Child(selectedSize).GetValueAsync().ContinueWithOnMainThread(task =>
                 {
-                    isAdding = false;
-                    if (task.IsCompletedSuccessfully)
+                    int existingQuantity = task.IsCompleted && task.Result.Exists ? int.Parse(task.Result.Value.ToString()) : 0;
+                    int newQuantity = existingQuantity + quantity;
+
+                    // Flattened update
+                    Dictionary<string, object> updates = new()
                     {
-                        ShowSuccess("Product added to cart.");
-                        UpdateCartSummary(userID, () => cartManager?.LoadCartItems());
-                        StartCoroutine(EnableButtonAfterDelay(1.5f));
-                    }
-                    else
+                        { $"REVIRA/Consumers/{userID}/cart/cartItems/{productID}/productID", productID },
+                        { $"REVIRA/Consumers/{userID}/cart/cartItems/{productID}/productName", productData.name },
+                        { $"REVIRA/Consumers/{userID}/cart/cartItems/{productID}/color", selectedColor },
+                        { $"REVIRA/Consumers/{userID}/cart/cartItems/{productID}/price", productData.price },
+                        { $"REVIRA/Consumers/{userID}/cart/cartItems/{productID}/timestamp", GetUnixTimestamp() },
+                        { $"REVIRA/Consumers/{userID}/cart/cartItems/{productID}/expiresAt", expirationTime },
+                        { $"REVIRA/Consumers/{userID}/cart/cartItems/{productID}/sizes/{selectedSize}", newQuantity }
+                    };
+
+                    dbReference.UpdateChildrenAsync(updates).ContinueWithOnMainThread(updateTask =>
                     {
-                        Debug.LogError("Firebase set failed: " + task.Exception);
-                        ShowError("Failed to add to cart.");
-                        addToCartButton.interactable = true;
-                    }
+                        isAdding = false;
+
+                        if (updateTask.IsCompletedSuccessfully)
+                        {
+                            ShowSuccess("Product added to cart.");
+                            hasAdded = true;
+
+                            UpdateCartSummary(userID, () =>
+                            {
+                                cartManager?.LoadCartItems();
+                            });
+
+                            cooldownCoroutine = StartCoroutine(EnableButtonAfterDelay(3f));
+                        }
+                        else
+                        {
+                            Debug.LogError("Firebase write failed: " + updateTask.Exception?.Flatten().Message);
+                            ShowError("Failed to add product.");
+                            hasAdded = false;
+                        }
+                    });
                 });
         });
     }
@@ -271,6 +290,7 @@ public class ProductCartManager : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         addToCartButton.interactable = true;
+        hasAdded = false;
     }
 
     private long GetUnixTimestamp()
