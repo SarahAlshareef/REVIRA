@@ -55,15 +55,16 @@ public class ProductCartManager : MonoBehaviour
     {
         Debug.Log("[DEBUG] AddToCart triggered");
 
-        if (isAdding) return;
+        if (isAdding)
+        {
+            Debug.Log("[DEBUG] Add already in progress.");
+            return;
+        }
 
         if (hasAdded)
         {
-            ShowError("Product Added Successfully.");
-            addToCartButton.interactable = false;
-            if (cooldownCoroutine != null)
-                StopCoroutine(cooldownCoroutine);
-            cooldownCoroutine = StartCoroutine(EnableButtonAfterDelay(5f));
+            Debug.Log("[DEBUG] Skipping AddToCart because it was just added.");
+            ShowError("Product was already added. Please wait a few seconds.");
             return;
         }
 
@@ -132,9 +133,14 @@ public class ProductCartManager : MonoBehaviour
                     {
                         Debug.Log("[DEBUG] Product added to Firebase cart.");
                         isAdding = false;
+                        hasAdded = true;
+
+                        if (cooldownCoroutine != null)
+                            StopCoroutine(cooldownCoroutine);
+                        cooldownCoroutine = StartCoroutine(EnableButtonAfterDelay(5f));
+
                         UpdateCartSummary(userID);
                         cartManager?.LoadCartItems();
-                        hasAdded = true;
 
                         if (errorText != null)
                         {
