@@ -94,16 +94,7 @@ public class VRProductClickHandler : MonoBehaviour
         {
             Button specBtn = specButtonObject.GetComponent<Button>();
             specBtn.onClick.RemoveAllListeners();
-            specBtn.onClick.AddListener(() =>
-            {
-                if ( productObject != null )
-                {
-                    ProductsManager PM = productObject.GetComponent<ProductsManager>();
-                    PM?.OnPreviewSpecificationClick();
-                }
-                ReturnProductToShelf();
-                isPreviewing = false;
-            });
+            specBtn.onClick.AddListener(OnPreviewSpecButtonClick);
         }
 
         if (closeButtonObject != null)
@@ -130,25 +121,37 @@ public class VRProductClickHandler : MonoBehaviour
             currentActiveHandler.StartPreview();
     }
 
-    //public void OnPreviewSpecButtonClick()
-    //{
-    //    if (currentActiveHandler == null) return;
-    //    if (vrCamera == null) return;
+    public void OnPreviewSpecButtonClick()
+    {
+        if (currentActiveHandler == null) return;
+        if (vrCamera == null) return;
 
-    //    Vector3 popupOffset = vrCamera.right * 0.6f + vrCamera.forward * 0.3f;
-    //    productPopup.transform.position = vrCamera.position + popupOffset;
-    //    productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
+        Vector3 popupOffset = vrCamera.right * 0.6f + vrCamera.forward * 0.3f;
+        productPopup.transform.position = vrCamera.position + popupOffset;
+        productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
 
-    //    ProductsManager products = FindObjectOfType<ProductsManager>();
-    //    if (products == null) return;
+        ProductIdentifie identifier = productObject.GetComponent<ProductIdentifie>();
+        if (identifier == null) return;
 
-    //    Vector3 frontOffset = vrCamera.forward * 1.4f;
-    //    products.productPopup.transform.position = vrCamera.position + frontOffset;
-    //    products.productPopup.transform.rotation = Quaternion.LookRotation(products.productPopup.transform.position - vrCamera.position);
-        
-    //    ReturnProductToShelf();
-    //    isPreviewing = false;
-    //}
+        ProductsManager products = FindObjectOfType<ProductsManager>();
+        if (products == null) return;
+
+        products.storeID = identifier.StoreID;
+        products.productID = identifier.ProductID;
+        products.LoadProductData();
+
+        if (products.productPopup != null)
+        {
+            Vector3 frontOffset = vrCamera.forward * 1.4f;
+            products.productPopup.transform.position = vrCamera.position + frontOffset;
+            products.productPopup.transform.rotation = Quaternion.LookRotation(products.productPopup.transform.position - vrCamera.position);
+        }
+
+        products.OnPreviewSpecificationClick();
+
+        ReturnProductToShelf();
+        isPreviewing = false;
+    }
 
     void StartPreview()
     {
