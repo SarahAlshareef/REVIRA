@@ -77,7 +77,10 @@ public class StorePayment : MonoBehaviour
             ShowError(errorText2, "Please enter a voucher code.");
             return;
         }
-
+        ApplyVoucher(enteredCode);
+    }
+    public void ApplyVoucher(string enteredCode)
+    {
         dbReference.Child("REVIRA").Child("Voucher Code").GetValueAsync().ContinueWithOnMainThread(task =>
         {
             if (task.IsCompleted && task.Result.Exists)
@@ -139,7 +142,6 @@ public class StorePayment : MonoBehaviour
                 ShowError(errorText2, "Failed to retrieve Voucher Code data.");
         });
     }
-
     IEnumerator AnimateBalance(float previousBalance, float newBalance)
     {
         float duration = 3f;
