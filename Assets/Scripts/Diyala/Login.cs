@@ -59,35 +59,30 @@ public class Login : MonoBehaviour
             }
             if (auth.CurrentUser != null)
             {
-                StartCoroutine(FetchUserData(auth.CurrentUser.UserId));  
-            }                       
+                string userId = auth.CurrentUser.UserId;
+                FirebaseDatabase.DefaultInstance.RootReference.Child("REVIRA").Child("Consumers").Child(userId)
+                    .GetValueAsync().ContinueWithOnMainThread(dbTask =>
+                    {
+                        if (dbTask.IsFaulted || dbTask.IsCanceled || !dbTask.Result.Exists)
+                        {
+                            ShowError("Failed to load user data.");
+                            return;
+                        }
+
+                        DataSnapshot snapshot = dbTask.Result;
+
+                        string firstName = snapshot.Child("firstName").Value?.ToString() ?? "Not Added";
+                        string lastName = snapshot.Child("lastName").Value?.ToString() ?? "Not Added";
+                        string userEmail = snapshot.Child("email").Value?.ToString() ?? "Not Added";
+                        float accountBalance = float.Parse(snapshot.Child("accountBalance").Value?.ToString() ?? "0");
+                        string gender = snapshot.Child("gender").Exists ? snapshot.Child("gender").Value.ToString() : "Not Added";
+                        string phone = snapshot.Child("phoneNumber").Exists ? snapshot.Child("phoneNumber").Value.ToString() : "Not Added";
+
+                        UserManager.Instance.SetUserData(userId, firstName, lastName, userEmail, accountBalance, gender, phone);
+                        SceneManager.LoadScene("HomeScene");
+                    });
+            }
         });
-    }
-
-    IEnumerator FetchUserData(string userId)
-    {
-        var dbTask = FirebaseDatabase.DefaultInstance.RootReference.Child("REVIRA").Child("Consumers").Child(userId).GetValueAsync();
-        yield return new WaitUntil(() => dbTask.IsCompleted);
-
-        if (dbTask.Exception != null || !dbTask.Result.Exists)
-        {
-            ShowError("Failed to load user data.");
-            yield break;
-        }
-
-        DataSnapshot snapshot = dbTask.Result;
-
-        string firstName = snapshot.Child("firstName").Value?.ToString() ?? "Not Added";
-        string lastName = snapshot.Child("lastName").Value?.ToString() ?? "Not Added";
-        string email = snapshot.Child("email").Value?.ToString() ?? "Not Added";
-        float accountBalance = float.Parse(snapshot.Child("accountBalance").Value?.ToString() ?? "0");
-
-        string gender = snapshot.Child("gender").Exists ? snapshot.Child("gender").Value.ToString() : "Not Added";
-        string phone = snapshot.Child("phoneNumber").Exists ? snapshot.Child("phoneNumber").Value.ToString() : "Not Added";
-
-        UserManager.Instance.SetUserData(userId, firstName, lastName, email, accountBalance, gender, phone);
-
-        SceneManager.LoadScene("Lolo");
     }
 
     void ShowError(string message)
