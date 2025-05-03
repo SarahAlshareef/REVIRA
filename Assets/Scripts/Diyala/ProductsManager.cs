@@ -46,7 +46,6 @@ public class ProductsManager : MonoBehaviour
             if (task.Result == Firebase.DependencyStatus.Available)
             {
                 dbReference = FirebaseDatabase.DefaultInstance.RootReference;
-                LoadProductData();
             }
         });
 
@@ -60,10 +59,6 @@ public class ProductsManager : MonoBehaviour
     public void OnPreviewSpecificationClick()
     {
         productPopup?.SetActive(true);
-    }
-
-    public void LoadProductData()
-    {
 
         dbReference.Child("REVIRA").Child("stores").Child(storeID).Child("products").Child(productID)
             .GetValueAsync().ContinueWithOnMainThread(task =>

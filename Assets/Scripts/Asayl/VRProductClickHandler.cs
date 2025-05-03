@@ -138,7 +138,6 @@ public class VRProductClickHandler : MonoBehaviour
 
         products.storeID = identifier.StoreID;
         products.productID = identifier.ProductID;
-        products.LoadProductData();
 
         if (products.productPopup != null)
         {
