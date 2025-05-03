@@ -56,13 +56,6 @@ public class VRBallClickHandler : MonoBehaviour
             rb = footballObject.GetComponent<Rigidbody>();
             grab = footballObject.GetComponent<Grabbable>();
             audioSource = footballObject.GetComponent<AudioSource>();
-
-            // Save original scale only once
-            if (!scaleCaptured)
-            {
-                originalScale = footballObject.transform.localScale;
-                scaleCaptured = true;
-            }
         }
 
         GameObject cam = GameObject.Find("CenterEyeAnchor");
@@ -76,7 +69,6 @@ public class VRBallClickHandler : MonoBehaviour
     {
         if (grab != null && grab.enabled)
         {
-            // Check if ball is currently held by either controller
             bool leftGrab = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, OVRInput.Controller.LTouch) > 0.8f;
             bool rightGrab = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, OVRInput.Controller.RTouch) > 0.8f;
 
@@ -85,7 +77,6 @@ public class VRBallClickHandler : MonoBehaviour
                 isHeld = true;
                 rb.isKinematic = true;
 
-                // Parent the ball to the controller
                 OVRInput.Controller activeHand = leftGrab ? OVRInput.Controller.LTouch : OVRInput.Controller.RTouch;
                 Transform handTransform = activeHand == OVRInput.Controller.LTouch ?
                     GameObject.Find("LeftHandAnchor").transform :
@@ -99,7 +90,6 @@ public class VRBallClickHandler : MonoBehaviour
                 rb.isKinematic = false;
                 rb.useGravity = true;
 
-                // Detach from hand
                 footballObject.transform.SetParent(null);
             }
         }
@@ -144,7 +134,7 @@ public class VRBallClickHandler : MonoBehaviour
     {
         if (specCanvas != null && specCanvas.activeSelf)
         {
-            specCanvas.SetActive(false); // Close specification if open
+            specCanvas.SetActive(false);
         }
 
         if (currentActiveHandler != null)
@@ -186,6 +176,16 @@ public class VRBallClickHandler : MonoBehaviour
     {
         if (vrCamera == null) return;
 
+        
+        footballObject.transform.SetParent(null);
+
+ 
+        if (!scaleCaptured)
+        {
+            originalScale = footballObject.transform.localScale;
+            scaleCaptured = true;
+        }
+
         Vector3 offset = vrCamera.right * 0.6f + vrCamera.forward * 0.3f;
         productPopup.transform.position = vrCamera.position + offset;
         productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
@@ -215,7 +215,6 @@ public class VRBallClickHandler : MonoBehaviour
         obj.transform.position = targetPosition;
         obj.transform.rotation = originalRotation;
 
-        // Resize for preview
         footballObject.transform.localScale = originalScale * previewScale;
 
         EnableInteraction();
@@ -251,7 +250,6 @@ public class VRBallClickHandler : MonoBehaviour
 
         DisableInteraction();
     }
-
 
     void EnableInteraction()
     {
