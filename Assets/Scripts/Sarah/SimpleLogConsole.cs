@@ -11,6 +11,9 @@ public class SimpleLogConsole : MonoBehaviour
     [Tooltip("How many lines to keep in the on-screen buffer.")]
     public int maxLines = 10;
 
+    [Tooltip("Only show log entries that start with this prefix.")]
+    public string filterPrefix = "[DEBUG]";
+
     private readonly StringBuilder _buffer = new StringBuilder();
     private readonly Queue<string> _lines = new Queue<string>();
 
@@ -26,10 +29,14 @@ public class SimpleLogConsole : MonoBehaviour
 
     void HandleLog(string logString, string stackTrace, LogType type)
     {
-        // Format: [Type] message
-        string entry = $"[{type}] {logString}";
+        // Only capture messages that start with our prefix
+        if (!logString.StartsWith(filterPrefix))
+            return;
 
-        // Add to queue
+        // Format entry
+        string entry = logString;  // you already have "[DEBUG] ..." in your call
+
+        // Enqueue
         _lines.Enqueue(entry);
 
         // Trim oldest lines
