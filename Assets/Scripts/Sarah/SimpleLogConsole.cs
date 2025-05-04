@@ -11,7 +11,7 @@ public class SimpleLogConsole : MonoBehaviour
     [Tooltip("How many lines to keep in the on-screen buffer.")]
     public int maxLines = 10;
 
-    [Tooltip("Only show log entries that start with this prefix.")]
+    [Tooltip("Only show log entries that start with this prefix. Leave blank to show all.")]
     public string filterPrefix = "[DEBUG]";
 
     private readonly StringBuilder _buffer = new StringBuilder();
@@ -20,24 +20,23 @@ public class SimpleLogConsole : MonoBehaviour
     void OnEnable()
     {
         Application.logMessageReceived += HandleLog;
+        Application.logMessageReceivedThreaded += HandleLog;
     }
 
     void OnDisable()
     {
         Application.logMessageReceived -= HandleLog;
+        Application.logMessageReceivedThreaded -= HandleLog;
     }
 
     void HandleLog(string logString, string stackTrace, LogType type)
     {
-        // Only capture messages that start with our prefix
-        if (!logString.StartsWith(filterPrefix))
+        // If filterPrefix is non-empty, only capture those starting with it
+        if (!string.IsNullOrEmpty(filterPrefix) && !logString.StartsWith(filterPrefix))
             return;
 
-        // Format entry
-        string entry = logString;  // you already have "[DEBUG] ..." in your call
-
-        // Enqueue
-        _lines.Enqueue(entry);
+        // Enqueue new line
+        _lines.Enqueue(logString);
 
         // Trim oldest lines
         while (_lines.Count > maxLines)
@@ -48,7 +47,7 @@ public class SimpleLogConsole : MonoBehaviour
         foreach (var line in _lines)
             _buffer.AppendLine(line);
 
-        // Push to UI
+        // Display
         if (outputText != null)
             outputText.text = _buffer.ToString();
     }
