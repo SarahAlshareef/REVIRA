@@ -3,7 +3,6 @@ using UnityEngine.UI;
 using TMPro;
 using Firebase.Database;
 using Firebase.Extensions;
-using System.Collections.Generic;
 
 public class OrderSummaryManager : MonoBehaviour
 {
@@ -37,8 +36,12 @@ public class OrderSummaryManager : MonoBehaviour
     private int productsProcessed = 0;
     private int productsDisplayed = 0;
 
-    public static float FinalTotal { get; private set; }
+    // Singleton instance for external access
     public static OrderSummaryManager Instance { get; private set; }
+    // Final total static property
+    public static float FinalTotal { get; private set; }
+    // Expose subtotal for ConfirmOrderManager
+    public float Subtotal => subtotal;
 
     void Start()
     {
@@ -65,7 +68,7 @@ public class OrderSummaryManager : MonoBehaviour
                     return;
                 }
 
-                DataSnapshot cartSnapshot = cartTask1.Result;
+                var cartSnapshot = cartTask1.Result;
                 if (!cartSnapshot.HasChild("cartItems") || cartSnapshot.Child("cartItems").ChildrenCount == 0)
                 {
                     Debug.LogWarning("[OrderSummaryManager] 'cartItems' empty or missing.");
@@ -80,8 +83,7 @@ public class OrderSummaryManager : MonoBehaviour
                 subtotal = 0f;
                 productsDisplayed = 0;
                 productsProcessed = 0;
-
-                DataSnapshot itemsSnapshot = cartSnapshot.Child("cartItems");
+                var itemsSnapshot = cartSnapshot.Child("cartItems");
                 productsToProcess = (int)itemsSnapshot.ChildrenCount;
 
                 foreach (var item in itemsSnapshot.Children)
@@ -101,7 +103,7 @@ public class OrderSummaryManager : MonoBehaviour
                         continue;
                     }
 
-                    // Fetch product details (discount)
+                    // Fetch product details
                     dbRef.Child("REVIRA").Child("stores").Child("storeID_123").Child("products").Child(productId)
                         .GetValueAsync().ContinueWithOnMainThread(productTask =>
                         {
@@ -123,9 +125,9 @@ public class OrderSummaryManager : MonoBehaviour
 
                             // Instantiate UI row
                             GameObject productGO = Instantiate(productPrefab, productListParent);
-                            productGO.transform.Find("nameText")?.GetComponent<TextMeshProUGUI>()?.SetText(productName);
-                            productGO.transform.Find("quantityText")?.GetComponent<TextMeshProUGUI>()?.SetText(quantity + "x");
-                            productGO.transform.Find("priceText")?.GetComponent<TextMeshProUGUI>()?.SetText(itemTotal.ToString("F2"));
+                            productGO.transform.Find("nameText").GetComponent<TextMeshProUGUI>().SetText(productName);
+                            productGO.transform.Find("quantityText").GetComponent<TextMeshProUGUI>().SetText(quantity + "x");
+                            productGO.transform.Find("priceText").GetComponent<TextMeshProUGUI>().SetText(itemTotal.ToString("F2"));
 
                             productsProcessed++;
                             CheckFinishedProcessing();
@@ -162,10 +164,7 @@ public class OrderSummaryManager : MonoBehaviour
     void FetchPromoAndDelivery()
     {
         float promoTotal = PromotionalManager.DiscountedTotal;
-        promoDiscountAmount = !string.IsNullOrEmpty(PromotionalManager.UsedPromoCode)
-                             ? subtotal - promoTotal
-                             : 0f;
-
+        promoDiscountAmount = !string.IsNullOrEmpty(PromotionalManager.UsedPromoCode) ? subtotal - promoTotal : 0f;
         delivery = DeliveryManager.DeliveryPrice;
         total = (promoTotal > 0 ? promoTotal : subtotal) + delivery;
 
@@ -187,7 +186,6 @@ public class OrderSummaryManager : MonoBehaviour
         discountText.text = discountedAmount > 0 ? "-" + discountedAmount.ToString("F2") : "0.00";
         deliveryChargesText.text = delivery.ToString("F2");
         totalText.text = total.ToString("F2");
-
         subtotalSymbol.enabled = true;
         discountSymbol.enabled = true;
         deliverySymbol.enabled = true;
