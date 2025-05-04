@@ -40,8 +40,6 @@ public class OrderSummaryManager : MonoBehaviour
     public static float FinalTotal { get; private set; }
     public static OrderSummaryManager Instance { get; private set; }
 
-    public float Subtotal => subtotal;
-
     void Start()
     {
         Instance = this;
@@ -56,76 +54,82 @@ public class OrderSummaryManager : MonoBehaviour
 
     void LoadOrderData()
     {
-        dbRef.Child("REVIRA").Child("Consumers").Child(userId).Child("cart").Child("cartItems")
-            .GetValueAsync().ContinueWithOnMainThread(cartTask =>
+        Debug.Log($"[OrderSummaryManager] Loading cart for userId={userId}");
+        dbRef.Child("REVIRA").Child("Consumers").Child(userId).Child("cart")
+            .GetValueAsync().ContinueWithOnMainThread(cartTask1 =>
             {
-                if (!cartTask.IsCompleted || !cartTask.Result.Exists)
+                if (cartTask1.IsFaulted || !cartTask1.Result.Exists)
                 {
-                    Debug.LogWarning("[OrderSummaryManager] Cart is empty or failed to load.");
+                    Debug.LogWarning("[OrderSummaryManager] No 'cart' node or failed to load cart.");
                     SetZeroSummary();
                     return;
                 }
 
+                DataSnapshot cartSnapshot = cartTask1.Result;
+                if (!cartSnapshot.HasChild("cartItems") || cartSnapshot.Child("cartItems").ChildrenCount == 0)
+                {
+                    Debug.LogWarning("[OrderSummaryManager] 'cartItems' empty or missing.");
+                    SetZeroSummary();
+                    return;
+                }
+
+                // Clear previous list
                 foreach (Transform child in productListParent)
                     Destroy(child.gameObject);
 
                 subtotal = 0f;
                 productsDisplayed = 0;
                 productsProcessed = 0;
-                productsToProcess = (int)cartTask.Result.ChildrenCount;
 
-                foreach (var item in cartTask.Result.Children)
+                DataSnapshot itemsSnapshot = cartSnapshot.Child("cartItems");
+                productsToProcess = (int)itemsSnapshot.ChildrenCount;
+
+                foreach (var item in itemsSnapshot.Children)
                 {
                     string productId = item.Key;
-
-                    if (!item.HasChild("productName") || !item.HasChild("price") || !item.HasChild("sizes"))
-                    {
-                        Debug.LogWarning("[OrderSummaryManager] Skipping invalid product: " + productId);
-                        productsProcessed++;
-                        CheckFinishedProcessing();
-                        continue;
-                    }
-
-                    string productName = item.Child("productName").Value.ToString();
-                    float originalPrice = float.TryParse(item.Child("price").Value.ToString(), out float price) ? price : 0;
+                    string productName = item.Child("productName").Value?.ToString() ?? "";
+                    float originalPrice = float.TryParse(item.Child("price").Value?.ToString(), out float priceVal) ? priceVal : 0f;
                     int quantity = 0;
-
                     foreach (var size in item.Child("sizes").Children)
                         quantity += int.TryParse(size.Value.ToString(), out int q) ? q : 0;
 
                     if (quantity <= 0)
                     {
-                        Debug.LogWarning("[OrderSummaryManager] Skipping product with 0 quantity: " + productId);
+                        Debug.LogWarning($"[OrderSummaryManager] Skipping product {productId} with 0 quantity.");
                         productsProcessed++;
                         CheckFinishedProcessing();
                         continue;
                     }
 
-                    dbRef.Child("REVIRA/stores/storeID_123/products").Child(productId).GetValueAsync().ContinueWithOnMainThread(productTask =>
-                    {
-                        float finalPrice = originalPrice;
-                        if (productTask.IsCompleted && productTask.Result.Exists)
+                    // Fetch product details (discount)
+                    dbRef.Child("REVIRA").Child("stores").Child("storeID_123").Child("products").Child(productId)
+                        .GetValueAsync().ContinueWithOnMainThread(productTask =>
                         {
-                            var productSnapshot = productTask.Result;
-                            if (productSnapshot.Child("discount").Child("exists").Value?.ToString() == "True")
+                            float finalPrice = originalPrice;
+                            if (productTask.IsCompleted && productTask.Result.Exists)
                             {
-                                float.TryParse(productSnapshot.Child("discount").Child("percentage").Value.ToString(), out float discountPercentage);
-                                finalPrice = originalPrice - (originalPrice * discountPercentage / 100f);
+                                var prodSnap = productTask.Result;
+                                bool hasDiscount = prodSnap.Child("discount").Child("exists").Value?.ToString() == "True";
+                                if (hasDiscount)
+                                {
+                                    float.TryParse(prodSnap.Child("discount").Child("percentage").Value.ToString(), out float discountPct);
+                                    finalPrice = originalPrice - (originalPrice * discountPct / 100f);
+                                }
                             }
-                        }
 
-                        float itemTotal = finalPrice * quantity;
-                        subtotal += itemTotal;
-                        productsDisplayed++;
+                            float itemTotal = finalPrice * quantity;
+                            subtotal += itemTotal;
+                            productsDisplayed++;
 
-                        GameObject productGO = Instantiate(productPrefab, productListParent);
-                        productGO.transform.Find("nameText")?.GetComponent<TextMeshProUGUI>()?.SetText(productName);
-                        productGO.transform.Find("quantityText")?.GetComponent<TextMeshProUGUI>()?.SetText(quantity + "x");
-                        productGO.transform.Find("priceText")?.GetComponent<TextMeshProUGUI>()?.SetText(itemTotal.ToString("F2"));
+                            // Instantiate UI row
+                            GameObject productGO = Instantiate(productPrefab, productListParent);
+                            productGO.transform.Find("nameText")?.GetComponent<TextMeshProUGUI>()?.SetText(productName);
+                            productGO.transform.Find("quantityText")?.GetComponent<TextMeshProUGUI>()?.SetText(quantity + "x");
+                            productGO.transform.Find("priceText")?.GetComponent<TextMeshProUGUI>()?.SetText(itemTotal.ToString("F2"));
 
-                        productsProcessed++;
-                        CheckFinishedProcessing();
-                    });
+                            productsProcessed++;
+                            CheckFinishedProcessing();
+                        });
                 }
             });
     }
@@ -158,7 +162,9 @@ public class OrderSummaryManager : MonoBehaviour
     void FetchPromoAndDelivery()
     {
         float promoTotal = PromotionalManager.DiscountedTotal;
-        promoDiscountAmount = !string.IsNullOrEmpty(PromotionalManager.UsedPromoCode) ? subtotal - promoTotal : 0f;
+        promoDiscountAmount = !string.IsNullOrEmpty(PromotionalManager.UsedPromoCode)
+                             ? subtotal - promoTotal
+                             : 0f;
 
         delivery = DeliveryManager.DeliveryPrice;
         total = (promoTotal > 0 ? promoTotal : subtotal) + delivery;
