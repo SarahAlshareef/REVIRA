@@ -15,7 +15,7 @@ public class ProductCartManager : MonoBehaviour
     // UI elements for product selection
     public TMP_Dropdown sizeDropdown, colorDropdown, quantityDropdown;
     public Button addToCartButton;
-    public TextMeshPro feedbackText; // Changed from errorText and type to TextMeshProUGUI
+    public TextMeshProUGUI feedbackText; // Changed from TextMeshPro to TextMeshProUGUI
 
     // References to other manager scripts
     private ProductsManager productsManager;
@@ -62,8 +62,8 @@ public class ProductCartManager : MonoBehaviour
         if (addToCartButton != null)
         {
             // --- IMPORTANT: Add RemoveAllListeners() to prevent double clicks ---
-            //addToCartButton.onClick.RemoveAllListeners();
-            //addToCartButton.onClick.AddListener(AddToCart);
+            addToCartButton.onClick.RemoveAllListeners();
+            addToCartButton.onClick.AddListener(AddToCart);
             Debug.Log("[DEBUG] AddToCart listener added to button.");
         }
 
