@@ -50,7 +50,7 @@ public class ProductCartManager : MonoBehaviour
 
         // Check if UI elements are assigned
         if (feedbackText == null) Debug.LogError("[DEBUG] FeedbackText (TextMeshProUGUI) not assigned!");
-        //if (addToCartButton == null) Debug.LogError("[DEBUG] AddToCartButton not assigned!");
+        if (addToCartButton == null) Debug.LogError("[DEBUG] AddToCartButton not assigned!");
         if (colorDropdown == null) Debug.LogError("[DEBUG] ColorDropdown not assigned!");
         if (sizeDropdown == null) Debug.LogError("[DEBUG] SizeDropdown not assigned!");
         if (quantityDropdown == null) Debug.LogError("[DEBUG] QuantityDropdown not assigned!");
@@ -61,7 +61,7 @@ public class ProductCartManager : MonoBehaviour
         {
             // --- IMPORTANT: Add RemoveAllListeners() to prevent double clicks if also set in Inspector ---
             addToCartButton.onClick.RemoveAllListeners();
-            addToCartButton.onClick.AddListener(AddToCart);
+            //addToCartButton.onClick.AddListener(AddToCart);
             Debug.Log("[DEBUG] AddToCart listener added to button.");
         }
 
