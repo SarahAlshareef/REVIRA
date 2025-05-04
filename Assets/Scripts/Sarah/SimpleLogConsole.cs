@@ -19,35 +19,34 @@ public class SimpleLogConsole : MonoBehaviour
 
     void OnEnable()
     {
+        // Subscribe to Unity's log events
         Application.logMessageReceived += HandleLog;
-        Application.logMessageReceivedThreaded += HandleLog;
     }
 
     void OnDisable()
     {
         Application.logMessageReceived -= HandleLog;
-        Application.logMessageReceivedThreaded -= HandleLog;
     }
 
     void HandleLog(string logString, string stackTrace, LogType type)
     {
-        // If filterPrefix is non-empty, only capture those starting with it
+        // If a prefix is set, only capture those lines
         if (!string.IsNullOrEmpty(filterPrefix) && !logString.StartsWith(filterPrefix))
             return;
 
-        // Enqueue new line
+        // Enqueue the new entry
         _lines.Enqueue(logString);
 
-        // Trim oldest lines
+        // Trim old entries
         while (_lines.Count > maxLines)
             _lines.Dequeue();
 
-        // Rebuild buffer
+        // Rebuild display buffer
         _buffer.Clear();
         foreach (var line in _lines)
             _buffer.AppendLine(line);
 
-        // Display
+        // Update the on-screen text
         if (outputText != null)
             outputText.text = _buffer.ToString();
     }
