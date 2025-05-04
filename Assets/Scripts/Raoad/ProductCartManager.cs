@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Firebase.Database;
 using Firebase.Extensions;
-using TMPro;
+using TMPro; // Make sure this is included
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -14,7 +14,7 @@ public class ProductCartManager : MonoBehaviour
     public TMP_Dropdown sizeDropdown;
     public TMP_Dropdown quantityDropdown;
     public Button addToCartButton;
-    public TextMeshProUGUI feedbackText; // Renamed from errorText for clarity
+    public TMP_Text feedbackText; // Changed from TextMeshProUGUI to TMP_Text
 
     private DatabaseReference _dbRoot;
     private bool _isAdding = false;
@@ -49,23 +49,28 @@ public class ProductCartManager : MonoBehaviour
 
 
         // Check if UI elements are assigned
-        if (feedbackText == null) Debug.LogError("[DEBUG] FeedbackText (TextMeshProUGUI) not assigned!");
+        if (feedbackText == null) Debug.LogError("[DEBUG] FeedbackText (TMP_Text) not assigned!"); // Updated log
         if (addToCartButton == null) Debug.LogError("[DEBUG] AddToCartButton not assigned!");
         if (colorDropdown == null) Debug.LogError("[DEBUG] ColorDropdown not assigned!");
         if (sizeDropdown == null) Debug.LogError("[DEBUG] SizeDropdown not assigned!");
         if (quantityDropdown == null) Debug.LogError("[DEBUG] QuantityDropdown not assigned!");
 
 
-        // Hook up button and dropdowns
-        if (addToCartButton != null)
-        {
-            // --- IMPORTANT: Add RemoveAllListeners() to prevent double clicks if also set in Inspector ---
-            addToCartButton.onClick.RemoveAllListeners();
-            //addToCartButton.onClick.AddListener(AddToCart);
-            Debug.Log("[DEBUG] AddToCart listener added to button.");
-        }
+        // --- Removed programmatic listener addition ---
+        // The Add to Cart button's OnClick event should be set up manually in the Unity Inspector.
+        // If you need to add listeners programmatically, use AddListener here,
+        // potentially after removing existing ones with RemoveAllListeners().
+        // Example if you were to add it programmatically:
+        // if (addToCartButton != null)
+        // {
+        //     addToCartButton.onClick.RemoveAllListeners(); // Optional: clear existing listeners
+        //     addToCartButton.onClick.AddListener(AddToCart);
+        //     Debug.Log("[DEBUG] AddToCart listener added to button.");
+        // }
+        // --- End Removed Code ---
 
 
+        // Add listeners to dropdowns to validate selections
         if (colorDropdown != null) colorDropdown.onValueChanged.AddListener(_ => ValidateSelection());
         if (sizeDropdown != null) sizeDropdown.onValueChanged.AddListener(_ => ValidateSelection());
         if (quantityDropdown != null) quantityDropdown.onValueChanged.AddListener(_ => ValidateSelection());
@@ -226,6 +231,11 @@ public class ProductCartManager : MonoBehaviour
                               string cartItemSizePath = $"REVIRA/Consumers/{userId}/cart/cartItems/{pid}/sizes/{size}";
                               // Added log before cart read GetValueAsync
                               Debug.Log($"[DEBUG] Initiating Cart READ from Firebase path: {cartItemSizePath}");
+
+                              // --- Added log right before ContinueWithOnMainThread for cart read ---
+                              Debug.Log("[DEBUG] About to call ContinueWithOnMainThread for Cart READ task.");
+                              // --- End added log ---
+
                               _dbRoot.Child("REVIRA").Child("Consumers").Child(userId) // Use chained Child calls
                               .Child("cart").Child("cartItems").Child(pid)
                               .Child("sizes").Child(size)
