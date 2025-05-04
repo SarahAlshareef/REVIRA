@@ -70,7 +70,15 @@ public class MenuManagerVR : MonoBehaviour
     {
         menuIsOpen = false;
         menuUI.SetActive(false);
+
+
+        if (!blockMenuToggle)
+        {
+            dimmerCanvas.SetActive(false);
+            playerControlManager.UnlockControls();
+        }
     }
+
 
     public void OnMenuButtonClicked()
     {

@@ -22,7 +22,6 @@ public class VRBallClickHandler : MonoBehaviour
     public GameObject specCanvas;
 
     private Transform vrCamera;
-
     private Rigidbody rb;
     private Grabbable grab;
     private AudioSource audioSource;
@@ -34,6 +33,7 @@ public class VRBallClickHandler : MonoBehaviour
 
     private bool isPreviewing = false;
     private bool isHeld = false;
+    private bool popupActive = false;
 
     public static VRBallClickHandler currentActiveHandler;
 
@@ -67,31 +67,31 @@ public class VRBallClickHandler : MonoBehaviour
 
     void Update()
     {
-        if (grab != null && grab.enabled)
+        if (!popupActive || grab == null || !grab.enabled)
+            return;
+
+        bool leftGrab = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, OVRInput.Controller.LTouch) > 0.8f;
+        bool rightGrab = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, OVRInput.Controller.RTouch) > 0.8f;
+
+        if ((leftGrab || rightGrab) && !isHeld)
         {
-            bool leftGrab = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, OVRInput.Controller.LTouch) > 0.8f;
-            bool rightGrab = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, OVRInput.Controller.RTouch) > 0.8f;
+            isHeld = true;
+            rb.isKinematic = true;
 
-            if ((leftGrab || rightGrab) && !isHeld)
-            {
-                isHeld = true;
-                rb.isKinematic = true;
+            OVRInput.Controller activeHand = leftGrab ? OVRInput.Controller.LTouch : OVRInput.Controller.RTouch;
+            Transform handTransform = activeHand == OVRInput.Controller.LTouch ?
+                GameObject.Find("LeftHandAnchor").transform :
+                GameObject.Find("RightHandAnchor").transform;
 
-                OVRInput.Controller activeHand = leftGrab ? OVRInput.Controller.LTouch : OVRInput.Controller.RTouch;
-                Transform handTransform = activeHand == OVRInput.Controller.LTouch ?
-                    GameObject.Find("LeftHandAnchor").transform :
-                    GameObject.Find("RightHandAnchor").transform;
+            footballObject.transform.SetParent(handTransform);
+        }
+        else if (!leftGrab && !rightGrab && isHeld)
+        {
+            isHeld = false;
+            rb.isKinematic = false;
+            rb.useGravity = true;
 
-                footballObject.transform.SetParent(handTransform);
-            }
-            else if (!leftGrab && !rightGrab && isHeld)
-            {
-                isHeld = false;
-                rb.isKinematic = false;
-                rb.useGravity = true;
-
-                footballObject.transform.SetParent(null);
-            }
+            footballObject.transform.SetParent(null);
         }
     }
 
@@ -105,6 +105,7 @@ public class VRBallClickHandler : MonoBehaviour
         productPopup.transform.position = vrCamera.position + offset;
         productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
         productPopup.SetActive(true);
+        popupActive = true;
 
         if (previewButtonObject != null)
         {
@@ -175,10 +176,8 @@ public class VRBallClickHandler : MonoBehaviour
     {
         if (vrCamera == null) return;
 
-        
         footballObject.transform.SetParent(null);
 
- 
         if (!scaleCaptured)
         {
             originalScale = footballObject.transform.localScale;
@@ -229,6 +228,8 @@ public class VRBallClickHandler : MonoBehaviour
 
         if (productPopup != null)
             productPopup.SetActive(false);
+
+        popupActive = false;
 
         ReturnBallToShelf();
 
@@ -288,3 +289,4 @@ public class VRBallClickHandler : MonoBehaviour
         OVRInput.SetControllerVibration(0, 0, OVRInput.Controller.LTouch);
     }
 }
+

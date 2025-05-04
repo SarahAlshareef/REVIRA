@@ -77,7 +77,14 @@ public class VRProductClickHandler : MonoBehaviour
     {
         if (vrCamera == null) return;
 
+
+        if (currentActiveHandler != null && currentActiveHandler != this)
+        {
+            currentActiveHandler.ForceCloseAll();
+        }
+
         currentActiveHandler = this;
+
         Vector3 offset = vrCamera.forward * 1.4f;
         productPopup.transform.position = vrCamera.position + offset;
         productPopup.transform.rotation = Quaternion.LookRotation(productPopup.transform.position - vrCamera.position);
@@ -109,6 +116,23 @@ public class VRProductClickHandler : MonoBehaviour
 
         controlManager.LockControls();
     }
+
+    public void ForceCloseAll()
+    {
+        if (productPopup != null)
+            productPopup.SetActive(false);
+
+        if (specCanvas != null)
+            specCanvas.SetActive(false);
+
+        ReturnProductToShelf();
+
+        if (controlManager != null)
+            controlManager.UnlockControls();
+
+        isPreviewing = false;
+    }
+
 
     public void OnPreviewButtonPressed()
     {
