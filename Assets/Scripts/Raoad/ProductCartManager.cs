@@ -50,7 +50,7 @@ public class ProductCartManager : MonoBehaviour
 
         // Check if UI elements are assigned
         if (feedbackText == null) Debug.LogError("[DEBUG] FeedbackText (TextMeshProUGUI) not assigned!");
-        if (addToCartButton == null) Debug.LogError("[DEBUG] AddToCartButton not assigned!");
+        //if (addToCartButton == null) Debug.LogError("[DEBUG] AddToCartButton not assigned!");
         if (colorDropdown == null) Debug.LogError("[DEBUG] ColorDropdown not assigned!");
         if (sizeDropdown == null) Debug.LogError("[DEBUG] SizeDropdown not assigned!");
         if (quantityDropdown == null) Debug.LogError("[DEBUG] QuantityDropdown not assigned!");
@@ -224,70 +224,81 @@ public class ProductCartManager : MonoBehaviour
 
                               // Step 2: read existing cart qty
                               string cartItemSizePath = $"REVIRA/Consumers/{userId}/cart/cartItems/{pid}/sizes/{size}";
-                              Debug.Log($"[DEBUG] Reading existing cart quantity from Firebase path: {cartItemSizePath}");
+                              // Added log before cart read GetValueAsync
+                              Debug.Log($"[DEBUG] Initiating Cart READ from Firebase path: {cartItemSizePath}");
                               _dbRoot.Child("REVIRA").Child("Consumers").Child(userId) // Use chained Child calls
                               .Child("cart").Child("cartItems").Child(pid)
                               .Child("sizes").Child(size)
                               .GetValueAsync().ContinueWithOnMainThread(cartReadTask =>
                               {
-                                  Debug.Log("[DEBUG] Cart READ task completed.");
-                                  if (cartReadTask.Exception != null)
+                                  // Added try-catch block
+                                  try
                                   {
-                                      Debug.LogError("[DEBUG] Cart READ failed: " + cartReadTask.Exception); // Log the exception
-                                      Fail("Could not read cart."); // Use Fail method
-                                      return;
-                                  }
-
-                                  int existingQty = cartReadTask.Result.Exists
-                               ? int.Parse(cartReadTask.Result.Value.ToString())
-                               : 0;
-                                  int updatedQty = existingQty + qty;
-                                  Debug.Log($"[DEBUG] Existing cart quantity for size '{size}': {existingQty}, New total quantity: {updatedQty}");
-
-
-                                  // Step 3: update cart entry
-                                  var updateMap = new Dictionary<string, object>()
-                           {
-                        { "productID", pid },
-                        { "productName", pd.name },
-                        { "color", color },
-                        { "price", pd.price },
-                        { "timestamp", GetUnixTimestamp() },
-                        { "expiresAt", expires },
-                        { $"sizes/{size}", updatedQty }
-                           };
-                                  Debug.Log($"[DEBUG] Preparing cart update data for product ID: {pid}");
-
-                                  string cartItemPath = $"REVIRA/Consumers/{userId}/cart/cartItems/{pid}";
-                                  Debug.Log($"[DEBUG] Writing cart entry to Firebase path: {cartItemPath}");
-                                  _dbRoot.Child("REVIRA").Child("Consumers").Child(userId) // Use chained Child calls
-                                  .Child("cart").Child("cartItems").Child(pid)
-                                  .UpdateChildrenAsync(updateMap).ContinueWithOnMainThread(cartWriteTask =>
-                                  {
-                                      Debug.Log("[DEBUG] Cart WRITE task completed.");
-                                      if (cartWriteTask.Exception != null)
+                                      Debug.Log("[DEBUG] Cart READ task completed.");
+                                      if (cartReadTask.Exception != null)
                                       {
-                                          Debug.LogError("[DEBUG] Cart WRITE failed: " + cartWriteTask.Exception); // Log the exception
-                                          Fail("Could not update cart."); // Use Fail method
-                                                                          // This is a critical failure - stock was reduced but cart wasn't updated.
-                                                                          // You should implement robust error handling and potential rollback/compensation logic here.
+                                          Debug.LogError("[DEBUG] Cart READ failed: " + cartReadTask.Exception); // Log the exception
+                                          Fail("Could not read cart."); // Use Fail method
                                           return;
                                       }
-                                      Debug.Log("[DEBUG] Cart entry updated successfully in Firebase.");
+
+                                      int existingQty = cartReadTask.Result.Exists
+                                   ? int.Parse(cartReadTask.Result.Value.ToString())
+                                   : 0;
+                                      int updatedQty = existingQty + qty;
+                                      Debug.Log($"[DEBUG] Existing cart quantity for size '{size}': {existingQty}, New total quantity: {updatedQty}");
 
 
-                                      ShowSuccess("Added to cart"); // Use ShowSuccess
+                                      // Step 3: update cart entry
+                                      var updateMap = new Dictionary<string, object>()
+                               {
+                            { "productID", pid },
+                            { "productName", pd.name },
+                            { "color", color },
+                            { "price", pd.price },
+                            { "timestamp", GetUnixTimestamp() },
+                            { "expiresAt", expires },
+                            { $"sizes/{size}", updatedQty }
+                               };
+                                      Debug.Log($"[DEBUG] Preparing cart update data for product ID: {pid}");
 
-                                      // Step 4: update cart summary
-                                      UpdateCartSummary(userId, () =>
+                                      string cartItemPath = $"REVIRA/Consumers/{userId}/cart/cartItems/{pid}";
+                                      Debug.Log($"[DEBUG] Writing cart entry to Firebase path: {cartItemPath}");
+                                      _dbRoot.Child("REVIRA").Child("Consumers").Child(userId) // Use chained Child calls
+                                      .Child("cart").Child("cartItems").Child(pid)
+                                      .UpdateChildrenAsync(updateMap).ContinueWithOnMainThread(cartWriteTask =>
                                       {
-                                          Debug.Log("[DEBUG] Cart summary update finished.");
-                                          cartManager?.LoadCartItems(); // Use null conditional operator
-                                      });
+                                          Debug.Log("[DEBUG] Cart WRITE task completed.");
+                                          if (cartWriteTask.Exception != null)
+                                          {
+                                              Debug.LogError("[DEBUG] Cart WRITE failed: " + cartWriteTask.Exception); // Log the exception
+                                              Fail("Could not update cart."); // Use Fail method
+                                                                              // This is a critical failure - stock was reduced but cart wasn't updated.
+                                                                              // You should implement robust error handling and potential rollback/compensation logic here.
+                                              return;
+                                          }
+                                          Debug.Log("[DEBUG] Cart entry updated successfully in Firebase.");
 
-                                      // reset throttle - Moved to the end of the success path
-                                      // Finish(); // Finish is called at the end of the UpdateCartSummary task now
-                                  });
+
+                                          ShowSuccess("Added to cart"); // Use ShowSuccess
+
+                                          // Step 4: update cart summary
+                                          UpdateCartSummary(userId, () =>
+                                          {
+                                              Debug.Log("[DEBUG] Cart summary update finished.");
+                                              cartManager?.LoadCartItems(); // Use null conditional operator
+                                          });
+
+                                          // reset throttle - Moved to the end of the UpdateCartSummary task now
+                                          // Finish();
+                                      });
+                                  }
+                                  catch (Exception ex)
+                                  {
+                                      // Catch any unexpected exceptions within the callback
+                                      Debug.LogError("[DEBUG] UNHANDLED EXCEPTION in Cart READ task callback: " + ex.Message + "\n" + ex.StackTrace);
+                                      Fail("An unexpected error occurred during cart read.");
+                                  }
                               });
                           });
                });
