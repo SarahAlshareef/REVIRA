@@ -51,11 +51,19 @@ public class ProductCartManager : MonoBehaviour
         if (quantityDropdown == null) Debug.LogError("[DEBUG] QuantityDropdown not assigned!");
 
 
-        // Add listener to the Add to Cart button
-        if (addToCartButton != null)
-        {
-            addToCartButton.onClick.AddListener(AddToCart);
-        }
+        // --- Removed programmatic listener addition ---
+        // The Add to Cart button's OnClick event should be set up manually in the Unity Inspector.
+        // If you need to add listeners programmatically, use AddListener here,
+        // potentially after removing existing ones with RemoveAllListeners().
+        // Example if you were to add it programmatically:
+        // if (addToCartButton != null)
+        // {
+        //     addToCartButton.onClick.RemoveAllListeners(); // Optional: clear existing listeners
+        //     addToCartButton.onClick.AddListener(AddToCart);
+        //     Debug.Log("[DEBUG] AddToCart listener added to button.");
+        // }
+        // --- End Removed Code ---
+
 
         // Add listeners to dropdowns to validate selections
         if (colorDropdown != null) colorDropdown.onValueChanged.AddListener(_ => ValidateSelection());
@@ -70,12 +78,12 @@ public class ProductCartManager : MonoBehaviour
         // Consider calling this after user login is confirmed if it fails here
         if (userManager != null && !string.IsNullOrEmpty(userManager.UserId))
         {
-            Debug.Log("[DEBUG] UserManager and UserId available in Start for RemoveExpiredCartItems.");
+            Debug.Log("[DEBUG] UserManager and UserId available in Start for RemoveExpiredCartitems.");
             RemoveExpiredCartItems();
         }
         else
         {
-            Debug.LogWarning("[DEBUG] UserManager or UserId not available in Start for RemoveExpiredCartItems. Current UserId: " + (userManager?.UserId ?? "null UserManager or empty UserId"));
+            Debug.LogWarning("[DEBUG] UserManager or UserId not available in Start for RemoveExpiredCartitems. Current UserId: " + (userManager?.UserId ?? "null UserManager or empty UserId"));
             // You might want to call RemoveExpiredCartItems after user login is confirmed
         }
     }
