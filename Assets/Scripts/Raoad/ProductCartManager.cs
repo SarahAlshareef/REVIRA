@@ -18,7 +18,6 @@ public class ProductCartManager : MonoBehaviour
     private CartManager cartManager;
 
     private bool isAdding = false;
-    private bool hasAdded = false;
 
     void Start()
     {
@@ -27,9 +26,7 @@ public class ProductCartManager : MonoBehaviour
         userManager = FindObjectOfType<UserManager>();
         cartManager = FindObjectOfType<CartManager>();
 
-        if (addToCartButton != null)
-            addToCartButton.onClick.AddListener(AddToCart);
-
+        addToCartButton.onClick.AddListener(AddToCart);
         colorDropdown?.onValueChanged.AddListener(_ => ValidateSelection());
         sizeDropdown?.onValueChanged.AddListener(_ => ValidateSelection());
         quantityDropdown?.onValueChanged.AddListener(_ => ValidateSelection());
@@ -42,23 +39,17 @@ public class ProductCartManager : MonoBehaviour
     {
         Debug.Log("[DEBUG] AddToCart triggered");
 
-        if (isAdding || hasAdded)
+        if (isAdding)
         {
-            Debug.Log("[DEBUG] AddToCart aborted: busy or recently added");
-            ShowError("Please wait before adding again.");
+            Debug.Log("[DEBUG] Already adding, skipping");
             return;
         }
 
-        if (!ValidateSelection())
-        {
-            Debug.Log("[DEBUG] AddToCart aborted: validation failed");
-            return;
-        }
+        if (!ValidateSelection()) return;
 
         string userId = userManager?.UserId;
         if (string.IsNullOrEmpty(userId))
         {
-            Debug.Log("[DEBUG] AddToCart aborted: user not logged in");
             ShowError("User not logged in.");
             return;
         }
@@ -67,7 +58,6 @@ public class ProductCartManager : MonoBehaviour
         string pid = productsManager?.productID;
         if (pd == null || string.IsNullOrEmpty(pid))
         {
-            Debug.Log("[DEBUG] AddToCart aborted: missing product data");
             ShowError("Missing product data.");
             return;
         }
@@ -78,72 +68,69 @@ public class ProductCartManager : MonoBehaviour
         long expires = GetUnixTimestamp() + 86400;
 
         if (!productsManager.productColorsAndSizes.TryGetValue(color, out var sizesDict)
-            || !sizesDict.TryGetValue(size, out var available)
-            || available < qty)
+         || !sizesDict.TryGetValue(size, out var inStock)
+         || inStock < qty)
         {
-            Debug.Log("[DEBUG] AddToCart aborted: insufficient stock");
             ShowError("Not enough stock.");
             return;
         }
 
+        // throttle further clicks
         isAdding = true;
-        Debug.Log($"[DEBUG] Reducing stock for {pid} / {color} / {size} by {qty}");
-        // 1) Reduce stock
-        db.Child("REVIRA")
-          .Child("stores").Child("storeID_123")
+        addToCartButton.interactable = false;
+
+        // --- STEP 1: Reduce stock in Firebase ---
+        Debug.Log($"[DEBUG] Reading stock for {pid}/{color}/{size}");
+        db.Child("REVIRA").Child("stores").Child("storeID_123")
           .Child("products").Child(pid)
           .Child("colors").Child(color)
           .Child("sizes").Child(size)
-          .GetValueAsync().ContinueWithOnMainThread(stockTask =>
+          .GetValueAsync().ContinueWithOnMainThread(stockRead =>
           {
-              if (stockTask.Exception != null || !stockTask.Result.Exists)
+              if (stockRead.Exception != null || !stockRead.Result.Exists)
               {
-                  Debug.LogError("[DEBUG] Stock read failed: " + stockTask.Exception);
-                  FailAdd("Could not read stock.");
+                  Debug.LogError("[DEBUG] Stock READ failed: " + stockRead.Exception);
+                  Fail("Could not read stock.");
                   return;
               }
 
-              int currentStock = int.Parse(stockTask.Result.Value.ToString());
+              int currentStock = int.Parse(stockRead.Result.Value.ToString());
               int newStock = Mathf.Max(0, currentStock - qty);
-              Debug.Log($"[DEBUG] Stock read OK: {currentStock}, setting new stock {newStock}");
-
-              db.Child("REVIRA")
-                .Child("stores").Child("storeID_123")
+              Debug.Log($"[DEBUG] Writing new stock {newStock}");
+              db.Child("REVIRA").Child("stores").Child("storeID_123")
                 .Child("products").Child(pid)
                 .Child("colors").Child(color)
                 .Child("sizes").Child(size)
-                .SetValueAsync(newStock).ContinueWithOnMainThread(setTask =>
+                .SetValueAsync(newStock).ContinueWithOnMainThread(stockWrite =>
                 {
-                    if (setTask.Exception != null)
+                    if (stockWrite.Exception != null)
                     {
-                        Debug.LogError("[DEBUG] Stock write failed: " + setTask.Exception);
-                        FailAdd("Could not update stock.");
+                        Debug.LogError("[DEBUG] Stock WRITE failed: " + stockWrite.Exception);
+                        Fail("Could not update stock.");
                         return;
                     }
 
-                    Debug.Log("[DEBUG] Stock updated successfully, now reading cart entry");
-                    // 2) Read existing cart size
-                    db.Child("REVIRA")
-                    .Child("Consumers").Child(userId)
-                    .Child("cart").Child("cartItems")
-                    .Child(pid)
+                    // --- STEP 2: Read existing cart qty for this size ---
+                    Debug.Log($"[DEBUG] Reading cart qty for {pid}/{size}");
+                    db.Child("REVIRA").Child("Consumers").Child(userId)
+                    .Child("cart").Child("cartItems").Child(pid)
                     .Child("sizes").Child(size)
-                    .GetValueAsync().ContinueWithOnMainThread(getTask =>
+                    .GetValueAsync().ContinueWithOnMainThread(cartRead =>
                     {
-                        if (getTask.Exception != null)
+                        if (cartRead.Exception != null)
                         {
-                            Debug.LogError("[DEBUG] Cart read failed: " + getTask.Exception);
-                            FailAdd("Could not read cart.");
+                            Debug.LogError("[DEBUG] Cart READ failed: " + cartRead.Exception);
+                            Fail("Could not read cart.");
                             return;
                         }
 
-                        int existingQty = getTask.Result.Exists
-                        ? int.Parse(getTask.Result.Value.ToString())
-                        : 0;
+                        int existingQty = cartRead.Result.Exists
+                          ? int.Parse(cartRead.Result.Value.ToString())
+                          : 0;
                         int updatedQty = existingQty + qty;
-                        Debug.Log($"[DEBUG] Cart read OK: existing {existingQty}, new {updatedQty}");
+                        Debug.Log($"[DEBUG] Updating cart size '{size}' to {updatedQty}");
 
-                        // 3) Update cart entry
+                        // --- STEP 3: Write updated cart entry ---
                         var updateMap = new Dictionary<string, object>()
                       {
                         { "productID",     pid },
@@ -155,47 +142,51 @@ public class ProductCartManager : MonoBehaviour
                         { $"sizes/{size}", updatedQty }
                       };
 
-                        db.Child("REVIRA")
-                        .Child("Consumers").Child(userId)
-                        .Child("cart").Child("cartItems")
-                        .Child(pid)
+                        db.Child("REVIRA").Child("Consumers").Child(userId)
+                        .Child("cart").Child("cartItems").Child(pid)
                         .UpdateChildrenAsync(updateMap)
-                        .ContinueWithOnMainThread(updateTask2 =>
+                        .ContinueWithOnMainThread(cartWrite =>
                         {
-                            if (updateTask2.Exception != null)
+                            if (cartWrite.Exception != null)
                             {
-                                Debug.LogError("[DEBUG] Cart write failed: " + updateTask2.Exception);
-                                FailAdd("Could not update cart.");
+                                Debug.LogError("[DEBUG] Cart WRITE failed: " + cartWrite.Exception);
+                                Fail("Could not update cart.");
                                 return;
                             }
 
-                            Debug.Log("[DEBUG] Cart updated successfully");
-                            hasAdded = true;
-                            ShowSuccess("Product added successfully.");
+                            // --- STEP 4: Success! Refresh UI & summary ---
+                            Debug.Log("[DEBUG] Cart entry updated successfully");
+                            ShowSuccess("Added to cart");
                             UpdateCartSummary(userId, () => cartManager?.LoadCartItems());
-                            StartCoroutine(ResetAddLock(5f));
+
                             isAdding = false;
+                            addToCartButton.interactable = true;
                         });
                     });
                 });
           });
     }
 
-    private void UpdateCartSummary(string userId, System.Action onComplete)
+    private void UpdateCartSummary(string userId, System.Action onDone)
     {
         Debug.Log("[DEBUG] Updating cart summary");
-        db.Child("REVIRA")
-          .Child("Consumers").Child(userId)
+        db.Child("REVIRA").Child("Consumers").Child(userId)
           .Child("cart").Child("cartItems")
-          .GetValueAsync().ContinueWithOnMainThread(task =>
+          .GetValueAsync().ContinueWithOnMainThread(summaryRead =>
           {
+              if (summaryRead.Exception != null)
+              {
+                  Debug.LogError("[DEBUG] Summary READ failed: " + summaryRead.Exception);
+                  onDone?.Invoke();
+                  return;
+              }
+
               float totalP = 0f;
               int totalI = 0;
-              if (task.Result.Exists)
+              if (summaryRead.Result.Exists)
               {
-                  foreach (var item in task.Result.Children)
+                  foreach (var item in summaryRead.Result.Children)
                   {
-                      if (!item.HasChild("price") || !item.HasChild("sizes")) continue;
                       float pr = float.Parse(item.Child("price").Value.ToString());
                       foreach (var sz in item.Child("sizes").Children)
                       {
@@ -205,112 +196,64 @@ public class ProductCartManager : MonoBehaviour
                       }
                   }
               }
-              Debug.Log($"[DEBUG] New summary: totalPrice={totalP}, totalItems={totalI}");
+
               var cartTotal = new Dictionary<string, object>()
             {
                 { "totalPrice", totalP },
                 { "totalItems", totalI }
             };
-              db.Child("REVIRA")
-                .Child("Consumers").Child(userId)
+
+              db.Child("REVIRA").Child("Consumers").Child(userId)
                 .Child("cart").Child("cartTotal")
                 .SetValueAsync(cartTotal)
-                .ContinueWithOnMainThread(_ => onComplete?.Invoke());
+                .ContinueWithOnMainThread(_ =>
+                {
+                    Debug.Log("[DEBUG] Cart summary updated");
+                    onDone?.Invoke();
+                });
           });
     }
 
     private void RemoveExpiredCartItems()
     {
-        Debug.Log("[DEBUG] Removing expired cart items");
         string uid = userManager.UserId;
-        var refCart = db.Child("REVIRA")
-                       .Child("Consumers").Child(uid)
+        var refCart = db.Child("REVIRA").Child("Consumers").Child(uid)
                        .Child("cart").Child("cartItems");
-
         refCart.GetValueAsync().ContinueWithOnMainThread(task =>
         {
-            if (!task.Result.Exists) return;
+            if (task.Exception != null || !task.Result.Exists) return;
             long now = GetUnixTimestamp();
             var toRemove = new List<string>();
-
             foreach (var item in task.Result.Children)
             {
-                if (item.Child("expiresAt").Value != null &&
-                    long.Parse(item.Child("expiresAt").Value.ToString()) < now)
-                {
+                if (item.Child("expiresAt").Value != null
+                 && long.Parse(item.Child("expiresAt").Value.ToString()) < now)
                     toRemove.Add(item.Key);
-                    RestoreStock(item.Key, item);
-                }
             }
             foreach (var id in toRemove)
-            {
-                Debug.Log($"[DEBUG] Removing expired item {id}");
                 refCart.Child(id).RemoveValueAsync();
-            }
         });
-    }
-
-    private void RestoreStock(string productID, DataSnapshot item)
-    {
-        Debug.Log($"[DEBUG] Restoring stock for expired item {productID}");
-        string color = item.Child("color").Value.ToString();
-        foreach (var sz in item.Child("sizes").Children)
-        {
-            string s = sz.Key;
-            int q = int.Parse(sz.Value.ToString());
-            db.Child("REVIRA")
-              .Child("stores").Child("storeID_123")
-              .Child("products").Child(productID)
-              .Child("colors").Child(color)
-              .Child("sizes").Child(s)
-              .GetValueAsync().ContinueWithOnMainThread(task =>
-              {
-                  if (task.Result.Exists)
-                  {
-                      int cur = int.Parse(task.Result.Value.ToString());
-                      Debug.Log($"[DEBUG] Current stock {cur}, restoring {q}");
-                      db.Child("REVIRA")
-                        .Child("stores").Child("storeID_123")
-                        .Child("products").Child(productID)
-                        .Child("colors").Child(color)
-                        .Child("sizes").Child(s)
-                        .SetValueAsync(cur + q);
-                  }
-              });
-        }
     }
 
     private bool ValidateSelection()
     {
-        bool ok = true;
         if (colorDropdown.options[colorDropdown.value].text == "Select Color"
          || sizeDropdown.options[sizeDropdown.value].text == "Select Size"
          || quantityDropdown.options[quantityDropdown.value].text == "Select Quantity")
         {
-            Debug.Log("[DEBUG] ValidateSelection failed");
             ShowError("Please make all selections.");
-            ok = false;
+            return false;
         }
-        else
-        {
-            ClearMessage();
-        }
-        return ok;
+        ClearMessage();
+        return true;
     }
 
-    private void FailAdd(string msg)
+    private void Fail(string msg)
     {
-        Debug.Log("[DEBUG] FailAdd: " + msg);
-        isAdding = false;
-        hasAdded = false;
+        Debug.LogError("[DEBUG] FAIL: " + msg);
         ShowError(msg);
-    }
-
-    private IEnumerator ResetAddLock(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        Debug.Log("[DEBUG] Resetting add lock");
-        hasAdded = false;
+        isAdding = false;
+        addToCartButton.interactable = true;
     }
 
     private void ShowError(string m)
@@ -324,7 +267,6 @@ public class ProductCartManager : MonoBehaviour
 
     private void ShowSuccess(string m)
     {
-        Debug.Log("[DEBUG] ShowSuccess: " + m);
         errorText.color = Color.green;
         errorText.text = m;
         errorText.gameObject.SetActive(true);
@@ -334,8 +276,8 @@ public class ProductCartManager : MonoBehaviour
 
     private void ClearMessage()
     {
-        errorText.text = "";
-        errorText.gameObject.SetActive(false);
+        if (errorText != null)
+            errorText.gameObject.SetActive(false);
     }
 
     private long GetUnixTimestamp() =>
