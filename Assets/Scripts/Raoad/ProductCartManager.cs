@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -46,11 +45,9 @@ public class ProductCartManager : MonoBehaviour
             return;
         }
 
-        if (!ValidateSelection())
-            return;
+        if (!ValidateSelection()) return;
 
         string userId = userManager?.UserId;
-        Debug.Log($"[DEBUG] Using userId = {userId}");
         if (string.IsNullOrEmpty(userId))
         {
             ShowError("User not logged in.");
@@ -78,12 +75,13 @@ public class ProductCartManager : MonoBehaviour
             return;
         }
 
+        // throttle further clicks
         isAdding = true;
         addToCartButton.interactable = false;
 
-        // 1) reduce stock
-        db.Child("REVIRA")
-          .Child("stores").Child("storeID_123")
+        // --- STEP 1: Reduce stock in Firebase ---
+        Debug.Log($"[DEBUG] Reading stock for {pid}/{color}/{size}");
+        db.Child("REVIRA").Child("stores").Child("storeID_123")
           .Child("products").Child(pid)
           .Child("colors").Child(color)
           .Child("sizes").Child(size)
@@ -98,9 +96,8 @@ public class ProductCartManager : MonoBehaviour
 
               int currentStock = int.Parse(stockRead.Result.Value.ToString());
               int newStock = Mathf.Max(0, currentStock - qty);
-
-              db.Child("REVIRA")
-                .Child("stores").Child("storeID_123")
+              Debug.Log($"[DEBUG] Writing new stock {newStock}");
+              db.Child("REVIRA").Child("stores").Child("storeID_123")
                 .Child("products").Child(pid)
                 .Child("colors").Child(color)
                 .Child("sizes").Child(size)
@@ -113,11 +110,10 @@ public class ProductCartManager : MonoBehaviour
                         return;
                     }
 
-                    // 2) read existing qty
-                    db.Child("REVIRA")
-                    .Child("Consumers").Child(userId)
-                    .Child("cart").Child("cartItems")
-                    .Child(pid)
+                    // --- STEP 2: Read existing cart qty for this size ---
+                    Debug.Log($"[DEBUG] Reading cart qty for {pid}/{size}");
+                    db.Child("REVIRA").Child("Consumers").Child(userId)
+                    .Child("cart").Child("cartItems").Child(pid)
                     .Child("sizes").Child(size)
                     .GetValueAsync().ContinueWithOnMainThread(cartRead =>
                     {
@@ -129,27 +125,26 @@ public class ProductCartManager : MonoBehaviour
                         }
 
                         int existingQty = cartRead.Result.Exists
-                        ? int.Parse(cartRead.Result.Value.ToString())
-                        : 0;
+                          ? int.Parse(cartRead.Result.Value.ToString())
+                          : 0;
                         int updatedQty = existingQty + qty;
+                        Debug.Log($"[DEBUG] Updating cart size '{size}' to {updatedQty}");
 
-                        // 3) write full cart-item via SetValueAsync
-                        var cartItem = new Dictionary<string, object>
+                        // --- STEP 3: Write updated cart entry ---
+                        var updateMap = new Dictionary<string, object>()
                       {
-                        { "productID",   pid },
-                        { "productName", pd.name },
-                        { "color",       color },
-                        { "price",       pd.price },
-                        { "timestamp",   GetUnixTimestamp() },
-                        { "expiresAt",   expires },
-                        { "sizes",       new Dictionary<string, object> { { size, updatedQty } } }
+                        { "productID",     pid },
+                        { "productName",   pd.name },
+                        { "color",         color },
+                        { "price",         pd.price },
+                        { "timestamp",     GetUnixTimestamp() },
+                        { "expiresAt",     expires },
+                        { $"sizes/{size}", updatedQty }
                       };
 
-                        db.Child("REVIRA")
-                        .Child("Consumers").Child(userId)
-                        .Child("cart").Child("cartItems")
-                        .Child(pid)
-                        .SetValueAsync(cartItem)
+                        db.Child("REVIRA").Child("Consumers").Child(userId)
+                        .Child("cart").Child("cartItems").Child(pid)
+                        .UpdateChildrenAsync(updateMap)
                         .ContinueWithOnMainThread(cartWrite =>
                         {
                             if (cartWrite.Exception != null)
@@ -159,41 +154,38 @@ public class ProductCartManager : MonoBehaviour
                                 return;
                             }
 
-                            Debug.Log("[DEBUG] Cart item created via SetValueAsync");
-                            ShowSuccess("Product added!");
+                            // --- STEP 4: Success! Refresh UI & summary ---
+                            Debug.Log("[DEBUG] Cart entry updated successfully");
+                            ShowSuccess("Added to cart");
+                            UpdateCartSummary(userId, () => cartManager?.LoadCartItems());
 
-                            // 4) now update cartTotal
-                            UpdateCartSummary(userId, () =>
-                            {
-                                cartManager?.LoadCartItems();
-                                isAdding = false;
-                                addToCartButton.interactable = true;
-                            });
+                            isAdding = false;
+                            addToCartButton.interactable = true;
                         });
                     });
                 });
           });
     }
 
-    private void UpdateCartSummary(string userId, Action onDone)
+    private void UpdateCartSummary(string userId, System.Action onDone)
     {
         Debug.Log("[DEBUG] Updating cart summary");
-        db.Child("REVIRA")
-          .Child("Consumers").Child(userId)
+        db.Child("REVIRA").Child("Consumers").Child(userId)
           .Child("cart").Child("cartItems")
-          .GetValueAsync().ContinueWithOnMainThread(sumRead =>
+          .GetValueAsync().ContinueWithOnMainThread(summaryRead =>
           {
-              if (sumRead.Exception != null)
+              if (summaryRead.Exception != null)
               {
-                  Debug.LogError("[DEBUG] Summary READ failed: " + sumRead.Exception);
+                  Debug.LogError("[DEBUG] Summary READ failed: " + summaryRead.Exception);
                   onDone?.Invoke();
                   return;
               }
 
-              float totalP = 0f; int totalI = 0;
-              if (sumRead.Result.Exists)
+              float totalP = 0f;
+              int totalI = 0;
+              if (summaryRead.Result.Exists)
               {
-                  foreach (var item in sumRead.Result.Children)
+                  foreach (var item in summaryRead.Result.Children)
                   {
                       float pr = float.Parse(item.Child("price").Value.ToString());
                       foreach (var sz in item.Child("sizes").Children)
@@ -205,14 +197,13 @@ public class ProductCartManager : MonoBehaviour
                   }
               }
 
-              var cartTotal = new Dictionary<string, object>
+              var cartTotal = new Dictionary<string, object>()
             {
                 { "totalPrice", totalP },
                 { "totalItems", totalI }
             };
 
-              db.Child("REVIRA")
-                .Child("Consumers").Child(userId)
+              db.Child("REVIRA").Child("Consumers").Child(userId)
                 .Child("cart").Child("cartTotal")
                 .SetValueAsync(cartTotal)
                 .ContinueWithOnMainThread(_ =>
@@ -226,21 +217,21 @@ public class ProductCartManager : MonoBehaviour
     private void RemoveExpiredCartItems()
     {
         string uid = userManager.UserId;
-        var refCart = db.Child("REVIRA")
-                       .Child("Consumers").Child(uid)
+        var refCart = db.Child("REVIRA").Child("Consumers").Child(uid)
                        .Child("cart").Child("cartItems");
         refCart.GetValueAsync().ContinueWithOnMainThread(task =>
         {
             if (task.Exception != null || !task.Result.Exists) return;
             long now = GetUnixTimestamp();
+            var toRemove = new List<string>();
             foreach (var item in task.Result.Children)
             {
                 if (item.Child("expiresAt").Value != null
                  && long.Parse(item.Child("expiresAt").Value.ToString()) < now)
-                {
-                    refCart.Child(item.Key).RemoveValueAsync();
-                }
+                    toRemove.Add(item.Key);
             }
+            foreach (var id in toRemove)
+                refCart.Child(id).RemoveValueAsync();
         });
     }
 
@@ -290,5 +281,7 @@ public class ProductCartManager : MonoBehaviour
     }
 
     private long GetUnixTimestamp() =>
-        (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+        (long)(System.DateTime.UtcNow - new System.DateTime(1970, 1, 1)).TotalSeconds;
 }
+
+
