@@ -28,7 +28,7 @@ public class ConfirmOrderManager : MonoBehaviour
         cancelButton.onClick.AddListener(() => confirmationPopup.SetActive(false));
     }
 
-    void OnConfirmOrder()
+   public void OnConfirmOrder()
     {
         if (orderSubmitted) return;
 
