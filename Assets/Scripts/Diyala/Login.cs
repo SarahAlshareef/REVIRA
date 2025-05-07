@@ -126,6 +126,7 @@ public class Login : MonoBehaviour
         if (errorText != null)
         {
             errorText.text = message;
+            errorText.color = Color.red;
             errorText.gameObject.SetActive(true);
 
             if (messageCoroutine != null)

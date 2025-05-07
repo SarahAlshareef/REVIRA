@@ -124,7 +124,7 @@ public class StorePayment : MonoBehaviour
                                         VoucherSection.SetActive(false);
                                         VoucherCodeInput.text = "";
 
-                                        //dbReference.Child("REVIRA").Child("Voucher Code").Child(voucherKey).Child("used").SetValueAsync(true);
+                                        dbReference.Child("REVIRA").Child("Voucher Code").Child(voucherKey).Child("used").SetValueAsync(true);
                                     }
                                 });
                             }
