@@ -65,7 +65,6 @@ public class StorePayment : MonoBehaviour
 
     public void ShowVoucherSection()
     {
-        Debug.Log("[DEBUG] ShowVoucherSection() called");
         VoucherSection.SetActive(true);
     }
 
