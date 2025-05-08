@@ -112,7 +112,7 @@ public class Login : MonoBehaviour
                 if (UserManager.Instance != null)
                 {
                     UserManager.Instance.SetUserData(userId, firstName, lastName, userEmail, accountBalance, gender, phone);
-                    SceneManager.LoadScene("Store"); 
+                    SceneManager.LoadScene("HomeScene"); 
                 }
                 else
                 {
